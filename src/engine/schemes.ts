@@ -30,6 +30,22 @@ export type Scheme = PercentScheme | RangeScheme
 
 export type SchemeLookup = (id: string) => Scheme | undefined
 
+/**
+ * Rep-range schemes are named by their shape ("range-3x8-12"), so any
+ * shape can be referenced without being registered first: accessories and
+ * today-only swaps each bring their own.
+ */
+export function rangeSchemeId(sets: number, reps: readonly [number, number]): string {
+  return `range-${sets}x${reps[0]}-${reps[1]}`
+}
+
+export function parseRangeSchemeId(id: string): RangeScheme | undefined {
+  const m = /^range-(\d+)x(\d+)-(\d+)$/.exec(id)
+  if (!m) return undefined
+  const [sets, low, high] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  return { kind: 'range', id, name: `${sets} x ${low}-${high}`, sets, reps: [low, high] }
+}
+
 export const DELOAD_SETS: PercentSet[] = [
   { pct: 40, reps: 5 },
   { pct: 50, reps: 5 },

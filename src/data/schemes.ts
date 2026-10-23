@@ -1,4 +1,4 @@
-import type { PercentSet, Scheme, SchemeLookup } from '../engine/schemes.ts'
+import { parseRangeSchemeId, type PercentSet, type Scheme, type SchemeLookup } from '../engine/schemes.ts'
 
 // nSuns 5/3/1 LP, 4-day. Percentages are of the slot's TM; the 95% 1+ set
 // is the one that decides next week's TM.
@@ -45,4 +45,4 @@ export const SCHEMES: Scheme[] = [
 
 const byId = new Map(SCHEMES.map((s) => [s.id, s]))
 
-export const findScheme: SchemeLookup = (id) => byId.get(id)
+export const findScheme: SchemeLookup = (id) => byId.get(id) ?? parseRangeSchemeId(id)

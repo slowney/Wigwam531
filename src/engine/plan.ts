@@ -5,6 +5,7 @@ import { slotTmId, type AccessorySlot, type MainSlot, type Program, type Program
 import {
   DELOAD_SETS,
   TM_TEST_SETS,
+  rangeSchemeId,
   type PercentScheme,
   type PercentSet,
   type RangeScheme,
@@ -31,7 +32,9 @@ export interface PlannedSet {
 export interface PlannedSlot {
   slotId: string
   exerciseId: string
-  tier: Tier
+  role: 'main' | 'accessory'
+  /** Main lifts only. */
+  tier?: Tier
   schemeId: string
   kind: 'percent' | 'range'
   tmExerciseId?: string
@@ -130,6 +133,7 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
   const base = {
     slotId: slot.id,
     exerciseId: slot.exerciseId,
+    role: 'main' as const,
     tier: slot.tier,
     schemeId: scheme.id,
     kind: scheme.kind,
@@ -169,6 +173,39 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
   const first = sets[0]?.weight
   const warmups = slot.warmups && first !== undefined ? warmupSets(tm, first, bar, rounding) : []
   return { ...base, tmExerciseId, tm, missingTm: false, warmups, sets }
+}
+
+/** An accessory picked for today. */
+export interface AccessoryPick {
+  id: string
+  exerciseId: string
+  sets: number
+  reps: [number, number]
+}
+
+/**
+ * Accessories run like the heavy row: no TM, just a working weight carried
+ * over from last time by double progression.
+ */
+export function planAccessory(pick: AccessoryPick, ctx: PlanContext): PlannedSlot {
+  const scheme: RangeScheme = {
+    kind: 'range',
+    id: rangeSchemeId(pick.sets, pick.reps),
+    name: '',
+    sets: pick.sets,
+    reps: pick.reps,
+  }
+  const sets = rangeSets(scheme, ctx.workingWeights?.[pick.exerciseId], ctx.weekType)
+  return {
+    slotId: pick.id,
+    exerciseId: pick.exerciseId,
+    role: 'accessory',
+    schemeId: scheme.id,
+    kind: 'range',
+    missingTm: false,
+    warmups: [],
+    sets: sets.map((s) => flagUnloadable(pick.exerciseId, s, ctx)),
+  }
 }
 
 export function planDay(day: ProgramDay, ctx: PlanContext): PlannedDay {

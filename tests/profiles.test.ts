@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { EXERCISES } from '../src/data/exercises.ts'
 import { NSUNS_4DAY_ROW } from '../src/data/presets.ts'

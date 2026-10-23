@@ -68,6 +68,9 @@ export function ProfileDetail() {
           {data.leader ? `Follows ${data.leader.name}: ` : ''}
           {data.program?.name ?? 'None'}
         </p>
+        <Link to={`/profiles/${profile.id}/week`} className="btn btn-quiet btn-small week-link">
+          This week's plan
+        </Link>
       </section>
 
       <section className="card">

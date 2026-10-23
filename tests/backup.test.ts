@@ -1,4 +1,3 @@
-import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { HOME_GYM } from '../src/data/gym.ts'
 import {
@@ -73,9 +72,20 @@ describe('backup round trip', () => {
     const name = freshName()
     const db = await seededDb(name)
     const before = await exportBackup(db, 7000)
-    expect(Object.keys(before.tables).sort()).toEqual(
-      ['bodyweights', 'exercises', 'gyms', 'profiles', 'programs', 'ratings', 'settings', 'trainingMaxes'],
-    )
+    expect(Object.keys(before.tables).sort()).toEqual([
+      'bodyweights',
+      'entries',
+      'exercises',
+      'gyms',
+      'profiles',
+      'programs',
+      'ratings',
+      'sessions',
+      'sets',
+      'settings',
+      'trainingMaxes',
+      'weeks',
+    ])
 
     // Through JSON text, the way the file actually travels.
     const text = JSON.stringify(before)

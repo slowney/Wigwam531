@@ -129,7 +129,7 @@ nothing changes until you tap to apply it.
 - Each profile has its own week. "Next workout" is that person's first pending day, but any pending day can be picked.
 - A day can be skipped. If a lift's ★ set wasn't done that week, its TM stays the same.
 - When every day is done or skipped, the profile's card on the home screen offers **Start Week N+1**. "End week" is available at any time to skip whatever is left.
-- Group sessions usually line up. If a partner missed Day 2, starting a workout says so. They can do Day 3 with the group (and Day 2 is skipped), or catch up on Day 2 while everyone else does Day 3.
+- Group sessions usually line up. If a partner missed Day 2, they're offered Day 2 next and a note shows that they're on a different day. They can catch up on it while everyone else does Day 3, or pick Day 3 to stay with the group. Day 2 then stays open until they do it, or End Week skips it.
 
 ### Deload and TM-test weeks
 
@@ -148,7 +148,8 @@ Picked at Start Week instead of a normal week.
 Before each T1: bar × 10, then 40% × 5, 50% × 5 and 60% × 3 of TM. A warm-up
 is dropped if it would be lighter than the bar or within 10 lb of the first
 working set. T2s get none by default, which can be changed per slot.
-Warm-ups are logged but don't count toward volume or PRs.
+A lift's warm-ups are logged with a single tap, and they don't count toward
+volume or PRs.
 
 ### Heavy row
 
@@ -255,7 +256,7 @@ range, the next session suggests the next step up:
 
 - **Main lifts:** e1RM per session (best set, Epley formula, 10 reps or fewer), the TM as a step line, PR markers, and a range picker (3M / 6M / 1Y / all).
 - **Any exercise:** top set, e1RM, weekly tonnage, a history list, and a rep-max table (best weight at 1–10 reps).
-- **PRs:** a badge appears as you log a rep PR at a given weight or a new e1RM PR. Each profile has a PR board.
+- **PRs:** a badge appears as you log a rep PR at a given weight, a new e1RM PR, or your heaviest weight yet. Sets are compared against earlier sessions only; an nSuns pyramid climbs within a session, so comparing against today's earlier sets would badge nearly everything. Each profile has a PR board.
 - **Muscle volume:** sets per muscle this week against target, plus the last 8 weeks.
 - **Bodyweight:** a log and a chart.
 - **Advanced (toggle per profile):** each lift ÷ bodyweight, SBD total, and DOTS (needs sex and bodyweight).
@@ -265,7 +266,8 @@ range, the next session suggests the next step up:
 - **Home:** a card per profile showing their week number, next day, a Start Week button when the week is done, and a backup reminder. A big **Start workout** button.
 - **Start workout:** pick participants (the last group is preselected) and the gym. Each person's day defaults to their next one.
 - **Session:**
-  - **Header:** a tab per person with their progress, and a shared rest timer.
+  - **Header:** a tab per person showing their progress and their own rest countdown. "Rotate" moves to the next lifter after each logged set.
+  - **Rest:** visual only: 3:00 after 1–3 rep sets at 80% of TM or more, 2:00 after other main-lift sets, 1:30 after accessories.
   - **Logging:** tap ✓ to log a set as prescribed, or use the stepper to change reps. AMRAP sets get a big rep picker.
   - **Per set:** swap, notes and RPE.
   - **Accessories:** slots with the picker, plus Fill all.
@@ -367,7 +369,7 @@ volume are calculated when read instead of being stored.
 | Install | Safari → Share → Add to Home Screen | a one-time instructions screen |
 | No signal in the garage | the service worker caches the whole app | fully offline |
 | Storage | separate from Safari; deleted if the home-screen icon is deleted | backups and a reminder |
-| Rest timer | no background timers or local notifications without a push server | keeps the screen awake during a session; sound and a flash while the app is open; shows the clock time the rest ends |
+| Rest timer | no background timers or local notifications without a push server | keeps the screen awake during a session; flashes when rest is up (visual only, no sound); shows the clock time the rest ends |
 | Vibration | not supported | visual and sound cues |
 | Updates | a new version loads on next launch | never forced mid-session, and the in-progress session survives anyway |
 

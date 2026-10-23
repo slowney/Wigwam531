@@ -82,17 +82,27 @@ is still pending.
   - stall warnings
   - normal, deload or TM-test week
 - **Week view**
-- **Start workout:** participants, gym, each person's day, and a prompt when people are on different days
+- **Start workout:**
+  - pick participants and the gym; each person's day defaults to their next pending one
+  - a note appears when people are on different days
+  - doing a later day doesn't skip an earlier one; End Week does that
 - **Session:**
   - a tab per person
-  - one-tap logging, a rep stepper, and an AMRAP picker
-  - warm-ups, undo, notes and RPE
+  - one-tap logging, a rep stepper, an AMRAP picker, and quick-rep buttons for rep ranges
+  - "rotate after each set" passes the bar to the next person with sets left
+  - warm-ups logged with a single tap per lift
+  - undo, notes and RPE
   - a warning when a weight is more than the plates can load
-- **Rest timer:** keeps the screen awake and plays a sound
-- **Changes:** swap any exercise for today, skip a day, end the week
+- **Rest timer:**
+  - each person gets their own countdown, which survives the app being killed
+  - visual only, no sound (your call)
+  - 3:00 after 1–3 rep sets at 80% of TM or more, 2:00 after other main-lift sets, 1:30 after accessories
+  - keeps the screen awake during a workout
+- **Changes:** swap any exercise for today, skip a day, end the week. A swapped-in lift with no TM runs its usual rep range, and the original lift's TM holds.
 - **Accessories:** picked from the full library for now (suggestions arrive in Phase 4). Picks apply to followers in the session.
-- **Finish:** a PR badge and a finish summary
-- **Recovery:** the session resumes after the app is killed mid-workout
+- **Double-progression prefill:** moved here from Phase 4 because the heavy row needs it. Rep-range work carries its weight over, and goes up once every set reaches the top of the range.
+- **Finish:** PR badges (compared against earlier sessions only) and a finish summary showing next week's bumps
+- **Recovery:** the session resumes after the app is killed mid-workout, and reopening the app lands back on it
 
 **Done when:**
 
@@ -113,7 +123,6 @@ From here it can replace the nSuns app for main lifts.
 - star ratings and Hide, with a prompt to rate new exercises at session end
 - quick-add of new exercises from the picker
 - injury restrictions and the shoulder-risk tag
-- double-progression prefill
 
 **Done when tests show:**
 

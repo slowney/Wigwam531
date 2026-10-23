@@ -10,9 +10,13 @@ writing code.
 
 **Status:**
 - Phase 0 is done and was verified on the phone.
-- Phase 1 (engine) is built. It's waiting on the user to compare a printed week against their nSuns app.
+- Phase 1 (engine) is done. The user compared a printed week with their real TMs against the nSuns app and it matched.
 - Phase 2 (profiles, library, backup) is built. It's waiting on the on-phone check that a backup saves to Files and restores.
-- Phase 3 is next.
+- Phase 3 (workout flow) is built.
+  - A mock three-person week ran start to finish in the phone-size preview.
+  - Kill-and-resume works there too.
+  - It's waiting on a real garage session.
+- Phase 4 is next.
 
 ## Hard rules
 
@@ -56,7 +60,7 @@ lifting numbers as fixtures; use made-up ones otherwise.
   - If `preview_start` can't find that config (a session that began in another folder), run Vite in the background and open the URL with `preview_start`'s `url` instead.
   - The pane has no share sheet. "Save a backup" falls back to a download there, so test restore by handing the file input a `File` through `DataTransfer`.
 - You can't test on the iPhone. That covers installing, launching offline, screen wake lock, sound, and the share sheet. When a change needs the phone, say so explicitly; don't claim it works.
-- Once the user has checked the nSuns 4-day week fixture against their nSuns app, it becomes the correctness check for the planning engine.
+- The planning engine has been checked against the user's nSuns app, set by set. `tests/fixtures/nsuns-4day-week.txt` is now its correctness check, so treat a fixture mismatch as an engine bug, not a fixture to regenerate.
 
 ## Conventions
 
@@ -75,7 +79,7 @@ lifting numbers as fixtures; use made-up ones otherwise.
 
 - **Separate storage.** Home-screen apps don't share storage with Safari, and deleting the icon deletes the data. That's why backups matter.
 - **Rest timer limits.** There are no background timers, no local notifications, and no `navigator.vibrate`. The rest timer can only alert while the app is open, so keep the screen awake with the Wake Lock API.
-- **Audio** needs a user gesture to unlock before it will play.
+- **No sound, by the user's choice.** The rest timer is visual only. Don't add audio.
 - **Icons.** iOS ignores SVG home-screen icons, so `scripts/make-icons.mjs` draws PNGs. Run `npm run icons` after changing it.
 - **Base path.** The app is served from `/Wigwam531/`, which is why asset URLs in `index.html` are relative.
 

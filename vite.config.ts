@@ -41,5 +41,8 @@ export default defineConfig({
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
+    // Dexie looks up indexedDB when its module first loads, so the fake has
+    // to be in place before any test file imports the database code.
+    setupFiles: ['fake-indexeddb/auto'],
   },
 })

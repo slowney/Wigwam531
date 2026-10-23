@@ -1,7 +1,9 @@
 import Dexie, { type EntityTable, type Table } from 'dexie'
+import type { AccessoryPick, WeekType } from '../engine/plan.ts'
 import type { Program, ProgramOverrides } from '../engine/program.ts'
 import type { ProgressionTable } from '../engine/progression.ts'
 import type { Exercise, Gym, Stars } from '../engine/types.ts'
+import type { DayStatus } from '../engine/week.ts'
 
 // The only module that touches IndexedDB. The engine never imports this;
 // screens read through it and hand plain objects to the engine.
@@ -64,6 +66,84 @@ export interface CustomExerciseRow extends Exercise {
   createdAt: number
 }
 
+/** One pass through a profile's program. Not a calendar week. */
+export interface WeekRow {
+  id: string
+  profileId: string
+  number: number
+  type: WeekType
+  startedAt: number
+  /** Set by End Week, or when the next week starts. */
+  endedAt?: number
+  /** Days missing from the map are pending. */
+  days: Record<string, DayStatus>
+}
+
+export interface SessionRow {
+  id: string
+  status: 'active' | 'done'
+  startedAt: number
+  endedAt?: number
+  gymId: string
+  /** Profile ids in tab order. */
+  participants: string[]
+  /** The tab on screen, saved so a reload lands on the same person. */
+  activeProfileId: string
+  /** Jump to the next lifter's tab after each logged set. */
+  rotate: boolean
+}
+
+/** One person's part of a session. */
+export interface EntryRow {
+  id: string
+  sessionId: string
+  profileId: string
+  weekId: string
+  dayId: string
+  /** Today-only swaps: main slot id → exercise id. */
+  swaps: Record<string, string>
+  accessories: AccessoryPick[]
+  /** Their own rest countdown, saved so it survives the app being killed. */
+  restEndsAt?: number
+  restSeconds?: number
+  notes?: string
+  status: 'active' | 'done' | 'empty'
+}
+
+/**
+ * A logged set. The prescription is copied in at logging time, so history
+ * stays true however the program changes later.
+ */
+export interface SetRow {
+  id: string
+  profileId: string
+  sessionId: string
+  entryId: string
+  weekId: string
+  dayId: string
+  /** Main slot id or accessory pick id. */
+  slotId: string
+  /** Set number within the slot, from 0. */
+  index: number
+  role: 'main' | 'accessory'
+  exerciseId: string
+  warmup: boolean
+  prescribedWeight?: number
+  prescribedReps: number
+  prescribedRepsMax?: number
+  pct?: number
+  amrap: boolean
+  progression: boolean
+  tmTest: boolean
+  tmExerciseId?: string
+  tm?: number
+  weight: number
+  reps: number
+  rpe?: number
+  note?: string
+  at: number
+}
+
 export type WigwamDb = Dexie & {
   settings: EntityTable<Setting, 'key'>
   profiles: EntityTable<ProfileRow, 'id'>
@@ -73,10 +153,14 @@ export type WigwamDb = Dexie & {
   gyms: EntityTable<Gym, 'id'>
   exercises: EntityTable<CustomExerciseRow, 'id'>
   ratings: Table<RatingRow, [string, string]>
+  weeks: EntityTable<WeekRow, 'id'>
+  sessions: EntityTable<SessionRow, 'id'>
+  entries: EntityTable<EntryRow, 'id'>
+  sets: EntityTable<SetRow, 'id'>
 }
 
 /** The latest db.version() below. Backups carry it so old ones can be upgraded. */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export function openDb(name = 'wigwam531'): WigwamDb {
   const db = new Dexie(name) as WigwamDb
@@ -95,6 +179,12 @@ export function openDb(name = 'wigwam531'): WigwamDb {
     })
     // Phase 0's tap counter has done its job.
     .upgrade((tx) => tx.table('settings').delete('phase0.counter'))
+  db.version(3).stores({
+    weeks: 'id, profileId, [profileId+number]',
+    sessions: 'id, status',
+    entries: 'id, sessionId, profileId, weekId',
+    sets: 'id, entryId, sessionId, profileId, weekId, [profileId+exerciseId]',
+  })
   return db
 }
 
