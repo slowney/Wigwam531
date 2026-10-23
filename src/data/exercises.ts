@@ -1,4 +1,5 @@
 import type { Exercise, ExerciseLookup } from '../engine/types.ts'
+import { ACCESSORIES } from './accessories.ts'
 
 // IDs are permanent once shipped: logged sets point at them. Fix a name by
 // editing `name`, never `id`.
@@ -109,7 +110,7 @@ export const MAIN_LIFTS: Exercise[] = [
   },
 ]
 
-export const EXERCISES: Exercise[] = [...MAIN_LIFTS]
+export const EXERCISES: Exercise[] = [...MAIN_LIFTS, ...ACCESSORIES]
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]))
 

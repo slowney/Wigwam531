@@ -45,7 +45,7 @@ Settings.
 | Cables | dual height-adjustable pulleys at a 2:1 ratio. Weights are logged as the number on the stack (10 lb steps). Lat bar, straight bar, stirrup handles, T-bar handle |
 | Bench | adjustable (flat / incline) |
 | Dumbbells | 5–55 lb in 5 lb steps |
-| Other | adjustable kettlebell, band set, ab wheel, ab mat |
+| Other | adjustable kettlebell (5–40 lb), band set, ab wheel, ab mat. Trap bar 45 lb, EZ bar 20 lb |
 
 ## Core concepts
 
@@ -203,7 +203,9 @@ defaults and can be edited.
 Each person rates exercises from **1 to 5 stars**, or **Hide** them.
 
 - **Unrated:** counts as 3★ and carries a "new" tag. The session summary asks you to rate anything new you tried.
-- **Seeded for you:** dumbbell accessories start at 4★ and everything else at 3★. Upright rows, bench dips and behind-the-neck press/pulldown start hidden.
+- **Presets:** a new profile starts from a rating preset.
+  - **Yours, "Dumbbell-first, shoulder-safe":** dumbbell accessories start at 4★, and upright rows, bench dips and behind-the-neck press/pulldown start hidden. Everything else stays unrated.
+  - **Partners** start blank.
 - **Editing:** you can change any rating from the library, from a suggestion (long-press) or from the session summary.
 
 ### How a slot gets its suggestions
@@ -378,8 +380,6 @@ volume are calculated when read instead of being stored.
 - kg
 - classic 5/3/1 three-week waves (the scheme model leaves room for them)
 
-## Open questions
+## Ideas for later
 
-1. The trap bar and EZ bar weights. They default to 45 and 20 lb and can be changed in Settings.
-2. The adjustable kettlebell's range and steps.
-3. The F22's "plate-loaded piece": is it the landmine or one cable side? It doesn't change which exercises are available, only how cable weights are logged on that side.
+- **Discomfort penalty.** Some exercises are fine at lighter weights but bother a joint. Instead of hiding them, mark them so they rank lower. The shape of this is still to be decided.

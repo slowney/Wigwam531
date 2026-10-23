@@ -9,9 +9,10 @@ The design is in `docs/PLAN.md`. The build order and each phase's spec are in
 writing code.
 
 **Status:**
-- Phase 0 is built. It's waiting on the user to enable GitHub Pages, then check it on the phone.
-- Phase 1 (engine) is built. It's waiting on the user to check the week fixture against their nSuns app.
-- Phase 2 is next.
+- Phase 0 is done and was verified on the phone.
+- Phase 1 (engine) is built. It's waiting on the user to compare a printed week against their nSuns app.
+- Phase 2 (profiles, library, backup) is built. It's waiting on the on-phone check that a backup saves to Files and restores.
+- Phase 3 is next.
 
 ## Hard rules
 
@@ -52,6 +53,8 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - `npm run build` typechecks with `tsc` and builds.
 - Run both after every change. A new rule isn't done until a test covers it.
 - The desktop app's browser pane can run the dev server at phone size: `wigwam-dev` in `.claude/launch.json`, URL `http://localhost:5173/Wigwam531/`.
+  - If `preview_start` can't find that config (a session that began in another folder), run Vite in the background and open the URL with `preview_start`'s `url` instead.
+  - The pane has no share sheet. "Save a backup" falls back to a download there, so test restore by handing the file input a `File` through `DataTransfer`.
 - You can't test on the iPhone. That covers installing, launching offline, screen wake lock, sound, and the share sheet. When a change needs the phone, say so explicitly; don't claim it works.
 - Once the user has checked the nSuns 4-day week fixture against their nSuns app, it becomes the correctness check for the planning engine.
 

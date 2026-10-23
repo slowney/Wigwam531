@@ -1,26 +1,59 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { bumpCounter, db, getSetting } from '../../db/db.ts'
-
-// Phase 0 only: proves IndexedDB survives the app being closed on the
-// phone. Goes away when real profiles land in Phase 2.
-const COUNTER = 'phase0.counter'
+import { Link } from 'react-router'
+import { backupDue } from '../../db/backup.ts'
+import { db, getSetting } from '../../db/db.ts'
+import { daysAgo } from '../format.ts'
 
 export function Home() {
-  const count = useLiveQuery(() => getSetting(COUNTER, 0, db), [], 0)
+  const data = useLiveQuery(async () => {
+    const profiles = (await db.profiles.toArray())
+      .filter((p) => !p.archived)
+      .sort((a, b) => a.createdAt - b.createdAt)
+    return { profiles, lastBackupAt: await getSetting<number | null>('lastBackupAt', null) }
+  }, [])
+  if (!data) return null
+  const { profiles, lastBackupAt } = data
+  const now = Date.now()
 
   return (
     <>
       <h1>Wigwam531</h1>
-      <section className="card">
-        <h2>Persistence check</h2>
-        <p className="muted">
-          Tap a few times, close the app completely (swipe it away), then reopen it from the home
-          screen. The number should still be there.
-        </p>
-        <button className="btn btn-big" onClick={() => void bumpCounter(COUNTER)}>
-          Tapped {count} {count === 1 ? 'time' : 'times'}
-        </button>
-      </section>
+
+      {backupDue(lastBackupAt, now, profiles.length > 0) && (
+        <Link to="/settings" className="card card-warn">
+          {lastBackupAt === null ? 'No backup yet.' : `Last backup ${daysAgo(lastBackupAt, now)}.`} Tap to save
+          one.
+        </Link>
+      )}
+
+      {profiles.length === 0 ? (
+        <section className="card">
+          <h2>Who trains here?</h2>
+          <p className="muted">
+            Add yourself first, then anyone who lifts with you. Partners can follow your program and keep their own
+            numbers.
+          </p>
+          <Link to="/profiles/new" className="btn btn-big">
+            Add a profile
+          </Link>
+        </section>
+      ) : (
+        <section className="card">
+          <h2>Lifters</h2>
+          <ul className="list">
+            {profiles.map((p) => (
+              <li key={p.id}>
+                <Link to={`/profiles/${p.id}`} className="list-row">
+                  <span className="dot" style={{ background: p.color }} />
+                  <span className="grow">{p.name}</span>
+                  <span className="chev">›</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">Starting a workout comes in the next update.</p>
+        </section>
+      )}
     </>
   )
 }

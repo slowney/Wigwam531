@@ -3,5 +3,7 @@ dist/
 dev-dist/
 *.local
 .claude/launch.json
+# Backups hold bodyweights and lifting history; the repo is public.
+wigwam531-backup-*.json
 .DS_Store
 Thumbs.db

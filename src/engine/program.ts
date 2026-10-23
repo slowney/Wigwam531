@@ -1,3 +1,5 @@
+import type { SchemeLookup } from './schemes.ts'
+
 export type Tier = 'T1' | 'T2' | 'T3'
 
 export interface MainSlot {
@@ -42,6 +44,23 @@ export interface ProgramOverrides {
 
 export function slotTmId(slot: MainSlot): string {
   return slot.tmExerciseId ?? slot.exerciseId
+}
+
+/**
+ * The TMs a program needs, in the order they first come up. Rep-range
+ * slots (the heavy row) run off a working weight instead, so they don't
+ * appear; neither do T2s that borrow another lift's TM.
+ */
+export function requiredTms(program: Program, schemes: SchemeLookup): string[] {
+  const ids: string[] = []
+  for (const day of program.days) {
+    for (const slot of day.mains) {
+      if (schemes(slot.schemeId)?.kind !== 'percent') continue
+      const id = slotTmId(slot)
+      if (!ids.includes(id)) ids.push(id)
+    }
+  }
+  return ids
 }
 
 /**

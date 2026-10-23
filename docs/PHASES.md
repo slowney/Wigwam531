@@ -57,12 +57,17 @@ is still pending.
 
 ## Phase 2: Data and profiles
 
-- Dexie schema v1 (tables in PLAN.md)
-- the exercise library and the Home gym, seeded with your equipment
-- profiles: create, edit, pick a color. Starting TMs can be typed in directly or calculated from a 1RM. A partner can follow you and copy your TMs.
-- your seeded ratings: dumbbell accessories 4★, everything else 3★; upright rows, bench dips and behind-the-neck press/pulldown hidden
-- bodyweight log
-- export through the share sheet, import with confirmation, a backup reminder, and a persistent-storage request
+- **Schema:** Dexie version 2, with the tables from PLAN.md that this phase uses. Version 1 (settings only) shipped in Phase 0 and is already on the phone, so it can't be edited. Workout tables arrive in Phase 3 as version 3.
+- **Seed data:** the exercise library (92 accessories) and the Home gym, from your equipment.
+- **Profiles:**
+  - create, edit, pick a color, and archive. Profiles are never deleted.
+  - starting TMs can be typed in directly or calculated from a 1RM
+  - a partner can follow you (one level deep) and copy your TMs
+- **Ratings** come from a preset picked when a profile is created:
+  - "Dumbbell-first, shoulder-safe" is the default for the first profile. Dumbbell accessories start at 4★. Upright rows, bench dips and behind-the-neck press/pulldown are hidden. Everything else stays unrated, which sorts as 3★.
+  - partners start blank
+- **Bodyweight log.**
+- **Backup:** export through the share sheet, import with a confirmation step, and a backup reminder. The persistent-storage request already shipped in Phase 0.
 
 **Done when:**
 
@@ -157,5 +162,6 @@ off.
 - combined group view (sets ordered by weight, who's up next)
 - partners logging on their own phones (needs a sync backend)
 - typing in past TMs so the charts don't start empty
+- a discomfort penalty: an exercise that bothers a joint ranks lower instead of being hidden
 - classic 5/3/1 three-week waves
 - kg

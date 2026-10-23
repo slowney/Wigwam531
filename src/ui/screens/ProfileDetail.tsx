@@ -1,0 +1,197 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { useState } from 'react'
+import { Link, useParams } from 'react-router'
+import { findExercise } from '../../data/exercises.ts'
+import { findScheme } from '../../data/schemes.ts'
+import { db, type BodyweightRow } from '../../db/db.ts'
+import {
+  addBodyweight,
+  archiveProfile,
+  deleteBodyweight,
+  loadBodyweights,
+  loadProgram,
+  loadTms,
+  restoreProfile,
+  setTm,
+} from '../../db/profiles.ts'
+import { requiredTms } from '../../engine/program.ts'
+import { BackLink, ConfirmButton, parseLb } from '../components/forms.tsx'
+import { formatDate } from '../format.ts'
+
+export function ProfileDetail() {
+  const { id = '' } = useParams()
+  const data = useLiveQuery(async () => {
+    const profile = await db.profiles.get(id)
+    if (!profile) return { profile }
+    const row = await db.programs.get(id)
+    return {
+      profile,
+      program: await loadProgram(id),
+      leader: row?.followsProfileId ? await db.profiles.get(row.followsProfileId) : undefined,
+      followers: await db.programs.where('followsProfileId').equals(id).count(),
+      tms: await loadTms(id),
+      bodyweights: await loadBodyweights(id),
+    }
+  }, [id])
+  if (!data) return null
+
+  const { profile } = data
+  if (!profile) {
+    return (
+      <>
+        <BackLink to="/profiles" label="Profiles" />
+        <p className="muted">That profile doesn't exist.</p>
+      </>
+    )
+  }
+
+  const tms = data.tms ?? {}
+  const lifts = data.program ? requiredTms(data.program, findScheme) : []
+  // TMs for lifts the program no longer uses stay visible; they're still history.
+  const extra = Object.keys(tms).filter((id) => !lifts.includes(id))
+
+  return (
+    <>
+      <BackLink to="/profiles" label="Profiles" />
+      <div className="title-row">
+        <span className="dot dot-big" style={{ background: profile.color }} />
+        <h1 className="grow">{profile.name}</h1>
+        <Link to={`/profiles/${profile.id}/edit`} className="btn btn-quiet btn-small">
+          Edit
+        </Link>
+      </div>
+      {profile.archived && <p className="muted">Archived.</p>}
+
+      <section className="card">
+        <h2>Program</h2>
+        <p className="no-margin">
+          {data.leader ? `Follows ${data.leader.name}: ` : ''}
+          {data.program?.name ?? 'None'}
+        </p>
+      </section>
+
+      <section className="card">
+        <h2>Training maxes</h2>
+        {[...lifts, ...extra].map((exerciseId) => (
+          <TmRow key={exerciseId} profileId={profile.id} exerciseId={exerciseId} value={tms[exerciseId]} />
+        ))}
+      </section>
+
+      <BodyweightCard profileId={profile.id} entries={data.bodyweights ?? []} />
+
+      <section className="card">
+        {profile.archived ? (
+          <button type="button" className="btn btn-quiet" onClick={() => void restoreProfile(profile.id)}>
+            Restore profile
+          </button>
+        ) : (
+          <>
+            <ConfirmButton
+              label="Archive profile"
+              confirmLabel="Tap again to archive"
+              onConfirm={() => void archiveProfile(profile.id)}
+            />
+            <p className="muted small">
+              Archiving hides {profile.name} without deleting anything.
+              {data.followers ? ' Anyone following them keeps a copy of the program as it is now.' : ''}
+            </p>
+          </>
+        )}
+      </section>
+    </>
+  )
+}
+
+function TmRow(props: { profileId: string; exerciseId: string; value: number | undefined }) {
+  const [editing, setEditing] = useState(false)
+  const [text, setText] = useState('')
+  const name = findExercise(props.exerciseId)?.name ?? props.exerciseId
+
+  async function save() {
+    const lb = parseLb(text)
+    if (lb === undefined) return
+    await setTm(props.profileId, props.exerciseId, lb)
+    setEditing(false)
+  }
+
+  if (!editing) {
+    return (
+      <div className="row">
+        <span className="grow">{name}</span>
+        <strong>{props.value ?? '—'}</strong>
+        <button
+          type="button"
+          className="btn btn-quiet btn-small"
+          onClick={() => {
+            setText(props.value ? String(props.value) : '')
+            setEditing(true)
+          }}
+        >
+          {props.value ? 'Edit' : 'Set'}
+        </button>
+      </div>
+    )
+  }
+  return (
+    <div className="row">
+      <span className="grow">{name}</span>
+      <input
+        className="input input-number"
+        inputMode="decimal"
+        autoFocus
+        value={text}
+        aria-label={`${name} TM`}
+        onChange={(e) => setText(e.target.value.replace(/[^0-9.]/g, ''))}
+      />
+      <button type="button" className="btn btn-small" disabled={parseLb(text) === undefined} onClick={() => void save()}>
+        Save
+      </button>
+      <button type="button" className="btn btn-quiet btn-small" onClick={() => setEditing(false)}>
+        Cancel
+      </button>
+    </div>
+  )
+}
+
+function BodyweightCard({ profileId, entries }: { profileId: string; entries: BodyweightRow[] }) {
+  const [text, setText] = useState('')
+  const lb = parseLb(text)
+
+  return (
+    <section className="card">
+      <h2>Bodyweight</h2>
+      <div className="row">
+        <input
+          className="input grow"
+          inputMode="decimal"
+          placeholder="Today's weight, lb"
+          aria-label="Bodyweight in pounds"
+          value={text}
+          onChange={(e) => setText(e.target.value.replace(/[^0-9.]/g, ''))}
+        />
+        <button
+          type="button"
+          className="btn"
+          disabled={lb === undefined}
+          onClick={() => {
+            if (lb === undefined) return
+            void addBodyweight(profileId, lb).then(() => setText(''))
+          }}
+        >
+          Log
+        </button>
+      </div>
+      {entries.length > 0 && (
+        <ul className="list">
+          {entries.slice(0, 10).map((b) => (
+            <li key={b.id} className="row">
+              <span className="grow muted">{formatDate(b.at)}</span>
+              <strong>{b.lb} lb</strong>
+              <ConfirmButton small label="Delete" confirmLabel="Delete?" onConfirm={() => void deleteBodyweight(b.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  )
+}

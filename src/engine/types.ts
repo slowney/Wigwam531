@@ -99,8 +99,20 @@ export interface Exercise {
   /** Default sets and rep range when used as an accessory. */
   sets: number
   reps: [number, number]
+  /** Planks and carries are held for time; `reps` is then seconds. */
+  unit?: 'seconds'
   lowerBack?: 'moderate' | 'high'
   tags?: Tag[]
+}
+
+export type Stars = 1 | 2 | 3 | 4 | 5
+
+/** One person's opinion of one exercise. Unrated exercises have no row and sort as 3. */
+export interface Rating {
+  exerciseId: string
+  stars?: Stars
+  /** Kept separate from stars so un-hiding restores the old rating. */
+  hidden: boolean
 }
 
 export type ExerciseLookup = (id: string) => Exercise | undefined
