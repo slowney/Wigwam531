@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { bumpCounter, db, getSetting } from '../../db/db'
+import { bumpCounter, db, getSetting } from '../../db/db.ts'
 
 // Phase 0 only: proves IndexedDB survives the app being closed on the
 // phone. Goes away when real profiles land in Phase 2.

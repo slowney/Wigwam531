@@ -8,8 +8,10 @@ The design is in `docs/PLAN.md`. The build order and each phase's spec are in
 `docs/PHASES.md`. Read the spec for the phase you're working on before
 writing code.
 
-**Status:** Phase 0 is built and waiting on the user's check on the phone.
-Phase 1 is next.
+**Status:**
+- Phase 0 is built. It's waiting on the user to enable GitHub Pages, then check it on the phone.
+- Phase 1 (engine) is built. It's waiting on the user to check the week fixture against their nSuns app.
+- Phase 2 is next.
 
 ## Hard rules
 
@@ -56,6 +58,8 @@ lifting numbers as fixtures; use made-up ones otherwise.
 ## Conventions
 
 - **TypeScript:** strict, with `noUncheckedIndexedAccess`. React function components. Dexie `useLiveQuery` for reactive reads; no state library.
+- **Imports:** relative imports carry their `.ts`/`.tsx` extension, and type-only imports use `import type`. Node runs the engine directly by stripping types (`npm run week`), and `verbatimModuleSyntax` / `erasableSyntaxOnly` keep it that way. So no enums or namespaces.
+- **`npm run week -- bench=225 squat=275 ohp=135 deadlift=315`** prints a planned week. Add `row=135` for the heavy-row preset, and `deload` or `tmTest` for those week types. It renders the same way as `tests/fixtures/nsuns-4day-week.txt`.
 - **Weights:** pounds, stored as numbers. Round prescribed weights with the engine's rounding helper, never inline.
 - **Comments:** explain *why*, not *what*.
 - **Dependencies:** none added without asking. Versions are pinned exactly (`npm install --save-exact`).

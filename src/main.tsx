@@ -1,8 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router'
-import { requestPersistence } from './db/db'
-import { App } from './ui/App'
+import { requestPersistence } from './db/db.ts'
+import { App } from './ui/App.tsx'
 import './ui/styles.css'
 
 void requestPersistence()

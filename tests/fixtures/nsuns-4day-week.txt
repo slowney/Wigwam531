@@ -1,0 +1,35 @@
+nSuns 4-day, normal week
+TMs: Bench press 225, Squat 275, Overhead press 135, Deadlift 315
+Weights round to the nearest 5 lb. [Brackets] mark the 1+ set that sets next week's TM.
+
+DAY 1
+  Bench press - T1 - TM 225
+    warm-up: 45x10, 90x5, 115x5, 135x3
+    sets:    170x5, 190x3, [215x1+], 205x3, 190x5, 180x3, 170x5, 160x3, 145x5+
+  Overhead press - T2 - TM 135
+    sets:    70x6, 80x5, 95x3, 95x5, 95x7, 95x4, 95x6, 95x8
+  Accessories: 3 open slots
+
+DAY 2
+  Squat - T1 - TM 275
+    warm-up: 45x10, 110x5, 140x5, 165x3
+    sets:    205x5, 235x3, [260x1+], 250x3, 235x3, 220x3, 205x5, 195x5, 180x5+
+  Sumo deadlift - T2 - Deadlift TM 315
+    sets:    160x5, 190x5, 220x3, 220x5, 220x7, 220x4, 220x6, 220x8
+  Accessories: 3 open slots
+
+DAY 3
+  Overhead press - T1 - TM 135
+    warm-up: 45x10, 55x5, 70x5, 80x3
+    sets:    100x5, 115x3, [130x1+], 120x3, 115x3, 110x3, 100x5, 95x5, 90x5+
+  Incline bench press - T2 - Bench press TM 225
+    sets:    90x6, 115x5, 135x3, 135x5, 135x7, 135x4, 135x6, 135x8
+  Accessories: 3 open slots
+
+DAY 4
+  Deadlift - T1 - TM 315
+    warm-up: 45x10, 125x5, 160x5, 190x3
+    sets:    235x5, 270x3, [300x1+], 285x3, 270x3, 250x3, 235x3, 220x3, 205x3+
+  Front squat - T2 - Squat TM 275
+    sets:    95x5, 125x5, 150x3, 150x5, 150x7, 150x4, 150x6, 150x8
+  Accessories: 3 open slots

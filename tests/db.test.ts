@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
-import { bumpCounter, getSetting, openDb } from '../src/db/db'
+import { bumpCounter, getSetting, openDb } from '../src/db/db.ts'
 
 describe('settings store', () => {
   it('keeps a value across closing and reopening the database', async () => {

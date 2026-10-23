@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { isPersisted } from '../../db/db'
+import { isPersisted } from '../../db/db.ts'
 
 function isStandalone(): boolean {
   // navigator.standalone is the iOS-only flag; the media query covers the rest.

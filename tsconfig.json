@@ -14,6 +14,11 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
+    // Explicit .ts extensions and type-only imports let Node 24 run the
+    // engine directly (scripts/week.mjs) by stripping types, no build step.
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
     "types": ["vite/client", "vite-plugin-pwa/react"]
   },
   "include": ["src", "tests", "vite.config.ts"]

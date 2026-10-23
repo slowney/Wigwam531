@@ -331,11 +331,11 @@ fantasy bot.
 
 | Table | Holds |
 |---|---|
-| profiles | name, color, sex (optional, for DOTS), muscle targets, metric toggles |
+| profiles | name, color, sex (optional, for DOTS), muscle targets, progression tables, metric toggles |
 | bodyweights | profileId, date, lb |
 | gyms | name, equipment tags, dumbbell weights, plates, bars, cable stack steps |
 | exercises | custom exercises (built-ins ship in code) |
-| programs | profileId, followsProfileId, days → main and accessory slots, slot overrides, progression tables |
+| programs | profileId, followsProfileId, days → main and accessory slots, slot overrides |
 | trainingMaxes | profileId, exerciseId, lb, date, reason |
 | weeks | profileId, number, type, per-day status, progression decisions |
 | sessions | date, gymId, participants, notes |

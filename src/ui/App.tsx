@@ -1,9 +1,9 @@
 import { NavLink, Route, Routes } from 'react-router'
-import { Home } from './screens/Home'
-import { Progress } from './screens/Progress'
-import { Profiles } from './screens/Profiles'
-import { Settings } from './screens/Settings'
-import { UpdateBanner } from './UpdateBanner'
+import { Home } from './screens/Home.tsx'
+import { Progress } from './screens/Progress.tsx'
+import { Profiles } from './screens/Profiles.tsx'
+import { Settings } from './screens/Settings.tsx'
+import { UpdateBanner } from './UpdateBanner.tsx'
 
 const TABS = [
   { to: '/', label: 'Home', end: true },
