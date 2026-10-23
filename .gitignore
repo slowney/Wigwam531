@@ -1,0 +1,7 @@
+node_modules/
+dist/
+dev-dist/
+*.local
+.claude/launch.json
+.DS_Store
+Thumbs.db
