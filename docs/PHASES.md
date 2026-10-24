@@ -224,7 +224,7 @@ The Progress tab becomes a page per person (chips at the top switch between them
 
 - plate calculator (the plate inventory is already stored)
 - combined group view (sets ordered by weight, who's up next)
-- partners logging on their own phones (needs a sync backend)
+- partners logging on their own phones (needs a sync backend): planned in [SYNC.md](SYNC.md), to go over before scheduling
 - typing in past TMs so the charts don't start empty
 - classic 5/3/1 three-week waves
 - kg
