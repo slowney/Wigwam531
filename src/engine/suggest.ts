@@ -5,6 +5,7 @@ import {
   MUSCLES,
   type Equipment,
   type Exercise,
+  type Focus,
   type Muscle,
   type MuscleTargets,
   type Rating,
@@ -13,21 +14,62 @@ import {
 
 export interface Gap {
   muscle: Muscle
-  /** Projected weighted sets for the week. */
+  /**
+   * Projected weighted sets for the week against the target. For a focus
+   * gap (`kind: 'focus'`), accessory sets against the focus's extra sets.
+   */
   have: number
   target: number
   gap: number
+  kind: 'target' | 'focus'
+  /** Part of an active focus, so it sorts ahead of everything else. */
+  focused: boolean
 }
 
-/** Muscles projected to finish the week under target, biggest shortfall first. */
-export function behind(projected: MuscleCounts, targets: MuscleTargets): Gap[] {
-  return MUSCLES.map((muscle) => {
+export interface FocusState {
+  /** Extra accessory sets a week wanted, by muscle. */
+  extras: Partial<Record<Muscle, number>>
+  /** Accessory sets projected for the week, by muscle. */
+  accessory: MuscleCounts
+}
+
+/** The extra sets each muscle is owed by the focuses in force; overlapping focuses take the larger. */
+export function focusExtras(focuses: ReadonlyArray<Focus>, now: number): Partial<Record<Muscle, number>> {
+  const extras: Partial<Record<Muscle, number>> = {}
+  for (const f of focuses) {
+    if (f.until !== undefined && f.until <= now) continue
+    for (const m of f.muscles) extras[m] = Math.max(extras[m] ?? 0, f.extraSets)
+  }
+  return extras
+}
+
+/**
+ * Muscles projected to finish the week short, focused ones first, then
+ * biggest shortfall first.
+ *
+ * A focused muscle is short if it's under its normal target or if its
+ * accessory sets are under the focus's extra sets, whichever gap is bigger.
+ * Counting accessories separately is the point: main lifts already give
+ * chest or glutes far more than their targets, so a higher target alone
+ * would never surface them.
+ */
+export function behind(projected: MuscleCounts, targets: MuscleTargets, focus?: FocusState): Gap[] {
+  return MUSCLES.flatMap((muscle): Gap[] => {
     const have = projected[muscle] ?? 0
-    const target = targets[muscle]
-    return { muscle, have, target, gap: target - have }
-  })
-    .filter((g) => g.gap > 0)
-    .sort((a, b) => b.gap - a.gap || MUSCLES.indexOf(a.muscle) - MUSCLES.indexOf(b.muscle))
+    const extra = focus?.extras[muscle] ?? 0
+    const focused = extra > 0
+    let gap: Gap = { muscle, have, target: targets[muscle], gap: targets[muscle] - have, kind: 'target', focused }
+    if (focused) {
+      const accessory = focus!.accessory[muscle] ?? 0
+      if (extra - accessory > gap.gap) {
+        gap = { muscle, have: accessory, target: extra, gap: extra - accessory, kind: 'focus', focused }
+      }
+    }
+    return gap.gap > 0 ? [gap] : []
+  }).sort(
+    (a, b) =>
+      Number(b.focused) - Number(a.focused) || b.gap - a.gap || MUSCLES.indexOf(a.muscle) - MUSCLES.indexOf(b.muscle),
+  )
 }
 
 export function restricts(r: Restriction, e: Exercise): boolean {
@@ -56,7 +98,7 @@ export interface SuggestInput {
   /** When each exercise was last done, epoch ms. */
   lastDone: ReadonlyMap<string, number>
   /** Narrow to one behind muscle. */
-  focus?: Muscle
+  only?: Muscle
   sort: 'rating' | 'fit'
 }
 
@@ -117,7 +159,7 @@ function byFit(a: Suggestion, b: Suggestion): number {
 
 /** Exercises with a behind muscle as a primary mover, best first. */
 export function suggest(input: SuggestInput): Suggestion[] {
-  const gaps = input.focus ? input.gaps.filter((g) => g.muscle === input.focus) : input.gaps
+  const gaps = input.only ? input.gaps.filter((g) => g.muscle === input.only) : input.gaps
   const wanted = new Set(gaps.map((g) => g.muscle))
   return input.exercises
     .filter((e) => usable(e, input) && MUSCLES.some((m) => wanted.has(m) && e.muscles[m] === 1))
@@ -144,25 +186,27 @@ export function search(input: SuggestInput, query: string): Suggestion[] {
  * that gap, and lats would win the next slot too.
  */
 export function fillSlots(
-  input: Omit<SuggestInput, 'gaps' | 'focus' | 'sort'> & {
+  input: Omit<SuggestInput, 'gaps' | 'only' | 'sort'> & {
     projected: MuscleCounts
     targets: MuscleTargets
+    focus?: FocusState
     /** Primary muscles of accessories already picked today. */
     usedToday?: ReadonlyArray<Muscle>
   },
   slots: number,
 ): Exercise[] {
   let projected = input.projected
+  let focus = input.focus
   const exclude = new Set(input.exclude)
   const used = new Set(input.usedToday)
   const picked: Exercise[] = []
   for (let i = 0; i < slots; i++) {
-    const gaps = behind(projected, input.targets)
+    const gaps = behind(projected, input.targets, focus)
     const order = [...gaps.filter((g) => !used.has(g.muscle)), ...gaps.filter((g) => used.has(g.muscle))]
     // A gap with nothing usable for it (all hidden, say) passes to the next.
     let best: { suggestion: Suggestion; muscle: Muscle } | undefined
     for (const gap of order) {
-      const top = suggest({ ...input, exclude, gaps, focus: gap.muscle, sort: 'rating' })[0]
+      const top = suggest({ ...input, exclude, gaps, only: gap.muscle, sort: 'rating' })[0]
       if (top) {
         best = { suggestion: top, muscle: gap.muscle }
         break
@@ -174,6 +218,8 @@ export function fillSlots(
     exclude.add(exercise.id)
     used.add(best.muscle)
     projected = withExercise(projected, exercise, exercise.sets)
+    // Fill all only ever adds accessories, so they count toward a focus too.
+    if (focus) focus = { ...focus, accessory: withExercise(focus.accessory, exercise, exercise.sets) }
   }
   return picked
 }

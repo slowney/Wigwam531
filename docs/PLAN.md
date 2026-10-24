@@ -205,6 +205,19 @@ arms, delts and hamstrings, the usual nSuns gaps.
 Each profile has a weekly target per muscle. They start at sensible
 defaults and can be edited.
 
+### Focus
+
+A focus biases accessories toward chosen muscles for a while. You can use a
+preset (bench press, overhead press, squat, deadlift, pull-ups, arms,
+glutes, shoulders, back, core) or pick muscles yourself.
+
+- **Extra accessory sets:** each focused muscle wants extra accessory sets a week: "a little" (+3, about one more accessory), "more" (+6) or "a lot" (+9).
+- **Why extra sets, not a higher target:** main lifts already give chest, triceps or glutes far more than their targets, so a bigger target would never show them as behind.
+- **Bigger gap wins:** a focused muscle that's behind on its normal target anyway keeps whichever gap is bigger.
+- **Priority:** focused muscles sort first in the picker's chips and in Fill all until their extra sets are in. The rest of the week goes back to the usual gaps.
+- **How long:** a focus runs until removed, or for 4, 8 or 12 weeks. Overlapping focuses take the larger extra.
+- **Default:** none, so suggestions follow the weekly targets as before.
+
 ### Ratings
 
 Each person rates exercises from **1 to 5 stars**, or **Hide** them.

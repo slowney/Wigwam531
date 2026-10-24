@@ -144,6 +144,10 @@ From here it can replace the nSuns app for main lifts.
 …and you've used the suggestions for a real week and told me what felt
 off.
 
+**Added after first use:** a focus. Pick muscles to bias accessories
+toward, as extra accessory sets a week, with an optional end date. See
+PLAN.md.
+
 ## Phase 5: Program editor
 
 - **Days:** add, remove and reorder (3–5 days)

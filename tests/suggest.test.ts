@@ -10,6 +10,7 @@ import {
   activeRestrictions,
   behind,
   fillSlots,
+  focusExtras,
   search,
   suggest,
   type SuggestInput,
@@ -96,7 +97,7 @@ describe('suggestions', () => {
   })
 
   it('narrow to one muscle when its chip is tapped', () => {
-    const list = suggest(input({ focus: 'biceps' }))
+    const list = suggest(input({ only: 'biceps' }))
     expect(list.every((s) => s.exercise.muscles.biceps === 1)).toBe(true)
     expect(ids(list)).toContain('hammer-curl')
   })
@@ -247,6 +248,70 @@ describe('Fill all', () => {
       EXERCISES.filter((e) => e.muscles.lats === 1).map((e) => [e.id, 'hidden' as const]),
     )
     expect(fill({ ratings: ratings(noLats) })[0]).toContain('rearDelts')
+  })
+})
+
+describe('a focus', () => {
+  const primaries = (list: { muscles: Partial<Record<Muscle, number>> }[]) =>
+    list.map((e) => Object.entries(e.muscles).filter(([, w]) => w === 1).map(([m]) => m))
+
+  it('surfaces muscles the main lifts already cover, ahead of everything else', () => {
+    const gaps = behind(stockWeek, DEFAULT_TARGETS, { extras: { chest: 3, frontDelts: 3, triceps: 3 }, accessory: {} })
+    expect(gaps.slice(0, 3).map((g) => [g.muscle, g.kind, g.have, g.target])).toEqual([
+      ['chest', 'focus', 0, 3],
+      ['frontDelts', 'focus', 0, 3],
+      ['triceps', 'focus', 0, 3],
+    ])
+    expect(gaps[3]?.muscle).toBe('lats') // the usual gaps follow
+  })
+
+  it('is met by accessory sets, never by main-lift sets', () => {
+    const met = behind(stockWeek, DEFAULT_TARGETS, { extras: { triceps: 3 }, accessory: { triceps: 3, chest: 1.5 } })
+    expect(met.map((g) => g.muscle)).not.toContain('triceps')
+  })
+
+  it('keeps the bigger gap when the muscle is behind anyway, and still puts it first', () => {
+    const [first] = behind(stockWeek, DEFAULT_TARGETS, { extras: { calves: 3 }, accessory: {} })
+    expect(first).toMatchObject({ muscle: 'calves', kind: 'target', gap: 6, focused: true })
+  })
+
+  it('takes the larger extra where focuses overlap, and drops ones that have run out', () => {
+    const bench = { id: 'b', name: 'Bench', muscles: ['chest', 'triceps'] as Muscle[], extraSets: 3 }
+    const arms = { id: 'a', name: 'Arms', muscles: ['biceps', 'triceps'] as Muscle[], extraSets: 6, until: 1_000 }
+    expect(focusExtras([bench, arms], 500)).toEqual({ chest: 3, triceps: 6, biceps: 6 })
+    expect(focusExtras([bench, arms], 1_000)).toEqual({ chest: 3, triceps: 3 })
+  })
+
+  it('steers Fill all to the focused muscles first', () => {
+    const picks = fillSlots(
+      {
+        ...input(),
+        projected: stockWeek,
+        targets: DEFAULT_TARGETS,
+        focus: { extras: { biceps: 3, triceps: 3 }, accessory: {} },
+      },
+      3,
+    )
+    const [first, second, third] = primaries(picks)
+    expect(first).toContain('biceps')
+    expect(second).toContain('triceps')
+    expect(third).toContain('lats')
+  })
+
+  it('counts what Fill all adds toward the focus', () => {
+    const picks = primaries(
+      fillSlots(
+        { ...input(), projected: stockWeek, targets: DEFAULT_TARGETS, focus: { extras: { chest: 3 }, accessory: {} } },
+        3,
+      ),
+    )
+    expect(picks[0]).toContain('chest')
+    expect(picks[1]).not.toContain('chest')
+    expect(picks[2]).not.toContain('chest')
+  })
+
+  it('changes nothing when there is none', () => {
+    expect(behind(stockWeek, DEFAULT_TARGETS, { extras: {}, accessory: {} })).toEqual(stockGaps)
   })
 })
 

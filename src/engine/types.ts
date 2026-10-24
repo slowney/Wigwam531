@@ -129,6 +129,19 @@ export interface Restriction {
   until?: number
 }
 
+/**
+ * Muscles to bias accessories toward for a while: each wants `extraSets`
+ * accessory sets a week on top of whatever the main lifts already give it.
+ */
+export interface Focus {
+  id: string
+  name: string
+  muscles: Muscle[]
+  extraSets: number
+  /** Epoch ms. Open-ended when absent. */
+  until?: number
+}
+
 export type Stars = 1 | 2 | 3 | 4 | 5
 
 /** One person's opinion of one exercise. Unrated exercises have no row and sort as 3. */

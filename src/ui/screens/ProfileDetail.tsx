@@ -5,6 +5,8 @@ import { findExercise } from '../../data/exercises.ts'
 import { findScheme } from '../../data/schemes.ts'
 import { db, type BodyweightRow, type RestrictionRow } from '../../db/db.ts'
 import { loadRestrictions, removeRestriction } from '../../db/restrictions.ts'
+import { MUSCLE_LABELS, type Focus } from '../../engine/types.ts'
+import { FocusSheet } from '../components/FocusSheet.tsx'
 import { RestrictionSheet } from '../components/RestrictionSheet.tsx'
 import {
   addBodyweight,
@@ -13,6 +15,7 @@ import {
   loadBodyweights,
   loadProgram,
   loadTms,
+  removeFocus,
   restoreProfile,
   setTm,
 } from '../../db/profiles.ts'
@@ -83,7 +86,7 @@ export function ProfileDetail() {
         ))}
       </section>
 
-      <AccessoriesCard profileId={profile.id} restrictions={data.restrictions ?? []} />
+      <AccessoriesCard profileId={profile.id} restrictions={data.restrictions ?? []} focuses={profile.focuses ?? []} />
 
       <BodyweightCard profileId={profile.id} entries={data.bodyweights ?? []} />
 
@@ -161,8 +164,15 @@ function TmRow(props: { profileId: string; exerciseId: string; value: number | u
   )
 }
 
-function AccessoriesCard({ profileId, restrictions }: { profileId: string; restrictions: RestrictionRow[] }) {
+function untilText(until: number | undefined, now: number): string {
+  if (until === undefined) return 'Until removed'
+  return until <= now ? `Ended ${formatDate(until)}` : `Until ${formatDate(until)}`
+}
+
+function AccessoriesCard(props: { profileId: string; restrictions: RestrictionRow[]; focuses: Focus[] }) {
+  const { profileId, restrictions, focuses } = props
   const [adding, setAdding] = useState(false)
+  const [addingFocus, setAddingFocus] = useState(false)
   const now = Date.now()
   return (
     <section className="card">
@@ -175,7 +185,32 @@ function AccessoriesCard({ profileId, restrictions }: { profileId: string; restr
           Muscle targets
         </Link>
       </div>
-      <span className="label">Restrictions</span>
+
+      <span className="label">Focus</span>
+      {focuses.length === 0 && <p className="muted small no-margin">None: suggestions follow the weekly targets.</p>}
+      <ul className="list">
+        {focuses.map((f) => {
+          const ended = f.until !== undefined && f.until <= now
+          return (
+            <li key={f.id} className={ended ? 'row muted' : 'row'}>
+              <span className="grow stack">
+                <span>{f.name}</span>
+                <span className="muted small">
+                  +{f.extraSets} sets a week each · {f.muscles.map((m) => MUSCLE_LABELS[m].toLowerCase()).join(', ')} ·{' '}
+                  {untilText(f.until, now)}
+                </span>
+              </span>
+              <ConfirmButton small label="Remove" confirmLabel="Remove?" onConfirm={() => void removeFocus(profileId, f.id)} />
+            </li>
+          )
+        })}
+      </ul>
+      <button type="button" className="btn btn-quiet btn-small add-restriction" onClick={() => setAddingFocus(true)}>
+        + Add a focus
+      </button>
+      {addingFocus && <FocusSheet profileId={profileId} onClose={() => setAddingFocus(false)} />}
+
+      <span className="label section-label">Restrictions</span>
       {restrictions.length === 0 && <p className="muted small no-margin">None.</p>}
       <ul className="list">
         {restrictions.map((r) => {
@@ -184,9 +219,7 @@ function AccessoriesCard({ profileId, restrictions }: { profileId: string; restr
             <li key={r.id} className={ended ? 'row muted' : 'row'}>
               <span className="grow stack">
                 <span>{r.name}</span>
-                <span className="muted small">
-                  {r.until === undefined ? 'Until removed' : ended ? `Ended ${formatDate(r.until)}` : `Until ${formatDate(r.until)}`}
-                </span>
+                <span className="muted small">{untilText(r.until, now)}</span>
               </span>
               <ConfirmButton small label="Remove" confirmLabel="Remove?" onConfirm={() => void removeRestriction(r.id)} />
             </li>

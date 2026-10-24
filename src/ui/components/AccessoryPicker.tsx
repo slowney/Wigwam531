@@ -6,8 +6,9 @@ import { Sheet } from './Sheet.tsx'
 
 const sets = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1))
 
+/** "Lats 4/10" for the weekly target; "Chest 0/3 focus" for a focus's extra accessory sets. */
 export function gapText(g: Gap): string {
-  return `${MUSCLE_LABELS[g.muscle]} ${sets(g.have)}/${sets(g.target)}`
+  return `${MUSCLE_LABELS[g.muscle]} ${sets(g.have)}/${sets(g.target)}${g.kind === 'focus' ? ' focus' : ''}`
 }
 
 function starsText(s: Suggestion): string {
@@ -21,7 +22,7 @@ function starsText(s: Suggestion): string {
  */
 export function AccessoryPicker(props: {
   title: string
-  base: Omit<SuggestInput, 'focus' | 'sort'>
+  base: Omit<SuggestInput, 'only' | 'sort'>
   /** "Oct 14 · 35 × 12, 12, 10", or undefined if never done. */
   lastTime: (exerciseId: string) => string | undefined
   /** Shown on rows hard on the lower back when a squat or deadlift day is next. */
@@ -36,7 +37,7 @@ export function AccessoryPicker(props: {
   const [focus, setFocus] = useState<Muscle>()
   const [sort, setSort] = useState<'rating' | 'fit'>('rating')
   const q = query.trim()
-  const results = q ? search({ ...props.base, sort }, q) : suggest({ ...props.base, focus, sort })
+  const results = q ? search({ ...props.base, sort }, q) : suggest({ ...props.base, only: focus, sort })
   const exact = q && results.some((s) => s.exercise.name.toLowerCase() === q.toLowerCase())
 
   return (
@@ -66,7 +67,7 @@ export function AccessoryPicker(props: {
                 type="button"
                 role="radio"
                 aria-checked={focus === g.muscle}
-                className={focus === g.muscle ? 'chip chip-on' : 'chip'}
+                className={`chip${focus === g.muscle ? ' chip-on' : ''}${g.focused ? ' chip-focus' : ''}`}
                 onClick={() => setFocus(focus === g.muscle ? undefined : g.muscle)}
               >
                 {gapText(g)}

@@ -13,6 +13,8 @@ export function ProfileTargets() {
   const { profile, targets } = data
   if (!profile) return <p className="muted">That profile doesn't exist.</p>
   const changed = MUSCLES.some((m) => targets[m] !== DEFAULT_TARGETS[m])
+  const now = Date.now()
+  const active = (profile.focuses ?? []).filter((f) => f.until === undefined || f.until > now)
 
   return (
     <>
@@ -22,6 +24,12 @@ export function ProfileTargets() {
         Weekly sets per muscle. Main lifts count too: a set counts in full for the muscles it mainly works and as half
         for the ones it helps. Anything under target shows up as "behind" when picking accessories.
       </p>
+      {active.length > 0 && (
+        <p className="small">
+          On top of these, {active.map((f) => `${f.name} focus (+${f.extraSets} accessory sets a week each)`).join(' and ')}{' '}
+          comes first. Change it on the profile.
+        </p>
+      )}
       <section className="card">
         {MUSCLES.map((m) => (
           <div key={m} className="tm-line">

@@ -5,7 +5,14 @@ import { allExercises, findExercise, setCustomExercises } from '../src/data/exer
 import { RESTRICTION_PRESETS } from '../src/data/restrictionPresets.ts'
 import { DEFAULT_TARGETS } from '../src/data/targets.ts'
 import { addCustomExercise, customExercise, loadRatings, setRating, type NewExercise } from '../src/db/library.ts'
-import { loadTargets, resetMuscleTargets, setMuscleTarget } from '../src/db/profiles.ts'
+import {
+  addFocus,
+  loadFocuses,
+  loadTargets,
+  removeFocus,
+  resetMuscleTargets,
+  setMuscleTarget,
+} from '../src/db/profiles.ts'
 import { addRestriction, loadRestrictions, removeRestriction } from '../src/db/restrictions.ts'
 import { addLeader, freshDb, lifts } from './helpers.ts'
 
@@ -101,6 +108,30 @@ describe('muscle targets', () => {
 
     await resetMuscleTargets(id, db)
     expect(await loadTargets(id, db)).toEqual(DEFAULT_TARGETS)
+  })
+})
+
+describe('focuses', () => {
+  it('are kept on the profile, added and removed one at a time', async () => {
+    const db = freshDb()
+    const id = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    expect(await loadFocuses(id, db)).toEqual([])
+
+    const bench = await addFocus(id, { name: 'Bench press', muscles: ['chest', 'frontDelts', 'triceps'], extraSets: 3 }, db)
+    await addFocus(id, { name: 'Arms', muscles: ['biceps', 'triceps', 'forearms'], extraSets: 6, until: 9_000 }, db)
+    expect((await loadFocuses(id, db)).map((f) => [f.name, f.extraSets, f.until])).toEqual([
+      ['Bench press', 3, undefined],
+      ['Arms', 6, 9_000],
+    ])
+
+    await removeFocus(id, bench, db)
+    expect((await loadFocuses(id, db)).map((f) => f.name)).toEqual(['Arms'])
+  })
+
+  it('need at least one muscle', async () => {
+    const db = freshDb()
+    const id = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    await expect(addFocus(id, { name: 'Nothing', muscles: [], extraSets: 3 }, db)).rejects.toThrow('at least one')
   })
 })
 

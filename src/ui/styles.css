@@ -1194,3 +1194,19 @@ h2 {
   min-width: 34px;
   font-size: 24px;
 }
+
+/* Focus */
+
+.chip-focus {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip-focus.chip-on {
+  color: var(--text);
+}
+
+.section-label {
+  display: block;
+  margin-top: 16px;
+}

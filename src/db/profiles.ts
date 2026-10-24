@@ -2,7 +2,7 @@ import { EXERCISES } from '../data/exercises.ts'
 import { PRESETS } from '../data/presets.ts'
 import { presetRatings, type RatingPresetId } from '../data/ratingPresets.ts'
 import { DEFAULT_TARGETS, targetsFor } from '../data/targets.ts'
-import type { Muscle, MuscleTargets } from '../engine/types.ts'
+import type { Focus, Muscle, MuscleTargets } from '../engine/types.ts'
 import { resolveProgram, type Program } from '../engine/program.ts'
 import { currentTms } from '../engine/tms.ts'
 import {
@@ -127,6 +127,31 @@ export async function setMuscleTarget(
 
 export async function resetMuscleTargets(profileId: string, db: WigwamDb = defaultDb): Promise<void> {
   await db.profiles.update(profileId, { muscleTargets: undefined })
+}
+
+export async function loadFocuses(profileId: string, db: WigwamDb = defaultDb): Promise<Focus[]> {
+  return (await db.profiles.get(profileId))?.focuses ?? []
+}
+
+export async function addFocus(
+  profileId: string,
+  focus: Omit<Focus, 'id'>,
+  db: WigwamDb = defaultDb,
+): Promise<string> {
+  if (focus.muscles.length === 0) throw new Error('Pick at least one muscle.')
+  const id = newId()
+  await db.transaction('rw', db.profiles, async () => {
+    const profile = await db.profiles.get(profileId)
+    if (profile) await db.profiles.update(profileId, { focuses: [...(profile.focuses ?? []), { ...focus, id }] })
+  })
+  return id
+}
+
+export async function removeFocus(profileId: string, focusId: string, db: WigwamDb = defaultDb): Promise<void> {
+  await db.transaction('rw', db.profiles, async () => {
+    const profile = await db.profiles.get(profileId)
+    if (profile) await db.profiles.update(profileId, { focuses: (profile.focuses ?? []).filter((f) => f.id !== focusId) })
+  })
 }
 
 export async function loadTms(profileId: string, db: WigwamDb = defaultDb): Promise<Record<string, number>> {

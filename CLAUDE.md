@@ -14,7 +14,7 @@ writing code.
 - Phase 2 (profiles, library, backup) is done. A backup was saved and restored on the phone.
 - Phase 3 (workout flow) is done. A real garage session went well.
 - Follow-ups from that session are built and pushed: day labels, foldable exercises, the workout rating, and the week-end backup prompt.
-- Phase 4 (accessory suggestions) is built. It's waiting on a real week of use and the user's notes on what felt off.
+- Phase 4 (accessory suggestions) is built. The user's first impression is good, and a "focus" (extra accessory sets for chosen muscles) was added after it. It's waiting on a real week of use.
 - Phase 5 is next.
 
 ## Hard rules

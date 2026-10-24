@@ -2,7 +2,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie'
 import type { AccessoryPick, WeekType } from '../engine/plan.ts'
 import type { Program, ProgramOverrides } from '../engine/program.ts'
 import type { ProgressionTable } from '../engine/progression.ts'
-import type { Exercise, Gym, Muscle, Restriction, Stars } from '../engine/types.ts'
+import type { Exercise, Focus, Gym, Muscle, Restriction, Stars } from '../engine/types.ts'
 import type { DayStatus } from '../engine/week.ts'
 
 // The only module that touches IndexedDB. The engine never imports this;
@@ -24,6 +24,8 @@ export interface ProfileRow {
   progressionTables?: Record<string, ProgressionTable>
   /** Changes to the default weekly sets per muscle. */
   muscleTargets?: Partial<Record<Muscle, number>>
+  /** Muscles to bias accessories toward. Expired ones stay until removed. */
+  focuses?: Focus[]
 }
 
 export interface ProgramRow {

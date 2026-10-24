@@ -55,7 +55,9 @@ import {
   activeRestrictions,
   behind,
   fillSlots,
+  focusExtras,
   restricts,
+  type FocusState,
   type Gap,
   type SuggestInput,
 } from '../../engine/suggest.ts'
@@ -98,6 +100,7 @@ export interface View {
   /** Muscles projected to finish the week short. */
   gaps: Gap[]
   projected: MuscleCounts
+  focus: FocusState
   restrictions: Restriction[]
   lastDone: Map<string, number>
   /** The next pending day, if it's hard on the lower back. */
@@ -155,13 +158,26 @@ function viewOf(person: Person, gym: Gym, now: number): View {
   const otherPending = (program?.days ?? []).filter(
     (d) => d.id !== person.entry.dayId && (!person.week || statusOf(weekState(person.week), d.id) === 'pending'),
   )
+  const weekSets = person.history.filter((s) => s.weekId === person.entry.weekId)
+  const otherPlans = otherPending.flatMap((d) => plan(d.id, false)?.day ?? [])
   const projected = projectedWeek({
-    loggedThisWeek: person.history.filter((s) => s.weekId === person.entry.weekId),
+    loggedThisWeek: weekSets,
     today: slots,
     loggedToday: logged,
-    otherPendingDays: otherPending.flatMap((d) => plan(d.id, false)?.day ?? []),
+    otherPendingDays: otherPlans,
     lookup: findExercise,
   })
+  // A focus counts accessory sets only, so the same projection without the main lifts.
+  const focus: FocusState = {
+    extras: focusExtras(person.profile.focuses ?? [], now),
+    accessory: projectedWeek({
+      loggedThisWeek: weekSets.filter((s) => s.role === 'accessory'),
+      today: slots.filter((s) => s.role === 'accessory'),
+      loggedToday: logged,
+      otherPendingDays: otherPlans.map((d) => ({ ...d, mains: [] })),
+      lookup: findExercise,
+    }),
+  }
   const lastDone = new Map<string, number>()
   for (const s of person.history) {
     if (!s.warmup && s.at > (lastDone.get(s.exerciseId) ?? 0)) lastDone.set(s.exerciseId, s.at)
@@ -178,8 +194,9 @@ function viewOf(person: Person, gym: Gym, now: number): View {
     progress: dayProgress(slots, logged),
     prs: prChecks(person.history),
     flexSlots: programDay?.accessories.filter((a) => a.kind === 'flex').length ?? 0,
-    gaps: behind(projected, person.targets),
+    gaps: behind(projected, person.targets, focus),
     projected,
+    focus,
     restrictions: activeRestrictions(person.restrictions, now),
     lastDone,
     backDayNext: nextDay && hardOnBack ? dayLabel(nextDay, findExercise) : undefined,
@@ -187,7 +204,7 @@ function viewOf(person: Person, gym: Gym, now: number): View {
 }
 
 /** The pieces of a suggestion request that don't change while the picker is open. */
-export function suggestBase(view: View, gym: Gym): Omit<SuggestInput, 'focus' | 'sort'> {
+export function suggestBase(view: View, gym: Gym): Omit<SuggestInput, 'only' | 'sort'> {
   return {
     exercises: allExercises(),
     ratings: view.person.ratings,
@@ -378,7 +395,13 @@ export function Session() {
         .map(([m]) => m as Muscle),
     )
     const picks = fillSlots(
-      { ...suggestBase(v, data!.gym!), projected: v.projected, targets: v.person.targets, usedToday: used },
+      {
+        ...suggestBase(v, data!.gym!),
+        projected: v.projected,
+        targets: v.person.targets,
+        focus: v.focus,
+        usedToday: used,
+      },
       emptySlots,
     )
     if (picks.length === 0) throw new Error("Nothing's behind this week, so there's nothing to fill. Pick one by hand.")
