@@ -15,6 +15,10 @@
   --chart-1: #c98024;
   --chart-2: #3f86e8;
   --grid: #2a2e35;
+  /* Comparing people: checked on every pair, so lines may cross freely. */
+  --compare-1: #3987e5;
+  --compare-2: #d95926;
+  --compare-3: #199e70;
   --radius: 14px;
   /* Minimum touch target. Chalky thumbs, between sets. */
   --tap: 48px;
@@ -1662,4 +1666,19 @@ h2 {
 .rep-table caption {
   margin: 14px 0 4px;
   text-align: left;
+}
+
+/* Comparing people: a short line in their chart colour marks each one. */
+.compare-key {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.compare-table th[scope='row'] {
+  color: var(--text);
+  font-weight: 600;
 }

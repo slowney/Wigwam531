@@ -211,6 +211,7 @@ The Progress tab becomes a page per person (chips at the top switch between them
 - **Bodyweight chart**
 - **Advanced toggle** (Edit profile): each lift ÷ bodyweight, the squat + bench + deadlift total from best e1RMs, and DOTS once sex is set
 - **Workouts:** this person's finished workouts, below the charts
+- **Compare** (added after first use): up to three people on shared main-lift charts, with a best e1RM table that also shows each against bodyweight. Three is the most whose colours stay tellable apart on every pair; each person keeps their colour while others are added or removed.
 - **Charts** are hand-drawn SVG in the dark theme, no chart library. Two series colours, checked for colour-blind separation against the card surface.
 - **Demo data** for checking the charts: "Load demo data" builds six months of made-up training for a Demo profile. It exists only in the dev build.
 

@@ -20,7 +20,9 @@ import { MUSCLE_LABELS, MUSCLES, type Muscle, type MuscleTargets } from '../../e
 import { LineChart } from '../charts/LineChart.tsx'
 import { TargetBars, WeekColumns } from '../charts/VolumeCharts.tsx'
 import { Segmented } from '../components/forms.tsx'
+import { compared, formatSlots, MAX_COMPARED, parseSlots, toggleSlot } from '../compare.ts'
 import { formatDate } from '../format.ts'
+import { COMPARE_COLORS, CompareView } from './ProgressCompare.tsx'
 
 const RANGES: ReadonlyArray<{ value: Range; label: string }> = [
   { value: '3M', label: '3M' },
@@ -57,10 +59,71 @@ export function Progress() {
   const { profiles, profile } = data
   // Read the clock once per render, so every chart shares the same "now".
   const now = Date.now()
+  const slots = params.has('c') ? parseSlots(params.get('c')) : undefined
+
+  const modes =
+    profiles.length > 1 ? (
+      <div className="range-picker">
+        <Segmented
+          label="Show"
+          value={slots ? 'compare' : 'one'}
+          onChange={(mode) =>
+            setParams(
+              mode === 'compare' ? { c: profile?.id ?? '' } : { p: compared(slots ?? [])[0] ?? profile?.id ?? '' },
+              { replace: true },
+            )
+          }
+          options={[
+            { value: 'one', label: 'One person' },
+            { value: 'compare', label: 'Compare' },
+          ]}
+        />
+      </div>
+    ) : null
+
+  if (slots) {
+    const full = compared(slots).length >= MAX_COMPARED
+    return (
+      <>
+        <h1>Progress</h1>
+        {modes}
+        <div className="chips person-chips" aria-label="Who to compare">
+          {profiles.map((p) => {
+            const slot = slots.indexOf(p.id)
+            const on = slot >= 0
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={on}
+                disabled={!on && full}
+                className={on ? 'chip chip-on' : 'chip'}
+                onClick={() => setParams({ c: formatSlots(toggleSlot(slots, p.id)) }, { replace: true })}
+              >
+                {on ? (
+                  <span className="compare-key" style={{ background: COMPARE_COLORS[slot] }} />
+                ) : (
+                  <span className="dot" style={{ background: p.color }} />
+                )}
+                {p.name}
+              </button>
+            )
+          })}
+        </div>
+        {full && <p className="muted small">Up to three at once, so every line stays easy to tell apart.</p>}
+        <div className="range-picker">
+          <Segmented label="Range" value={range} onChange={setRange} options={RANGES} />
+        </div>
+        <CompareView slots={slots} from={rangeStart(range, now)} to={now} />
+        <p className="muted small">Volume, bodyweight and workouts are per person: switch to One person for those.</p>
+      </>
+    )
+  }
 
   return (
     <>
       <h1>Progress</h1>
+      {modes}
       {profiles.length > 1 && (
         <div className="chips person-chips" role="radiogroup" aria-label="Whose progress">
           {profiles.map((p) => (

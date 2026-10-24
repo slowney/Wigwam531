@@ -322,7 +322,7 @@ failed set (no reps) doesn't count toward the working weight.
   - **Followers** see the leader's program with their own changes on top: "Change for me" on any lift, "Use Lead's again", or unfollow to take a copy of their own.
   - **Whole program:** switch to a preset, one of My programs, a copy of someone's, someone to follow, or empty days to build from scratch. Save the current one to My programs. Followers come along when their leader switches; their per-lift changes don't.
 - **TM increases:** per profile and lift, how much the TM goes up for 0–1 / 2–3 / 4–5 / 6+ reps on the ★ set.
-- **Progress:** per profile: main-lift charts, the PR board, sets per muscle against target, bodyweight, advanced metrics, and every finished workout, newest first, each opening its summary.
+- **Progress:** a Compare mode puts up to three people's main lifts on shared charts, with their best e1RMs side by side (and against bodyweight). Otherwise per profile: main-lift charts, the PR board, sets per muscle against target, bodyweight, advanced metrics, and every finished workout, newest first, each opening its summary.
 - **Profile:** TMs, bodyweight, ratings, muscle targets, injuries, who they follow, and the advanced-metrics toggle.
 - **Settings:** gyms and equipment, the library (exercises, set schemes, My programs), rest timer and warm-up defaults, backup and restore. Exercises and schemes made in the app can be changed or deleted while nothing uses them; built-in ones can be looked at, and schemes copied.
 

@@ -42,12 +42,29 @@ const ACCESSORIES: Record<string, { exerciseId: string; start: number; reps: [nu
   ],
 }
 
+/**
+ * Each call adds another demo lifter ("Demo", "Demo 2", ...), lighter and
+ * with their own luck, so comparisons have different lines to show.
+ */
 export async function loadDemo(db: WigwamDb = defaultDb, now = Date.now()): Promise<string> {
-  const rand = random(531)
+  const earlier = (await db.profiles.toArray()).filter((p) => p.name.startsWith('Demo')).length
+  const rand = random(531 + earlier)
   const start = now - WEEKS * 7 * DAY
-  const tms: Record<string, number> = { 'bench-press': 185, squat: 225, 'overhead-press': 105, deadlift: 275 }
+  const scale = (lb: number) => Math.round((lb * (1 - 0.15 * Math.min(earlier, 4))) / 5) * 5
+  const tms: Record<string, number> = {
+    'bench-press': scale(185),
+    squat: scale(225),
+    'overhead-press': scale(105),
+    deadlift: scale(275),
+  }
   const profileId = await createProfile(
-    { name: 'Demo', color: '#c9ccd1', program: { kind: 'preset', presetId: 'nsuns-4day-row' }, tms, ratingPreset: 'blank' },
+    {
+      name: earlier ? `Demo ${earlier + 1}` : 'Demo',
+      color: '#c9ccd1',
+      program: { kind: 'preset', presetId: 'nsuns-4day-row' },
+      tms,
+      ratingPreset: 'blank',
+    },
     db,
     start,
   )
