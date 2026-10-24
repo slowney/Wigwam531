@@ -5,6 +5,7 @@ import { setCustomExercises } from '../data/exercises.ts'
 import { setCustomSchemes } from '../data/schemes.ts'
 import { db } from '../db/db.ts'
 import { activeSession } from '../db/sessions.ts'
+import { ExerciseDetail } from './screens/ExerciseDetail.tsx'
 import { ExerciseRatings } from './screens/ExerciseRatings.tsx'
 import { Home } from './screens/Home.tsx'
 import { ExerciseLibrary, ProgramLibrary, SchemeLibrary } from './screens/Library.tsx'
@@ -82,6 +83,7 @@ export function App() {
             <Route path="/sessions/:id" element={<SessionSummary />} />
             <Route path="/start-week" element={<StartWeek />} />
             <Route path="/progress" element={<Progress />} />
+            <Route path="/progress/:profileId/:exerciseId" element={<ExerciseDetail />} />
             <Route path="/profiles" element={<Profiles />} />
             <Route path="/profiles/new" element={<ProfileCreate />} />
             <Route path="/profiles/:id" element={<ProfileDetail />} />

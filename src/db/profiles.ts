@@ -2,6 +2,7 @@ import { EXERCISES } from '../data/exercises.ts'
 import { PRESETS } from '../data/presets.ts'
 import { presetRatings, type RatingPresetId } from '../data/ratingPresets.ts'
 import { DEFAULT_TARGETS, targetsFor } from '../data/targets.ts'
+import type { Sex } from '../engine/metrics.ts'
 import type { Focus, Muscle, MuscleTargets } from '../engine/types.ts'
 import { resolveProgram, type Program } from '../engine/program.ts'
 import { blankProgram, cloneProgram } from '../engine/programEdit.ts'
@@ -76,12 +77,18 @@ export async function createProfile(input: NewProfile, db: WigwamDb = defaultDb,
 
 export async function updateProfile(
   id: string,
-  changes: { name?: string; color?: string },
+  changes: { name?: string; color?: string; sex?: Sex | null; advanced?: boolean },
   db: WigwamDb = defaultDb,
 ): Promise<void> {
   const name = changes.name?.trim()
   if (changes.name !== undefined && !name) throw new Error('A profile needs a name.')
-  await db.profiles.update(id, { ...(name ? { name } : {}), ...(changes.color ? { color: changes.color } : {}) })
+  await db.profiles.update(id, {
+    ...(name ? { name } : {}),
+    ...(changes.color ? { color: changes.color } : {}),
+    // null clears it.
+    ...(changes.sex !== undefined ? { sex: changes.sex ?? undefined } : {}),
+    ...(changes.advanced !== undefined ? { advanced: changes.advanced } : {}),
+  })
 }
 
 /** The program this profile actually runs: their own, or their leader's plus overrides. */

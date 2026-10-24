@@ -17,7 +17,8 @@ writing code.
 - Phase 4 (accessory suggestions) is built and has had real use. A "focus" (extra accessory sets for chosen muscles) was added after it.
 - Phase 5 (program editor and custom programs) is built and was clicked through in the phone-size preview. It's waiting on the user restructuring something real and training a week on it.
 - Phase 5b (feedback from the garage) is built and was clicked through in the phone-size preview. On the phone, the user still needs to check that the tab bar stays put after a workout resumes, and that the set editor fits.
-- Phase 6 (progress and metrics) is next. The Progress tab holds a list of finished workouts for now; the charts go above it.
+- Phase 6 (progress and metrics) is built and was checked in the phone-size preview against six months of demo data. It's waiting on the user looking at their real data on the phone, plus the trimmed space under the tab bar.
+- **Demo data:** in the dev build only, Progress has "Load demo data" (`src/db/demo.ts`), six months of made-up training for a Demo profile. It's imported only behind `import.meta.env.DEV`, so it never ships.
 
 ## Hard rules
 
@@ -92,6 +93,7 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - **Weeks.** Each profile has its own week, and days aren't tied to the calendar. A skipped lift keeps its TM.
 - **Followers.** Partners follow the leader's program with their own TMs, and can override individual slots.
 - **Custom exercises** live in IndexedDB. `setCustomExercises` keeps a copy where `findExercise` sees it: `App` refreshes it on every change, and `addCustomExercise` does too. So use `findExercise` and `allExercises()`, never `EXERCISES` alone, anywhere a user's own exercise could turn up.
+- **Charts** are hand-drawn SVG (`src/ui/charts/`), no chart library. Series colours are `--chart-1` and `--chart-2`, validated for colour-blind separation on `--surface`; text stays in text colours.
 - **Custom schemes** work the same way: `setCustomSchemes`, `findScheme` and `allSchemes()`, never `SCHEMES` alone.
 - **Program edits** go through `editProgram` (it applies the change to the stored program inside a transaction, so quick taps can't undo each other) or `overrideSlot` for followers. Both check today's workout: nothing may remove a day someone is partway through, or drop or change a lift they've logged sets on.
 - **The garage** has one pair each of 45/35/25/15/10/5/2.5 plates, so 320 lb is the most a 45 lb barbell can hold.

@@ -202,16 +202,21 @@ From the first full week in the garage. The two bugs ship with Phase 5.
 
 ## Phase 6: Progress and metrics
 
-- **Main-lift charts:** e1RM, TM steps, PR markers, and a range picker
-- **Exercise detail:** a rep-max table and history
-- **PR board**
-- **Weekly muscle volume:** the last 8 weeks
+The Progress tab becomes a page per person (chips at the top switch between them), with one range picker (3M / 6M / 1Y / All) for its charts.
+
+- **Main-lift charts:** each lift's best e1RM per week (a lift done heavy one day and as a T2 another would zigzag workout by workout), the TM as a step line, PR rings, and a readout that follows a tap on the chart
+- **Exercise detail**, for any exercise: e1RM (or top set, for timed holds) over time, bests, a rep-max table and the full history
+- **PR board:** best e1RM and heaviest set per main lift, then every other exercise logged
+- **Weekly muscle volume:** this week's sets against target per muscle; tap one for its last 8 weeks
 - **Bodyweight chart**
-- **Advanced toggle:** each lift ÷ bodyweight, SBD total, and DOTS
+- **Advanced toggle** (Edit profile): each lift ÷ bodyweight, the squat + bench + deadlift total from best e1RMs, and DOTS once sex is set
+- **Workouts:** this person's finished workouts, below the charts
+- **Charts** are hand-drawn SVG in the dark theme, no chart library. Two series colours, checked for colour-blind separation against the card surface.
+- **Demo data** for checking the charts: "Load demo data" builds six months of made-up training for a Demo profile. It exists only in the dev build.
 
 **Done when:**
 
-- Charts render correctly from six months of generated data at phone size, in both light and dark mode.
+- Charts render correctly from six months of generated data at phone size. (The app is dark-only, so there's no light mode to check.)
 - They look right with your real data on your phone.
 
 ## Later

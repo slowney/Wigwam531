@@ -10,11 +10,19 @@
   --accent-text: #1a1206;
   --ok: #4cc38a;
   --danger: #ef6b6b;
+  /* Chart series, checked for colour-blind separation and contrast against
+     --surface. Darker than the UI accent on purpose: marks, not text. */
+  --chart-1: #c98024;
+  --chart-2: #3f86e8;
+  --grid: #2a2e35;
   --radius: 14px;
   /* Minimum touch target. Chalky thumbs, between sets. */
   --tap: 48px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* The tab bar only needs to clear the home indicator, not the whole inset
+     iOS reserves below it: the full inset left a band of empty space. */
+  --tabbar-pad: max(4px, calc(var(--safe-bottom) - 20px));
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   line-height: 1.4;
 }
@@ -140,7 +148,7 @@ h2 {
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: var(--tabbar-pad);
 }
 
 .tab {
@@ -861,7 +869,7 @@ h2 {
   position: fixed;
   left: 12px;
   right: 12px;
-  bottom: calc(56px + var(--safe-bottom) + 10px);
+  bottom: calc(56px + var(--tabbar-pad) + 10px);
   z-index: 20;
   display: flex;
   align-items: center;
@@ -1439,4 +1447,219 @@ h2 {
 
 .fix-workout {
   margin-top: 24px;
+}
+
+/* Charts: thin marks, recessive axes, text in text colours only. */
+
+.chart {
+  margin: 8px 0 0;
+}
+
+.chart-readout {
+  min-height: 22px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-readout strong {
+  color: var(--text);
+}
+
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Taps pick a point; vertical drags still scroll the page. */
+  touch-action: pan-y;
+  user-select: none;
+}
+
+.chart-grid {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.chart-axis {
+  fill: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-cross {
+  stroke: var(--muted);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.chart-line {
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-dot {
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.chart-ring {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
+.chart-target {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.chart-col {
+  fill: var(--chart-1);
+  opacity: 0.55;
+}
+
+.chart-col-on {
+  opacity: 1;
+}
+
+.chart-hit {
+  cursor: pointer;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chart-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Sets per muscle against target */
+
+.target-bars {
+  display: flex;
+  flex-direction: column;
+}
+
+.target-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+}
+
+.target-bar-on {
+  background: var(--surface-2);
+}
+
+.target-label {
+  width: 92px;
+  flex: none;
+}
+
+.target-track {
+  position: relative;
+  flex: 1;
+  height: 10px;
+}
+
+.target-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 0 4px 4px 0;
+  background: var(--chart-1);
+}
+
+.target-tick {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+}
+
+.target-value {
+  width: 52px;
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Progress */
+
+.person-chips {
+  margin-bottom: 12px;
+}
+
+.range-picker {
+  margin-bottom: 12px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-grid dd {
+  margin: 0;
+  text-align: right;
+}
+
+.rep-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.rep-table th,
+.rep-table td {
+  padding: 6px 4px;
+  border-top: 1px solid var(--border);
+  text-align: left;
+}
+
+.rep-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.contents {
+  display: contents;
+}
+
+.history-row {
+  align-items: baseline;
+  padding: 8px 0;
+}
+
+.history-date {
+  width: 56px;
+  flex: none;
+}
+
+.rep-table caption {
+  margin: 14px 0 4px;
+  text-align: left;
 }

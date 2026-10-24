@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { db, type ProfileRow } from '../../db/db.ts'
 import { updateProfile } from '../../db/profiles.ts'
-import { BackLink, ColorPicker, TextInput } from '../components/forms.tsx'
+import type { Sex } from '../../engine/metrics.ts'
+import { BackLink, ColorPicker, Segmented, TextInput } from '../components/forms.tsx'
 
 export function ProfileEdit() {
   const { id = '' } = useParams()
@@ -26,12 +27,14 @@ function EditForm({ profile }: { profile: ProfileRow }) {
   const navigate = useNavigate()
   const [name, setName] = useState(profile.name)
   const [color, setColor] = useState(profile.color)
+  const [sex, setSex] = useState<Sex | 'unset'>(profile.sex ?? 'unset')
+  const [advanced, setAdvanced] = useState(profile.advanced ?? false)
   const [error, setError] = useState<string>()
   const back = `/profiles/${profile.id}`
 
   async function save() {
     try {
-      await updateProfile(profile.id, { name, color })
+      await updateProfile(profile.id, { name, color, sex: sex === 'unset' ? null : sex, advanced })
       navigate(back, { replace: true })
     } catch (e) {
       setError((e as Error).message)
@@ -48,6 +51,27 @@ function EditForm({ profile }: { profile: ProfileRow }) {
           <span className="label">Color</span>
           <ColorPicker value={color} onChange={setColor} />
         </div>
+      </section>
+      <section className="card">
+        <h2>Advanced metrics</h2>
+        <label className="toggle">
+          <input type="checkbox" checked={advanced} onChange={(e) => setAdvanced(e.target.checked)} /> Show lift ÷
+          bodyweight, the estimated total and DOTS on Progress
+        </label>
+        <div className="field section-label">
+          <span className="label">Sex, for DOTS</span>
+          <Segmented
+            label="Sex"
+            value={sex}
+            onChange={setSex}
+            options={[
+              { value: 'unset', label: 'Not set' },
+              { value: 'male', label: 'Male' },
+              { value: 'female', label: 'Female' },
+            ]}
+          />
+        </div>
+        <p className="muted small no-margin">DOTS also needs a logged bodyweight. Without both, it's left out.</p>
       </section>
       {error && <p className="error">{error}</p>}
       <button type="button" className="btn btn-big" onClick={() => void save()}>

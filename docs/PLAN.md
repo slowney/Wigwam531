@@ -291,7 +291,7 @@ failed set (no reps) doesn't count toward the working weight.
 
 ## Progress tracking
 
-- **Main lifts:** e1RM per session (best set, Epley formula, 10 reps or fewer), the TM as a step line, PR markers, and a range picker (3M / 6M / 1Y / all).
+- **Main lifts:** e1RM per week (best set, Epley formula, 10 reps or fewer; weekly so a lift done heavy one day and as a T2 another doesn't zigzag), the TM as a step line, PR markers, and a range picker (3M / 6M / 1Y / all).
 - **Any exercise:** top set, e1RM, weekly tonnage, a history list, and a rep-max table (best weight at 1–10 reps).
 - **PRs:** a badge appears as you log a rep PR at a given weight, a new e1RM PR, or your heaviest weight yet. Sets are compared against earlier sessions only; an nSuns pyramid climbs within a session, so comparing against today's earlier sets would badge nearly everything. Each profile has a PR board.
 - **Muscle volume:** sets per muscle this week against target, plus the last 8 weeks.
@@ -322,7 +322,7 @@ failed set (no reps) doesn't count toward the working weight.
   - **Followers** see the leader's program with their own changes on top: "Change for me" on any lift, "Use Lead's again", or unfollow to take a copy of their own.
   - **Whole program:** switch to a preset, one of My programs, a copy of someone's, someone to follow, or empty days to build from scratch. Save the current one to My programs. Followers come along when their leader switches; their per-lift changes don't.
 - **TM increases:** per profile and lift, how much the TM goes up for 0–1 / 2–3 / 4–5 / 6+ reps on the ★ set.
-- **Progress:** charts and the PR board, per profile (Phase 6). For now, every finished workout, newest first, each opening its summary.
+- **Progress:** per profile: main-lift charts, the PR board, sets per muscle against target, bodyweight, advanced metrics, and every finished workout, newest first, each opening its summary.
 - **Profile:** TMs, bodyweight, ratings, muscle targets, injuries, who they follow, and the advanced-metrics toggle.
 - **Settings:** gyms and equipment, the library (exercises, set schemes, My programs), rest timer and warm-up defaults, backup and restore. Exercises and schemes made in the app can be changed or deleted while nothing uses them; built-in ones can be looked at, and schemes copied.
 
@@ -356,7 +356,7 @@ Session screen sketch (TM 225 bench):
 - vite-plugin-pwa (Workbox) for the manifest, the offline cache and the update prompt
 - Dexie (IndexedDB) with `useLiveQuery` for reactive data; no separate state library
 - React Router with hash routing, because GitHub Pages has no fallback route for single-page apps
-- Recharts for charts
+- Charts drawn as plain SVG: no chart library to download, and they follow the app's theme
 - Vitest for tests
 - Plain CSS with variables: a dark theme by default, touch targets of 48px or more, usable one-handed with chalk on your hands
 

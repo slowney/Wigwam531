@@ -3,6 +3,7 @@ import type { AccessoryPick, WeekType } from '../engine/plan.ts'
 import type { Program, ProgramOverrides } from '../engine/program.ts'
 import type { ProgressionTable } from '../engine/progression.ts'
 import type { Scheme } from '../engine/schemes.ts'
+import type { Sex } from '../engine/metrics.ts'
 import type { Exercise, Focus, Gym, Muscle, Restriction, Stars } from '../engine/types.ts'
 import type { DayStatus } from '../engine/week.ts'
 
@@ -25,6 +26,10 @@ export interface ProfileRow {
   progressionTables?: Record<string, ProgressionTable>
   /** Changes to the default weekly sets per muscle. */
   muscleTargets?: Partial<Record<Muscle, number>>
+  /** For DOTS only. Optional; DOTS stays hidden without it. */
+  sex?: Sex
+  /** Shows lift ÷ bodyweight, the estimated total and DOTS on Progress. */
+  advanced?: boolean
   /** Muscles to bias accessories toward. Expired ones stay until removed. */
   focuses?: Focus[]
 }
