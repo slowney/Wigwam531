@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { findScheme } from '../../data/schemes.ts'
-import { db, type BodyweightRow } from '../../db/db.ts'
+import { db, type BodyweightRow, type RestrictionRow } from '../../db/db.ts'
+import { loadRestrictions, removeRestriction } from '../../db/restrictions.ts'
+import { RestrictionSheet } from '../components/RestrictionSheet.tsx'
 import {
   addBodyweight,
   archiveProfile,
@@ -31,6 +33,7 @@ export function ProfileDetail() {
       followers: await db.programs.where('followsProfileId').equals(id).count(),
       tms: await loadTms(id),
       bodyweights: await loadBodyweights(id),
+      restrictions: await loadRestrictions(id),
     }
   }, [id])
   if (!data) return null
@@ -79,6 +82,8 @@ export function ProfileDetail() {
           <TmRow key={exerciseId} profileId={profile.id} exerciseId={exerciseId} value={tms[exerciseId]} />
         ))}
       </section>
+
+      <AccessoriesCard profileId={profile.id} restrictions={data.restrictions ?? []} />
 
       <BodyweightCard profileId={profile.id} entries={data.bodyweights ?? []} />
 
@@ -153,6 +158,46 @@ function TmRow(props: { profileId: string; exerciseId: string; value: number | u
         Cancel
       </button>
     </div>
+  )
+}
+
+function AccessoriesCard({ profileId, restrictions }: { profileId: string; restrictions: RestrictionRow[] }) {
+  const [adding, setAdding] = useState(false)
+  const now = Date.now()
+  return (
+    <section className="card">
+      <h2>Accessory suggestions</h2>
+      <div className="link-row">
+        <Link to={`/profiles/${profileId}/exercises`} className="btn btn-quiet btn-small">
+          Exercise ratings
+        </Link>
+        <Link to={`/profiles/${profileId}/targets`} className="btn btn-quiet btn-small">
+          Muscle targets
+        </Link>
+      </div>
+      <span className="label">Restrictions</span>
+      {restrictions.length === 0 && <p className="muted small no-margin">None.</p>}
+      <ul className="list">
+        {restrictions.map((r) => {
+          const ended = r.until !== undefined && r.until <= now
+          return (
+            <li key={r.id} className={ended ? 'row muted' : 'row'}>
+              <span className="grow stack">
+                <span>{r.name}</span>
+                <span className="muted small">
+                  {r.until === undefined ? 'Until removed' : ended ? `Ended ${formatDate(r.until)}` : `Until ${formatDate(r.until)}`}
+                </span>
+              </span>
+              <ConfirmButton small label="Remove" confirmLabel="Remove?" onConfirm={() => void removeRestriction(r.id)} />
+            </li>
+          )
+        })}
+      </ul>
+      <button type="button" className="btn btn-quiet btn-small add-restriction" onClick={() => setAdding(true)}>
+        + Add a restriction
+      </button>
+      {adding && <RestrictionSheet profileId={profileId} onClose={() => setAdding(false)} />}
+    </section>
   )
 }
 

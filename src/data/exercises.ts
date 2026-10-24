@@ -28,6 +28,7 @@ export const MAIN_LIFTS: Exercise[] = [
     load: 'barbell',
     sets: 3,
     reps: [5, 8],
+    tags: ['overhead'],
   },
   {
     id: 'squat',
@@ -120,4 +121,18 @@ export const EXERCISES: Exercise[] = [...MAIN_LIFTS, ...ACCESSORIES]
 
 const byId = new Map(EXERCISES.map((e) => [e.id, e]))
 
-export const findExercise: ExerciseLookup = (id) => byId.get(id)
+// Exercises added in the app live in IndexedDB. The app keeps this copy in
+// step with them, so every lookup (and everything that plans or labels a
+// lift) sees them without being handed a second list.
+let custom = new Map<string, Exercise>()
+
+export function setCustomExercises(list: ReadonlyArray<Exercise>): void {
+  custom = new Map(list.map((e) => [e.id, e]))
+}
+
+export const findExercise: ExerciseLookup = (id) => byId.get(id) ?? custom.get(id)
+
+/** Built-ins first, then the ones added in the app. */
+export function allExercises(): Exercise[] {
+  return [...EXERCISES, ...custom.values()]
+}

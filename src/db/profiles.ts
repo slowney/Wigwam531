@@ -1,6 +1,8 @@
 import { EXERCISES } from '../data/exercises.ts'
 import { PRESETS } from '../data/presets.ts'
 import { presetRatings, type RatingPresetId } from '../data/ratingPresets.ts'
+import { DEFAULT_TARGETS, targetsFor } from '../data/targets.ts'
+import type { Muscle, MuscleTargets } from '../engine/types.ts'
 import { resolveProgram, type Program } from '../engine/program.ts'
 import { currentTms } from '../engine/tms.ts'
 import {
@@ -101,6 +103,30 @@ export async function archiveProfile(id: string, db: WigwamDb = defaultDb, now =
 
 export async function restoreProfile(id: string, db: WigwamDb = defaultDb): Promise<void> {
   await db.profiles.update(id, { archived: false })
+}
+
+export async function loadTargets(profileId: string, db: WigwamDb = defaultDb): Promise<MuscleTargets> {
+  return targetsFor((await db.profiles.get(profileId))?.muscleTargets)
+}
+
+/** In half sets, never below zero. A target set back to its default stops being a change. */
+export async function setMuscleTarget(
+  profileId: string,
+  muscle: Muscle,
+  sets: number,
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  await db.transaction('rw', db.profiles, async () => {
+    const profile = await db.profiles.get(profileId)
+    if (!profile) return
+    const changes = { ...profile.muscleTargets, [muscle]: Math.max(0, Math.round(sets * 2) / 2) }
+    if (changes[muscle] === DEFAULT_TARGETS[muscle]) delete changes[muscle]
+    await db.profiles.update(profileId, { muscleTargets: changes })
+  })
+}
+
+export async function resetMuscleTargets(profileId: string, db: WigwamDb = defaultDb): Promise<void> {
+  await db.profiles.update(profileId, { muscleTargets: undefined })
 }
 
 export async function loadTms(profileId: string, db: WigwamDb = defaultDb): Promise<Record<string, number>> {

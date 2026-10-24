@@ -1035,3 +1035,162 @@ h2 {
 .person-chip {
   flex: none;
 }
+
+/* Accessory suggestions */
+
+.acc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 8px;
+}
+
+.slot-empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  margin-bottom: 12px;
+  padding: 0 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+
+.slot-warn {
+  margin-bottom: 6px;
+}
+
+.gap-chips {
+  margin-bottom: 10px;
+}
+
+.gap-chips .chip {
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.add-new {
+  width: 100%;
+  margin: 4px 0 8px;
+}
+
+.sugg {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sugg-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.sugg-rate {
+  flex: none;
+  min-width: 56px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+}
+
+.sugg-new {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.hide-btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Quick-add */
+
+.counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.count {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Ratings and restrictions on a profile */
+
+.link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.add-restriction {
+  margin-top: 8px;
+}
+
+.custom-muscles {
+  margin: 10px 0;
+}
+
+.rating-group h2 {
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rating-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+  border-top: 1px solid var(--border);
+}
+
+.rating-row .star {
+  min-width: 30px;
+  font-size: 22px;
+}
+
+.rating-hidden .grow {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.acc-ratings {
+  margin-top: 12px;
+}
+
+.acc-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: var(--tap);
+}
+
+.acc-rating .star {
+  min-width: 34px;
+  font-size: 24px;
+}

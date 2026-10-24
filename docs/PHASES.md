@@ -121,23 +121,25 @@ From here it can replace the nSuns app for main lifts.
 
 ## Phase 4: Accessory engine
 
-- a muscle map for every exercise in the library
-- weekly muscle targets (defaults, plus per-profile editing)
-- flex slots (and pinned, though unused by default)
-- the picker:
-  - "behind this week" chips, sorted by rating, with a best-fit toggle
+- **Muscle maps:** reviewed, since every exercise already had one from Phase 2.
+- **Weekly muscle targets:** defaults, plus editing per profile.
+- **Open slots:** each day shows its open accessory slots. Pinning moved to Phase 5, with the program editor.
+- **The picker:**
+  - "behind this week" chips
+  - sorted by rating, with a best-fit toggle
+  - what each exercise hits and when you last did it
   - Fill all
-- star ratings and Hide, with a prompt to rate new exercises at session end
-- quick-add of new exercises from the picker
-- injury restrictions and the shoulder-risk tag
+- **Ratings:** stars and Hide, set from the ★ on a row, a profile's exercise-ratings list, or the session summary (which marks what's new).
+- **Quick-add** of new exercises from the picker's search.
+- **Restrictions:** lower back, shoulder impingement, overhead pressing, knees, elbows, or chosen muscles, each with an optional end date.
 
 **Done when tests show:**
 
-- After a stock nSuns week with no accessories, the "behind" muscles are back, biceps, rear delts and hamstrings.
+- After a stock nSuns week with no accessories, the behind muscles include back, biceps, rear delts and hamstrings, and never chest, quads, glutes, front delts or triceps.
 - Within those muscles, a 5★ exercise always ranks above a 3★ one.
 - Hidden exercises, and equipment the gym doesn't have, never appear.
 - A lower-back restriction removes hinges and bent-over rows.
-- Fill all spreads three slots across three gaps unless one gap is big enough to need more.
+- Fill all puts each slot on a different gap while there are gaps without one.
 
 …and you've used the suggestions for a real week and told me what felt
 off.
@@ -147,7 +149,7 @@ off.
 - **Days:** add, remove and reorder (3–5 days)
 - **Main slots:** exercise, TM source, scheme, tier and progression type, up to 3 per day
 - **Custom schemes**
-- **Accessory slots:** pinned and flex, per day
+- **Accessory slots:** pinned and flex, per day (pinning moved here from Phase 4)
 - **Live edits:** changes apply immediately to the pending days of the current week
 - **Followers:** they see your program plus their own overrides; per-slot override, and unfollow
 - **Making it stick:** "make permanent" turns a today-only swap into a program edit
@@ -178,6 +180,5 @@ off.
 - combined group view (sets ordered by weight, who's up next)
 - partners logging on their own phones (needs a sync backend)
 - typing in past TMs so the charts don't start empty
-- a discomfort penalty: an exercise that bothers a joint ranks lower instead of being hidden
 - classic 5/3/1 three-week waves
 - kg

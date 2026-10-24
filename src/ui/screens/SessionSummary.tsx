@@ -2,13 +2,15 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useParams } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db, type EntryRow } from '../../db/db.ts'
+import { loadRatings, setRating } from '../../db/library.ts'
 import { loadProgram } from '../../db/profiles.ts'
 import { rateEntry } from '../../db/sessions.ts'
 import { dayLabel } from '../../engine/program.ts'
 import { defaultTable, increaseFor } from '../../engine/progression.ts'
 import { prChecks, prKind, type PrKind } from '../../engine/session.ts'
-import type { Stars } from '../../engine/types.ts'
+import type { Rating, Stars } from '../../engine/types.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
+import { StarPicker } from '../components/RatingSheet.tsx'
 import { formatDate } from '../format.ts'
 
 const PR_LABEL: Record<PrKind, string> = { e1rm: 'e1RM PR', reps: 'rep PR', heaviest: 'heaviest ever' }
@@ -47,6 +49,35 @@ function WorkoutRating({ entry }: { entry: EntryRow }) {
   )
 }
 
+/**
+ * Rating what was tried today, while it's fresh. Unrated ones are marked
+ * "new"; rated ones can be adjusted too.
+ */
+function AccessoryRatings(props: { profileId: string; exerciseIds: string[]; ratings: Map<string, Rating> }) {
+  if (props.exerciseIds.length === 0) return null
+  return (
+    <div className="acc-ratings">
+      <span className="label">Rate today's accessories</span>
+      {props.exerciseIds.map((id) => {
+        const rating = props.ratings.get(id)
+        return (
+          <div key={id} className="acc-rating">
+            <span className="grow">
+              {findExercise(id)?.name ?? id}
+              {!rating?.stars && <span className="badge"> new</span>}
+            </span>
+            <StarPicker
+              label={`Rate ${findExercise(id)?.name ?? id}`}
+              stars={rating?.stars}
+              onChange={(stars) => void setRating(props.profileId, id, { stars })}
+            />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function SessionSummary() {
   const { id = '' } = useParams()
   const data = useLiveQuery(async () => {
@@ -64,6 +95,7 @@ export function SessionSummary() {
         program: await loadProgram(profileId),
         week: await db.weeks.get(entry.weekId),
         history: await db.sets.where('profileId').equals(profileId).toArray(),
+        ratings: await loadRatings(profileId),
       })
     }
     return { session, people }
@@ -79,7 +111,7 @@ export function SessionSummary() {
 
       <BackupReminder only="weekDone" />
 
-      {data.people.map(({ entry, profile, program, week, history }) => {
+      {data.people.map(({ entry, profile, program, week, history, ratings }) => {
         const sets = history.filter((s) => s.sessionId === id && !s.warmup).sort((a, b) => a.at - b.at)
         const prs = prChecks(history)
         const day = program?.days.find((d) => d.id === entry.dayId)
@@ -130,6 +162,11 @@ export function SessionSummary() {
                     ))}
                   </ul>
                 )}
+                <AccessoryRatings
+                  profileId={profile.id}
+                  exerciseIds={[...new Set(sets.filter((s) => s.role === 'accessory').map((s) => s.exerciseId))]}
+                  ratings={ratings}
+                />
               </>
             )}
             {entry.notes && <p className="muted small">“{entry.notes}”</p>}

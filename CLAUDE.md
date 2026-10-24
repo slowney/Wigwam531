@@ -14,7 +14,8 @@ writing code.
 - Phase 2 (profiles, library, backup) is done. A backup was saved and restored on the phone.
 - Phase 3 (workout flow) is done. A real garage session went well.
 - Follow-ups from that session are built and pushed: day labels, foldable exercises, the workout rating, and the week-end backup prompt.
-- Phase 4 is next.
+- Phase 4 (accessory suggestions) is built. It's waiting on a real week of use and the user's notes on what felt off.
+- Phase 5 is next.
 
 ## Hard rules
 
@@ -87,4 +88,5 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - **Progression** comes from the 95% 1+ set, never the last AMRAP set.
 - **Weeks.** Each profile has its own week, and days aren't tied to the calendar. A skipped lift keeps its TM.
 - **Followers.** Partners follow the leader's program with their own TMs, and can override individual slots.
+- **Custom exercises** live in IndexedDB. `setCustomExercises` keeps a copy where `findExercise` sees it: `App` refreshes it on every change, and `addCustomExercise` does too. So use `findExercise` and `allExercises()`, never `EXERCISES` alone, anywhere a user's own exercise could turn up.
 - **The garage** has one pair each of 45/35/25/15/10/5/2.5 plates, so 320 lb is the most a 45 lb barbell can hold.

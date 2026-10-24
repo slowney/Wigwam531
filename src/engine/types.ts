@@ -82,7 +82,11 @@ export type Pattern =
   | 'core'
   | 'carry'
 
-export type Tag = 'shoulderRisk'
+/**
+ * `shoulderRisk`: impingement-prone (upright rows, bench dips, behind the neck).
+ * `overhead`: loaded with the arms overhead (presses, overhead extensions).
+ */
+export type Tag = 'shoulderRisk' | 'overhead'
 
 export interface Exercise {
   /** Permanent once anything is logged against it. Rename `name`, never this. */
@@ -105,6 +109,24 @@ export interface Exercise {
   unit?: 'seconds'
   lowerBack?: 'moderate' | 'high'
   tags?: Tag[]
+}
+
+export type MuscleTargets = Record<Muscle, number>
+
+/**
+ * Something to stay away from for a while. An exercise is off limits if it
+ * hits any listed muscle as a primary mover, uses a listed pattern, carries
+ * a listed tag, or, with `lowerBack`, loads the lower back at all.
+ */
+export interface Restriction {
+  id: string
+  name: string
+  muscles: Muscle[]
+  patterns: Pattern[]
+  tags: Tag[]
+  lowerBack: boolean
+  /** Epoch ms. Open-ended when absent. */
+  until?: number
 }
 
 export type Stars = 1 | 2 | 3 | 4 | 5

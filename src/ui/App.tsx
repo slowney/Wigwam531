@@ -1,7 +1,12 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect } from 'react'
 import { NavLink, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { setCustomExercises } from '../data/exercises.ts'
+import { db } from '../db/db.ts'
 import { activeSession } from '../db/sessions.ts'
+import { ExerciseRatings } from './screens/ExerciseRatings.tsx'
 import { Home } from './screens/Home.tsx'
+import { ProfileTargets } from './screens/ProfileTargets.tsx'
 import { ProfileCreate } from './screens/ProfileCreate.tsx'
 import { ProfileDetail } from './screens/ProfileDetail.tsx'
 import { ProfileEdit } from './screens/ProfileEdit.tsx'
@@ -44,6 +49,11 @@ function useResumeWorkout() {
 
 export function App() {
   useResumeWorkout()
+  // Custom exercises live in IndexedDB; the lookup every screen uses keeps a
+  // copy. Refreshing it here, above every screen, means they all re-render
+  // with it when one is added.
+  const custom = useLiveQuery(() => db.exercises.toArray(), [])
+  if (custom) setCustomExercises(custom)
   return (
     <div className="app">
       <UpdateBanner />
@@ -60,6 +70,8 @@ export function App() {
           <Route path="/profiles/:id" element={<ProfileDetail />} />
           <Route path="/profiles/:id/edit" element={<ProfileEdit />} />
           <Route path="/profiles/:id/week" element={<WeekView />} />
+          <Route path="/profiles/:id/targets" element={<ProfileTargets />} />
+          <Route path="/profiles/:id/exercises" element={<ExerciseRatings />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </main>

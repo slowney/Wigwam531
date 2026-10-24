@@ -82,6 +82,7 @@ describe('backup round trip', () => {
       'profiles',
       'programs',
       'ratings',
+      'restrictions',
       'sessions',
       'sets',
       'settings',

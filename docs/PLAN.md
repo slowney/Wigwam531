@@ -141,7 +141,13 @@ Picked at Start Week instead of a normal week.
 ### Swaps and injuries
 
 - **Swap for today:** any exercise in a session can be swapped. If the replacement has its own TM, it runs the same scheme. Otherwise you pick a weight and it runs a short 3–5 set scheme. The original lift's TM stays the same that week. **Make permanent** turns the swap into a program edit.
-- **Injury restriction:** on a profile, you can mark muscles, movement patterns or tags to avoid (e.g. lower back, overhead pressing), with an optional end date. Suggestions skip anything that loads them. Main lifts that load them get a warning and a swap button.
+- **Injury restriction:** on a profile, add a restriction, either until it's removed or for 1, 2 or 4 weeks. Suggestions skip anything it covers, and main lifts it covers get a warning and a swap button.
+  - **Lower back:** anything that loads it.
+  - **Shoulder impingement:** the risk-tagged lifts.
+  - **Overhead pressing:** overhead presses and extensions; landmine presses and dips stay.
+  - **Knees:** squats and lunges.
+  - **Elbows:** exercises that mainly work biceps, triceps or forearms.
+  - **Pick muscles:** your own list.
 
 ### Warm-ups
 
@@ -207,7 +213,8 @@ Each person rates exercises from **1 to 5 stars**, or **Hide** them.
 - **Presets:** a new profile starts from a rating preset.
   - **Yours, "Dumbbell-first, shoulder-safe":** dumbbell accessories start at 4★, and upright rows, bench dips and behind-the-neck press/pulldown start hidden. Everything else stays unrated.
   - **Partners** start blank.
-- **Editing:** you can change any rating from the library, from a suggestion (long-press) or from the session summary.
+- **Editing:** you can change any rating from the person's exercise-ratings list, from the ★ on a suggestion's row, or from the session summary. There's no long-press: it fights the text-selection menu in iPhone home-screen apps.
+- **Discomfort:** an exercise that's fine light but bothers a joint gets 1★. It sinks to the bottom of suggestions without disappearing, so no separate penalty is needed.
 
 ### How a slot gets its suggestions
 
@@ -217,10 +224,16 @@ Each person rates exercises from **1 to 5 stars**, or **Hide** them.
 4. **Sorted by your rating**, 5★ first. Ties go to whichever covers more of the gap, then whichever you've done least recently. A toggle switches to "best fit" (gap coverage weighted by rating) for days you want the app to steer.
 5. **Each row shows** the name, its stars, what it hits (`Rear delts 2/8 · Biceps 0/8`) and last time (`Oct 14 · 35 × 12, 12, 10`). Searching the full library is always one tap away.
 
-**Fill all** works one slot at a time. It takes the biggest remaining gap,
-picks the top-rated exercise that hits it, adds that exercise's sets to
-projected volume, and moves on to the next slot. Three slots end up on
-three different gaps unless one gap really is that big.
+**Fill all** works one slot at a time.
+- Each slot goes to the biggest gap that hasn't had a slot today, counting accessories already picked by hand, and takes that gap's top-rated exercise.
+- That exercise's sets go into projected volume before the next slot looks again.
+- A muscle gets a second slot only once every gap has one.
+- "Biggest gap" alone wasn't enough: a chin-up's half set of biceps shrinks the biceps gap, so lats would win the next slot too.
+- When followers are training, Fill all's picks go to them as well, the same as a single pick.
+
+A row hard on the lower back carries a small "deadlifts next" note when the
+next day is a squat or deadlift day. It's a note, not a penalty; your
+ratings still decide the order.
 
 ### Adding new exercises
 
@@ -238,7 +251,7 @@ the library.
 ### Slots and rep ranges
 
 - **Flex slots** are filled at the workout from suggestions: 3 per day by default, and you can add or remove them in the session. This is the default setup, since you pick by feel.
-- **Pinned slots** run the same exercise every time that day comes around. The option exists but isn't used in your default program.
+- **Pinned slots** run the same exercise every time that day comes around. The volume math already counts them, but pinning one arrives with the program editor in Phase 5. Your default program doesn't use them.
 - **Rep ranges:** each exercise carries its own default. Most are 3 × 8–12. Light isolation work (lateral raises, face pulls, calves) is 3 × 15–20. Heavier dumbbell and cable compounds (DB rows, split squats) are 3 × 6–10. Ranges can be changed per person and in the session.
 
 ### Accessory progression
@@ -388,4 +401,4 @@ volume are calculated when read instead of being stored.
 
 ## Ideas for later
 
-- **Discomfort penalty.** Some exercises are fine at lighter weights but bother a joint. Instead of hiding them, mark them so they rank lower. The shape of this is still to be decided.
+- **Discomfort penalty.** Covered by ratings in Phase 4: give it 1★.

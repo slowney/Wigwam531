@@ -2,7 +2,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie'
 import type { AccessoryPick, WeekType } from '../engine/plan.ts'
 import type { Program, ProgramOverrides } from '../engine/program.ts'
 import type { ProgressionTable } from '../engine/progression.ts'
-import type { Exercise, Gym, Stars } from '../engine/types.ts'
+import type { Exercise, Gym, Muscle, Restriction, Stars } from '../engine/types.ts'
 import type { DayStatus } from '../engine/week.ts'
 
 // The only module that touches IndexedDB. The engine never imports this;
@@ -22,6 +22,8 @@ export interface ProfileRow {
   archived: boolean
   /** Per-lift changes to the default progression table, by TM exercise id. */
   progressionTables?: Record<string, ProgressionTable>
+  /** Changes to the default weekly sets per muscle. */
+  muscleTargets?: Partial<Record<Muscle, number>>
 }
 
 export interface ProgramRow {
@@ -63,6 +65,11 @@ export interface RatingRow {
 
 /** Exercises added in the app. Built-ins ship in code, so fixes to them reach everyone. */
 export interface CustomExerciseRow extends Exercise {
+  createdAt: number
+}
+
+export interface RestrictionRow extends Restriction {
+  profileId: string
   createdAt: number
 }
 
@@ -166,10 +173,11 @@ export type WigwamDb = Dexie & {
   sessions: EntityTable<SessionRow, 'id'>
   entries: EntityTable<EntryRow, 'id'>
   sets: EntityTable<SetRow, 'id'>
+  restrictions: EntityTable<RestrictionRow, 'id'>
 }
 
 /** The latest db.version() below. Backups carry it so old ones can be upgraded. */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export function openDb(name = 'wigwam531'): WigwamDb {
   const db = new Dexie(name) as WigwamDb
@@ -194,6 +202,7 @@ export function openDb(name = 'wigwam531'): WigwamDb {
     entries: 'id, sessionId, profileId, weekId',
     sets: 'id, entryId, sessionId, profileId, weekId, [profileId+exerciseId]',
   })
+  db.version(4).stores({ restrictions: 'id, profileId' })
   return db
 }
 

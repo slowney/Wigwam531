@@ -1,11 +1,23 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { findExercise } from '../../data/exercises.ts'
+import { allExercises, findExercise } from '../../data/exercises.ts'
 import { HOME_GYM } from '../../data/gym.ts'
 import { findScheme } from '../../data/schemes.ts'
-import { db, type EntryRow, type ProfileRow, type SessionRow, type SetRow, type WeekRow } from '../../db/db.ts'
+import { targetsFor } from '../../data/targets.ts'
+import {
+  db,
+  type EntryRow,
+  type ProfileRow,
+  type RestrictionRow,
+  type SessionRow,
+  type SetRow,
+  type WeekRow,
+} from '../../db/db.ts'
+import { loadRatings } from '../../db/library.ts'
 import { loadProgram, loadTms } from '../../db/profiles.ts'
+import { loadRestrictions } from '../../db/restrictions.ts'
+import { weekState } from '../../db/weeks.ts'
 import {
   activeSession,
   addAccessory,
@@ -29,6 +41,7 @@ import { dayLabel, type Program } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
 import {
   dayProgress,
+  lastSessionSets,
   nextLifter,
   nextSet,
   planEntry,
@@ -38,10 +51,24 @@ import {
   slotCollapsed,
   type PrKind,
 } from '../../engine/session.ts'
-import type { Exercise, Gym } from '../../engine/types.ts'
+import {
+  activeRestrictions,
+  behind,
+  fillSlots,
+  restricts,
+  type Gap,
+  type SuggestInput,
+} from '../../engine/suggest.ts'
+import type { Exercise, Gym, Muscle, MuscleTargets, Rating, Restriction } from '../../engine/types.ts'
+import { projectedWeek, type MuscleCounts } from '../../engine/volume.ts'
+import { statusOf } from '../../engine/week.ts'
+import { AccessoryPicker, gapText } from '../components/AccessoryPicker.tsx'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
 import { ConfirmButton } from '../components/forms.tsx'
+import { QuickAddSheet } from '../components/QuickAddSheet.tsx'
+import { RatingSheet } from '../components/RatingSheet.tsx'
 import { RepPicker, SetEditor, type SetValues } from '../components/SetEditor.tsx'
+import { formatDate } from '../format.ts'
 import { useNow, useWakeLock } from '../hooks.ts'
 
 interface Person {
@@ -52,10 +79,12 @@ interface Person {
   tms: Record<string, number>
   week?: WeekRow
   history: SetRow[]
-  hidden: Set<string>
+  ratings: Map<string, Rating>
+  restrictions: RestrictionRow[]
+  targets: MuscleTargets
 }
 
-interface View {
+export interface View {
   person: Person
   slots: PlannedSlot[]
   dayName: string
@@ -64,6 +93,15 @@ interface View {
   next?: { slotId: string; index: number }
   progress: { done: number; total: number }
   prs: Map<string, PrCheck>
+  /** Open accessory slots on today's program day. */
+  flexSlots: number
+  /** Muscles projected to finish the week short. */
+  gaps: Gap[]
+  projected: MuscleCounts
+  restrictions: Restriction[]
+  lastDone: Map<string, number>
+  /** The next pending day, if it's hard on the lower back. */
+  backDayNext?: string
 }
 
 async function loadSession(): Promise<{ session?: SessionRow; people: Person[]; gym?: Gym }> {
@@ -75,7 +113,6 @@ async function loadSession(): Promise<{ session?: SessionRow; people: Person[]; 
     const entry = entries.find((e) => e.profileId === profileId)
     const profile = await db.profiles.get(profileId)
     if (!entry || !profile) continue
-    const ratings = await db.ratings.where('profileId').equals(profileId).toArray()
     people.push({
       entry,
       profile,
@@ -84,21 +121,24 @@ async function loadSession(): Promise<{ session?: SessionRow; people: Person[]; 
       tms: await loadTms(profileId),
       week: await db.weeks.get(entry.weekId),
       history: await db.sets.where('profileId').equals(profileId).toArray(),
-      hidden: new Set(ratings.filter((r) => r.hidden).map((r) => r.exerciseId)),
+      ratings: await loadRatings(profileId),
+      restrictions: await loadRestrictions(profileId),
+      targets: targetsFor(profile.muscleTargets),
     })
   }
   // The gym row is seeded on launch; the built-in one covers the gap if it's ever missing.
   return { session, people, gym: (await db.gyms.get(session.gymId)) ?? HOME_GYM }
 }
 
-function viewOf(person: Person, gym: Gym): View {
-  const plan =
-    person.program &&
+function viewOf(person: Person, gym: Gym, now: number): View {
+  const program = person.program
+  const plan = (dayId: string, today: boolean) =>
+    program &&
     planEntry({
-      program: person.program,
-      dayId: person.entry.dayId,
-      swaps: person.entry.swaps,
-      accessories: person.entry.accessories,
+      program,
+      dayId,
+      swaps: today ? person.entry.swaps : {},
+      accessories: today ? person.entry.accessories : [],
       weekType: person.week?.type ?? 'normal',
       tms: person.tms,
       history: person.history,
@@ -107,10 +147,28 @@ function viewOf(person: Person, gym: Gym): View {
       lookup: findExercise,
       schemes: findScheme,
     })
-  const slots = plan?.slots ?? []
+  const slots = plan(person.entry.dayId, true)?.slots ?? []
   const logged = person.history.filter((s) => s.entryId === person.entry.id)
   // Labelled from the program day, so a swap for today doesn't rename it.
-  const programDay = person.program?.days.find((d) => d.id === person.entry.dayId)
+  const programDay = program?.days.find((d) => d.id === person.entry.dayId)
+
+  const otherPending = (program?.days ?? []).filter(
+    (d) => d.id !== person.entry.dayId && (!person.week || statusOf(weekState(person.week), d.id) === 'pending'),
+  )
+  const projected = projectedWeek({
+    loggedThisWeek: person.history.filter((s) => s.weekId === person.entry.weekId),
+    today: slots,
+    loggedToday: logged,
+    otherPendingDays: otherPending.flatMap((d) => plan(d.id, false)?.day ?? []),
+    lookup: findExercise,
+  })
+  const lastDone = new Map<string, number>()
+  for (const s of person.history) {
+    if (!s.warmup && s.at > (lastDone.get(s.exerciseId) ?? 0)) lastDone.set(s.exerciseId, s.at)
+  }
+  const nextDay = otherPending[0]
+  const hardOnBack = nextDay?.mains.some((m) => findExercise(m.exerciseId)?.lowerBack === 'high')
+
   return {
     person,
     slots,
@@ -119,6 +177,25 @@ function viewOf(person: Person, gym: Gym): View {
     next: nextSet(slots, logged),
     progress: dayProgress(slots, logged),
     prs: prChecks(person.history),
+    flexSlots: programDay?.accessories.filter((a) => a.kind === 'flex').length ?? 0,
+    gaps: behind(projected, person.targets),
+    projected,
+    restrictions: activeRestrictions(person.restrictions, now),
+    lastDone,
+    backDayNext: nextDay && hardOnBack ? dayLabel(nextDay, findExercise) : undefined,
+  }
+}
+
+/** The pieces of a suggestion request that don't change while the picker is open. */
+export function suggestBase(view: View, gym: Gym): Omit<SuggestInput, 'focus' | 'sort'> {
+  return {
+    exercises: allExercises(),
+    ratings: view.person.ratings,
+    equipment: new Set(gym.equipment),
+    restrictions: view.restrictions,
+    gaps: view.gaps,
+    exclude: new Set(view.slots.map((s) => s.exerciseId)),
+    lastDone: view.lastDone,
   }
 }
 
@@ -140,6 +217,16 @@ function targetText(planned: PlannedSet, exercise?: Exercise): string {
 }
 
 const PR_LABEL: Record<PrKind, string> = { e1rm: 'PR', reps: 'Rep PR', heaviest: 'Heaviest' }
+
+/** "Oct 14 · 35 × 12, 12, 10" for the last session that did this exercise. */
+function lastTimeText(view: View, exerciseId: string): string | undefined {
+  const sets = lastSessionSets(view.person.history, exerciseId, view.person.entry.sessionId)
+  const first = sets[0]
+  if (!first) return undefined
+  const top = Math.max(...sets.map((s) => s.weight))
+  const unit = exerciseOf(exerciseId)?.unit === 'seconds' ? ' s' : ''
+  return `${formatDate(first.at)} · ${weightText(top, exerciseOf(exerciseId))} × ${sets.map((s) => s.reps).join(', ')}${unit}`
+}
 
 const mmss = (seconds: number) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 
@@ -174,6 +261,10 @@ export function Session() {
   const data = useLiveQuery(loadSession, [])
   const now = useNow(1000, Boolean(data?.session))
   const [sheet, setSheet] = useState<SheetState>()
+  // Sheets that open over the picker, so closing them goes back to it.
+  const [rateTarget, setRateTarget] = useState<{ profileId: string; exerciseId: string }>()
+  const [quickAdd, setQuickAdd] = useState<{ profileId: string; name: string }>()
+  const [shareWithFollowers, setShareWithFollowers] = useState(true)
   const [toast, setToast] = useState<Toast>()
   const [error, setError] = useState<string>()
   useWakeLock(Boolean(data?.session))
@@ -184,8 +275,9 @@ export function Session() {
     return () => clearTimeout(timer)
   }, [toast])
 
+  // Restrictions expire by the clock; checking when the data changes is often enough.
   const views = useMemo(
-    () => (data?.gym ? data.people.map((p) => viewOf(p, data.gym!)) : []),
+    () => (data?.gym ? data.people.map((p) => viewOf(p, data.gym!, Date.now())) : []),
     [data],
   )
 
@@ -245,6 +337,53 @@ export function Session() {
   }
 
   const sheetView = sheet ? views.find((v) => v.person.profile.id === sheet.profileId) : undefined
+  const followersOf = (v: View) => views.filter((x) => x.person.followsProfileId === v.person.profile.id)
+  const followers = followersOf(active)
+  const share = shareWithFollowers && followers.length > 0
+  const picked = active.person.entry.accessories.length
+  const emptySlots = Math.max(0, active.flexSlots - picked)
+
+  function renderSlot(slot: PlannedSlot) {
+    return (
+      <SlotCard
+        key={slot.slotId}
+        view={active!}
+        slot={slot}
+        weightStep={exerciseOf(slot.exerciseId)?.load === 'cable' ? data!.gym!.cableStep : 5}
+        onLog={(index, planned, values) => run(() => log(active!, slot, index, planned, values))}
+        onSheet={(s) => setSheet(s)}
+        onWarmups={(done) =>
+          run(async () => {
+            const existing = active!.logged.filter((s) => s.warmup && s.slotId === slot.slotId)
+            if (done) await deleteSets(existing.map((s) => s.id))
+            else
+              await logWarmups(
+                slot.warmups.map((w, i) =>
+                  setFromPlan(active!.person.entry, slot, i, w, { weight: w.weight ?? 0, reps: w.reps }, true),
+                ),
+              )
+          })
+        }
+        onUnswap={() => run(() => swapExercise(active!.person.entry.id, slot.slotId, undefined))}
+        onRemove={() => run(() => removeAccessory(active!.person.entry.id, slot.slotId))}
+        onToggle={(collapsed) => run(() => setCollapsed(active!.person.entry.id, slot.slotId, collapsed))}
+      />
+    )
+  }
+
+  async function fillAll(v: View) {
+    const used = v.person.entry.accessories.flatMap((a) =>
+      Object.entries(findExercise(a.exerciseId)?.muscles ?? {})
+        .filter(([, w]) => w === 1)
+        .map(([m]) => m as Muscle),
+    )
+    const picks = fillSlots(
+      { ...suggestBase(v, data!.gym!), projected: v.projected, targets: v.person.targets, usedToday: used },
+      emptySlots,
+    )
+    if (picks.length === 0) throw new Error("Nothing's behind this week, so there's nothing to fill. Pick one by hand.")
+    for (const e of picks) await addAccessory(v.person.entry.id, e.id, { forFollowers: share })
+  }
 
   return (
     <div className="session">
@@ -300,39 +439,43 @@ export function Session() {
       <RestBar entry={active.person.entry} now={now} onChange={(ends, secs) => run(() => setRest(active.person.entry.id, ends, secs))} />
       {error && <p className="error">{error}</p>}
 
-      {active.slots.map((slot) => (
-        <SlotCard
-          key={slot.slotId}
-          view={active}
-          slot={slot}
-          weightStep={exerciseOf(slot.exerciseId)?.load === 'cable' ? data.gym!.cableStep : 5}
-          onLog={(index, planned, values) => run(() => log(active, slot, index, planned, values))}
-          onSheet={(s) => setSheet(s)}
-          onWarmups={(done) =>
-            run(async () => {
-              const existing = active.logged.filter((s) => s.warmup && s.slotId === slot.slotId)
-              if (done) await deleteSets(existing.map((s) => s.id))
-              else
-                await logWarmups(
-                  slot.warmups.map((w, i) =>
-                    setFromPlan(active.person.entry, slot, i, w, { weight: w.weight ?? 0, reps: w.reps }, true),
-                  ),
-                )
-            })
-          }
-          onUnswap={() => run(() => swapExercise(active.person.entry.id, slot.slotId, undefined))}
-          onRemove={() => run(() => removeAccessory(active.person.entry.id, slot.slotId))}
-          onToggle={(collapsed) => run(() => setCollapsed(active.person.entry.id, slot.slotId, collapsed))}
-        />
-      ))}
+      {active.slots.filter((s) => s.role === 'main').map(renderSlot)}
 
-      <button
-        type="button"
-        className="btn btn-quiet add-accessory"
-        onClick={() => setSheet({ kind: 'accessory', profileId: active.person.profile.id })}
-      >
-        + Add accessory
-      </button>
+      <div className="acc-head">
+        <h2 className="grow no-margin">Accessories</h2>
+        {emptySlots > 0 && (
+          <button type="button" className="btn btn-small" onClick={() => run(() => fillAll(active))}>
+            Fill all
+          </button>
+        )}
+      </div>
+      {followers.length > 0 && (
+        <label className="toggle small">
+          <input type="checkbox" checked={shareWithFollowers} onChange={(e) => setShareWithFollowers(e.target.checked)} />{' '}
+          Picks also go to {followers.map((f) => f.person.profile.name).join(' and ')}
+        </label>
+      )}
+      {active.slots.filter((s) => s.role === 'accessory').map(renderSlot)}
+      {Array.from({ length: emptySlots }, (_, i) => (
+        <button
+          key={i}
+          type="button"
+          className="slot-empty"
+          onClick={() => setSheet({ kind: 'accessory', profileId: active.person.profile.id })}
+        >
+          <span className="grow">+ Choose accessory</span>
+          {i === 0 && active.gaps[0] && <span className="muted small">{gapText(active.gaps[0])}</span>}
+        </button>
+      ))}
+      {emptySlots === 0 && (
+        <button
+          type="button"
+          className="btn btn-quiet add-accessory"
+          onClick={() => setSheet({ kind: 'accessory', profileId: active.person.profile.id })}
+        >
+          + Add another
+        </button>
+      )}
 
       <NotesField key={active.person.entry.id} entry={active.person.entry} />
 
@@ -382,6 +525,33 @@ export function Session() {
             run(() => log(sheetView, slot, index, planned, values))
           }}
           onError={setError}
+          share={shareWithFollowers && followersOf(sheetView).length > 0}
+          onRate={(exerciseId) => setRateTarget({ profileId: sheetView.person.profile.id, exerciseId })}
+          onQuickAdd={(name) => setQuickAdd({ profileId: sheetView.person.profile.id, name })}
+        />
+      )}
+
+      {rateTarget && (
+        <RatingSheet
+          profileId={rateTarget.profileId}
+          exerciseId={rateTarget.exerciseId}
+          onClose={() => setRateTarget(undefined)}
+        />
+      )}
+
+      {quickAdd && (
+        <QuickAddSheet
+          name={quickAdd.name}
+          onClose={() => setQuickAdd(undefined)}
+          onAdded={(exercise) => {
+            const v = views.find((x) => x.person.profile.id === quickAdd.profileId)
+            setQuickAdd(undefined)
+            setSheet(undefined)
+            if (v) {
+              const forFollowers = shareWithFollowers && followersOf(v).length > 0
+              run(() => addAccessory(v.person.entry.id, exercise.id, { forFollowers }))
+            }
+          }}
         />
       )}
     </div>
@@ -462,6 +632,7 @@ function SlotCard(props: {
     .sort((a, b) => a.index - b.index)
     .map((s) => `${weightText(s.weight, exercise)}×${s.reps}`)
     .join(' · ')
+  const conflict = exercise ? view.restrictions.find((r) => restricts(r, exercise)) : undefined
 
   return (
     <section className={collapsed ? 'card slot slot-collapsed' : 'card slot'}>
@@ -504,6 +675,12 @@ function SlotCard(props: {
         )}
       </div>
 
+      {!collapsed && conflict && (
+        <p className="small warn-text no-margin slot-warn">
+          Goes against the {conflict.name.toLowerCase()} restriction.
+          {working.length === 0 && slot.role === 'main' ? ' Swap it for today?' : ''}
+        </p>
+      )}
       {collapsed ? (
         <p className="slot-summary muted small">{doneLine || 'Nothing logged yet'}</p>
       ) : (
@@ -696,34 +873,32 @@ function SessionSheet(props: {
   onClose: () => void
   onLog: (slot: PlannedSlot, index: number, planned: PlannedSet, values: SetValues) => void
   onError: (message: string) => void
+  /** Accessory picks also go to this person's followers in the session. */
+  share: boolean
+  onRate: (exerciseId: string) => void
+  onQuickAdd: (name: string) => void
 }) {
   const { sheet, view } = props
-  const [forFollowers, setForFollowers] = useState(true)
   const entry = view.person.entry
   const inPlan = new Set(view.slots.map((s) => s.exerciseId))
+  const hidden = new Set([...view.person.ratings.values()].filter((r) => r.hidden).map((r) => r.exerciseId))
 
   if (sheet.kind === 'accessory') {
-    const followers = props.views.filter((v) => v.person.followsProfileId === view.person.profile.id)
     return (
-      <ExercisePicker
+      <AccessoryPicker
         title={`Accessory for ${view.person.profile.name}`}
-        hidden={view.person.hidden}
-        exclude={inPlan}
+        base={suggestBase(view, props.gym)}
+        lastTime={(exerciseId) => lastTimeText(view, exerciseId)}
+        backDayNext={view.backDayNext}
         onClose={props.onClose}
         onPick={(exerciseId) => {
           props.onClose()
-          addAccessory(entry.id, exerciseId, { forFollowers: forFollowers && followers.length > 0 }).catch((e: unknown) =>
+          addAccessory(entry.id, exerciseId, { forFollowers: props.share }).catch((e: unknown) =>
             props.onError((e as Error).message),
           )
         }}
-        footer={
-          followers.length > 0 && (
-            <label className="toggle followers-toggle">
-              <input type="checkbox" checked={forFollowers} onChange={(e) => setForFollowers(e.target.checked)} /> Also add
-              for {followers.map((f) => f.person.profile.name).join(' and ')}
-            </label>
-          )
-        }
+        onRate={props.onRate}
+        onAdd={props.onQuickAdd}
       />
     )
   }
@@ -736,7 +911,7 @@ function SessionSheet(props: {
     return (
       <ExercisePicker
         title={`Swap ${exercise?.name ?? ''} for today`}
-        hidden={view.person.hidden}
+        hidden={hidden}
         exclude={inPlan}
         onClose={props.onClose}
         onPick={(exerciseId) => {

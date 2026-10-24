@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { EXERCISES } from '../../data/exercises.ts'
+import { allExercises } from '../../data/exercises.ts'
 import { MUSCLE_LABELS, MUSCLES, type Exercise, type Muscle } from '../../engine/types.ts'
 import { Sheet } from './Sheet.tsx'
 
@@ -18,7 +18,7 @@ export function ExercisePicker(props: {
 }) {
   const [query, setQuery] = useState('')
   const q = query.trim().toLowerCase()
-  const matches = EXERCISES.filter(
+  const matches = allExercises().filter(
     (e) => !props.hidden.has(e.id) && !props.exclude?.has(e.id) && (!q || e.name.toLowerCase().includes(q)),
   )
   const groups = MUSCLES.map((m) => ({ muscle: m, items: matches.filter((e) => primaryMuscle(e) === m) })).filter(
