@@ -7,7 +7,7 @@ import type { Scheme } from '../../engine/schemes.ts'
 import { schemeSummary } from '../format.ts'
 import { ExercisePicker } from './ExercisePicker.tsx'
 import { ConfirmButton, Segmented } from './forms.tsx'
-import { SchemePicker } from './SchemeSheets.tsx'
+import { SchemeEditor, SchemePicker, useCustomSchemeIds } from './SchemeSheets.tsx'
 import { Sheet } from './Sheet.tsx'
 
 const TIERS: ReadonlyArray<{ value: Tier; label: string }> = [
@@ -49,7 +49,8 @@ export function SlotSheet(props: {
   reset?: { label: string; onReset: () => Promise<void> | void }
 }) {
   const [fields, setFields] = useState(props.initial)
-  const [picking, setPicking] = useState<'exercise' | 'scheme'>()
+  const [picking, setPicking] = useState<'exercise' | 'scheme' | 'sets'>()
+  const custom = useCustomSchemeIds()
   const [error, setError] = useState<string>()
   // Saving can be refused (a lift already logged today, say); the sheet stays open to say why.
   const attempt = (work: () => Promise<void> | void) => {
@@ -71,6 +72,21 @@ export function SlotSheet(props: {
         onClose={() => setPicking(undefined)}
         onPick={(id) => {
           setFields(changeExercise(fields, id, hasTm, findScheme))
+          setPicking(undefined)
+        }}
+      />
+    )
+  }
+  if (picking === 'sets' && scheme?.kind === 'percent') {
+    // A built-in scheme is never changed: this lift gets its own copy.
+    const mine = custom.has(scheme.id)
+    return (
+      <SchemeEditor
+        editing={mine ? scheme : undefined}
+        from={mine ? undefined : scheme}
+        onClose={() => setPicking(undefined)}
+        onSaved={(schemeId) => {
+          setFields({ ...fields, schemeId })
           setPicking(undefined)
         }}
       />
@@ -121,6 +137,11 @@ export function SlotSheet(props: {
           </span>
           <span className="muted small">Change</span>
         </button>
+        {percent && (
+          <button type="button" className="btn btn-quiet btn-small edit-sets" onClick={() => setPicking('sets')}>
+            Edit these sets
+          </button>
+        )}
       </div>
 
       {percent && (

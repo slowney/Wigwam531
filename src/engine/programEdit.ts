@@ -5,6 +5,7 @@
 import { applySwaps } from './session.ts'
 import {
   slotTmId,
+  type AccessoryGroup,
   type AccessorySlot,
   type MainSlot,
   type Program,
@@ -66,6 +67,7 @@ export function cloneProgram(program: Program, name: string, newId: IdMaker): Pr
       id: newId(),
       mains: d.mains.map((m) => ({ ...m, id: newId() })),
       accessories: d.accessories.map((a) => ({ ...a, id: newId() })),
+      ...(d.groups ? { groups: d.groups.map((g) => ({ ...g, id: newId() })) } : {}),
     })),
   }
 }
@@ -105,6 +107,7 @@ export function addDay(program: Program, newId: IdMaker, copyFrom?: string): Pro
         name,
         mains: source.mains.map((m) => ({ ...m, id: newId() })),
         accessories: source.accessories.map((a) => ({ ...a, id: newId() })),
+        ...(source.groups ? { groups: source.groups.map((g) => ({ ...g, id: newId() })) } : {}),
       }
     : emptyDay(name, newId)
   return renumberDays({ ...program, days: [...program.days, day] })
@@ -281,4 +284,16 @@ export function overrideDiff(leader: MainSlot, mine: SlotFields): Partial<SlotFi
   const tm = mine.tmExerciseId ?? mine.exerciseId
   if (diff.exerciseId || tm !== slotTmId(leader)) diff.tmExerciseId = tm
   return diff
+}
+
+/** Saves accessories that went well together on a day, to offer there again. */
+export function addGroup(program: Program, dayId: string, group: Omit<AccessoryGroup, 'id'>, newId: IdMaker): Program {
+  const name = group.name.trim()
+  if (!name) throw new Error('Give the group a name.')
+  if (group.items.length === 0) throw new Error('A group needs at least one accessory.')
+  return mapDay(program, dayId, (d) => ({ ...d, groups: [...(d.groups ?? []), { ...group, name, id: newId() }] }))
+}
+
+export function removeGroup(program: Program, groupId: string): Program {
+  return { ...program, days: program.days.map((d) => (d.groups ? { ...d, groups: d.groups.filter((g) => g.id !== groupId) } : d)) }
 }

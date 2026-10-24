@@ -139,6 +139,10 @@ export interface EntryRow {
    * slot id. Logging a set at it clears it again: the logged weight carries on.
    */
   weights?: Record<string, number>
+  /** Accessory groups used today, by id: what their ranking reads back. */
+  groups?: string[]
+  /** Sets left out today, by slot id: set indexes. Plans stay whole; these are just not done. */
+  skips?: Record<string, number[]>
   /** Exercises folded or opened by hand, by slot id. Saved so a reload looks the same. */
   collapsed?: Record<string, boolean>
   notes?: string

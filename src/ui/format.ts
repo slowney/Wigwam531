@@ -39,3 +39,15 @@ export function accessoryText(day: ProgramDay, lookup: ExerciseLookup): string {
   const open = day.accessories.filter((a) => a.kind === 'flex').length
   return [...pinned, ...(open ? [`${open} open ${open === 1 ? 'slot' : 'slots'}`] : [])].join(' + ') || 'None'
 }
+
+/** "+6%", "−3%": a change, signed. */
+export function percentText(fraction: number): string {
+  const pct = Math.round(fraction * 100)
+  return `${pct > 0 ? '+' : pct < 0 ? '−' : '±'}${Math.abs(pct)}%`
+}
+
+/** "+4", "−5": a difference in pounds, signed. */
+export function signed(n: number): string {
+  const r = Math.round(n)
+  return `${r >= 0 ? '+' : '−'}${Math.abs(r)}`
+}

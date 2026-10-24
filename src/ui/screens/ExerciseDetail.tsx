@@ -1,12 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useParams, useSearchParams } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db } from '../../db/db.ts'
 import { bests, e1rmPrs, e1rmSeries, rangeStart, repMaxes, tmSteps, type Range } from '../../engine/metrics.ts'
 import { LineChart, type ChartSeries } from '../charts/LineChart.tsx'
+import { compared, formatSlots, MAX_COMPARED, parseSlots, toggleSlot } from '../compare.ts'
 import { BackLink, Segmented } from '../components/forms.tsx'
 import { formatDate } from '../format.ts'
+import { COMPARE_COLORS, ExerciseCompare } from './ProgressCompare.tsx'
 
 const RANGES: ReadonlyArray<{ value: Range; label: string }> = [
   { value: '3M', label: '3M' },
@@ -19,6 +21,12 @@ const RANGES: ReadonlyArray<{ value: Range; label: string }> = [
 export function ExerciseDetail() {
   const { profileId = '', exerciseId = '' } = useParams()
   const [range, setRange] = useState<Range>('All')
+  const [params, setParams] = useSearchParams()
+  const slots = params.has('c') ? parseSlots(params.get('c')) : undefined
+  const everyone = useLiveQuery(
+    async () => (await db.profiles.toArray()).filter((p) => !p.archived).sort((a, b) => a.createdAt - b.createdAt),
+    [],
+  )
   const data = useLiveQuery(async () => {
     const profile = await db.profiles.get(profileId)
     const sets = (await db.sets.where('[profileId+exerciseId]').equals([profileId, exerciseId]).toArray()).filter(
@@ -42,6 +50,59 @@ export function ExerciseDetail() {
   }
 
   const now = Date.now()
+  const modes =
+    everyone && everyone.length > 1 ? (
+      <div className="range-picker">
+        <Segmented
+          label="Show"
+          value={slots ? 'compare' : 'one'}
+          onChange={(mode) => setParams(mode === 'compare' ? { c: profileId } : {}, { replace: true })}
+          options={[
+            { value: 'one', label: profile.name },
+            { value: 'compare', label: 'Compare' },
+          ]}
+        />
+      </div>
+    ) : null
+
+  if (slots && everyone) {
+    const full = compared(slots).length >= MAX_COMPARED
+    return (
+      <>
+        <BackLink to={back} label="Progress" />
+        <h1>{name}</h1>
+        {modes}
+        <div className="chips person-chips" aria-label="Who to compare">
+          {everyone.map((p) => {
+            const slot = slots.indexOf(p.id)
+            const on = slot >= 0
+            return (
+              <button
+                key={p.id}
+                type="button"
+                aria-pressed={on}
+                disabled={!on && full}
+                className={on ? 'chip chip-on' : 'chip'}
+                onClick={() => setParams({ c: formatSlots(toggleSlot(slots, p.id)) }, { replace: true })}
+              >
+                {on ? (
+                  <span className="compare-key" style={{ background: COMPARE_COLORS[slot] }} />
+                ) : (
+                  <span className="dot" style={{ background: p.color }} />
+                )}
+                {p.name}
+              </button>
+            )
+          })}
+        </div>
+        <div className="range-picker">
+          <Segmented label="Range" value={range} onChange={setRange} options={RANGES} />
+        </div>
+        <ExerciseCompare exerciseId={exerciseId} slots={slots} from={rangeStart(range, now)} to={now} />
+      </>
+    )
+  }
+
   const timed = exercise?.unit === 'seconds'
   const series = e1rmSeries(sets, exerciseId)
   const steps = tmSteps(data.tmHistory, exerciseId)
@@ -69,7 +130,7 @@ export function ExerciseDetail() {
     <>
       <BackLink to={back} label="Progress" />
       <h1>{name}</h1>
-      <p className="muted">{profile.name}</p>
+      {modes ?? <p className="muted">{profile.name}</p>}
 
       {sets.length === 0 ? (
         <p className="muted">Nothing logged yet.</p>

@@ -308,13 +308,15 @@ failed set (no reps) doesn't count toward the working weight.
   - **Logging:** tap ✓ to log a set as prescribed, or "Missed" to pick the reps you got, down to 0. Rep ranges get a button per rep count. AMRAP sets get a big rep picker. Tapping the set itself opens the editor for weight, reps, RPE and a note.
   - **Last time's note:** a note left on an exercise last time shows on it this time.
   - **Nudging a weight:** rep-range sets have − / + beside the weight, one gym-aware step (the next dumbbell, the next pin, 5 lb on a bar), for grabbing a different weight before the next set.
+  - **Skipping a set:** "Skip this set today" leaves a set out (tap it to put it back). To drop it for good, edit the lift's sets in the program.
+  - **Accessory groups:** a program day's saved groups, ranked by how the workouts that used them went and by what's behind this week; one tap adds a group.
   - **Out of order:** the main lifts run in order, but each accessory's next set is always ready to log, since accessories get done whenever the bar is busy.
   - **Per set:** swap, notes and RPE.
   - **Accessories:** slots with the picker, plus Fill all.
   - **Exercises fold.** Tap a header to fold an exercise to one line. Finished ones fold themselves unless opened by hand, and the choice is saved with the workout.
   - **Finish:** a summary with PRs, next week's bumps, a 1–5 "How was it?" rating per person, and (in Phase 4) ratings for any new exercises.
 - **Day names** carry their main lifts everywhere: "Day 2: Squat/Sumo".
-- **Start Week:** per profile, the last 1+ results, suggested bumps (editable), stall warnings and the week type. Several profiles can be started at once.
+- **Start Week:** per profile, a recap of the week (PRs, weight moved, muscles on target, e1RMs), the last 1+ results, suggested bumps (editable), stall warnings and the week type, with a deload or TM test preselected when one is due. Several profiles can be started at once.
 - **Week:** all of a profile's days with weights and done/skipped status.
 - **Program editor** (from a profile's "Edit program"):
   - **Days:** add, rename, duplicate, remove and reorder with ↑/↓. Days named "Day N" renumber when moved; renamed ones keep their name.

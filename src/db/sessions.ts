@@ -1,5 +1,6 @@
 import { findExercise } from '../data/exercises.ts'
 import type { AccessoryPick, PlannedSet, PlannedSlot } from '../engine/plan.ts'
+import type { AccessoryGroup } from '../engine/program.ts'
 import type { Stars } from '../engine/types.ts'
 import { db as defaultDb, newId, type EntryRow, type SessionRow, type SetRow, type WigwamDb } from './db.ts'
 import { loadProgram } from './profiles.ts'
@@ -125,6 +126,32 @@ export async function logSet(
   return id
 }
 
+/** Leaves a set out of today's workout, or puts it back. Not once it's logged. */
+export async function skipSet(
+  entryId: string,
+  slotId: string,
+  index: number,
+  skipped: boolean,
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  await db.transaction('rw', [db.entries, db.sets], async () => {
+    const logged = await db.sets
+      .where('entryId')
+      .equals(entryId)
+      .filter((s) => !s.warmup && s.slotId === slotId && s.index === index)
+      .count()
+    if (logged && skipped) throw new Error("That set's already logged. Delete it instead.")
+    const entry = await db.entries.get(entryId)
+    if (!entry) return
+    const now = new Set(entry.skips?.[slotId] ?? [])
+    if (skipped) now.add(index)
+    else now.delete(index)
+    const skips = { ...entry.skips, [slotId]: [...now].sort((a, b) => a - b) }
+    if (skips[slotId]!.length === 0) delete skips[slotId]
+    await db.entries.update(entryId, { skips })
+  })
+}
+
 /** Today's weight for a rep-range exercise, nudged before the next set. Undefined goes back to the plan's. */
 export async function setSlotWeight(
   entryId: string,
@@ -232,6 +259,42 @@ export async function addAccessory(
     for (const other of await db.entries.where('sessionId').equals(entry.sessionId).toArray()) {
       if (!followers.has(other.profileId) || other.accessories.some((a) => a.exerciseId === exerciseId)) continue
       await db.entries.update(other.id, { accessories: [...other.accessories, await pick(other.profileId)] })
+    }
+  })
+}
+
+/**
+ * Adds a day's accessory group: each of its exercises not already in today's
+ * workout, at the group's sets and reps. With `forFollowers`, the same goes
+ * to everyone in the session who follows this person. The group is noted
+ * on each workout it went into, for ranking it next time.
+ */
+export async function applyAccessoryGroup(
+  entryId: string,
+  group: AccessoryGroup,
+  options: { forFollowers: boolean },
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  await db.transaction('rw', [db.entries, db.programs], async () => {
+    const entry = await db.entries.get(entryId)
+    if (!entry) return
+    const add = async (target: EntryRow) => {
+      const have = new Set(target.accessories.map((a) => a.exerciseId))
+      const picks: AccessoryPick[] = group.items
+        .filter((i) => !have.has(i.exerciseId) && findExercise(i.exerciseId))
+        .map((i) => ({ id: newId(), exerciseId: i.exerciseId, sets: i.sets, reps: [i.reps[0], i.reps[1]] }))
+      await db.entries.update(target.id, {
+        accessories: [...target.accessories, ...picks],
+        groups: [...new Set([...(target.groups ?? []), group.id])],
+      })
+    }
+    await add(entry)
+    if (!options.forFollowers) return
+    const followers = new Set(
+      (await db.programs.where('followsProfileId').equals(entry.profileId).toArray()).map((p) => p.profileId),
+    )
+    for (const other of await db.entries.where('sessionId').equals(entry.sessionId).toArray()) {
+      if (followers.has(other.profileId)) await add(other)
     }
   })
 }

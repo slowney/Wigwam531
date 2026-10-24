@@ -7,7 +7,34 @@ import { loadWeekOverview, loadWeekReview, startWeeks, type WeekOverview, type W
 import type { WeekType } from '../../engine/plan.ts'
 import { dayLabel } from '../../engine/program.ts'
 import type { TmProposal } from '../../engine/progression.ts'
+import type { WeekRecap } from '../../engine/metrics.ts'
 import { BackLink, Segmented } from '../components/forms.tsx'
+import { percentText, signed } from '../format.ts'
+
+/** The week that's ending, in a few lines: PRs, weight moved, muscles on target and e1RMs. */
+function Recap({ n, recap }: { n: number; recap: WeekRecap }) {
+  if (recap.tonnage === 0) return null
+  const vs = recap.lastWeek ? (recap.tonnage - recap.lastWeek) / recap.lastWeek : undefined
+  return (
+    <div className="recap">
+      <p className="no-margin small">
+        Week {n}: {recap.prs} {recap.prs === 1 ? 'PR' : 'PRs'} · {Math.round(recap.tonnage).toLocaleString()} lb moved
+        {vs !== undefined ? ` (${percentText(vs)} on Week ${n - 1})` : ''} · {recap.musclesOnTarget} of{' '}
+        {recap.musclesWithTarget} muscles on target
+      </p>
+      {recap.lifts.length > 0 && (
+        <p className="no-margin small muted">
+          {recap.lifts
+            .map((l) => {
+              const name = findExercise(l.exerciseId)?.short ?? findExercise(l.exerciseId)?.name ?? l.exerciseId
+              return `${name} e1RM ${Math.round(l.e1rm)}${l.before !== undefined ? ` (${signed(l.e1rm - l.before)})` : ''}`
+            })
+            .join(' · ')}
+        </p>
+      )}
+    </div>
+  )
+}
 
 interface Item {
   profile: ProfileRow
@@ -48,7 +75,8 @@ function initialChoice(item: Item): Choice {
   for (const p of item.review.proposals) {
     tms[p.exerciseId] = { lb: p.proposed, reason: p.reason === 'tmTestFailed' ? 'tmTest' : 'progression' }
   }
-  return { include: item.overview.complete, type: 'normal', tms }
+  // A due deload or TM test comes preselected; it's still one tap to change.
+  return { include: item.overview.complete, type: item.review.suggestion?.type ?? 'normal', tms }
 }
 
 function why(p: TmProposal): string {
@@ -122,6 +150,7 @@ function Review({ items }: { items: Item[] }) {
                 Week {n} → {n + 1}
               </span>
             </label>
+            <Recap n={n} recap={item.review.recap} />
             {c.include && (
               <>
                 {!item.overview.complete && pending.length > 0 && (
@@ -137,6 +166,12 @@ function Review({ items }: { items: Item[] }) {
                     { value: 'tmTest', label: 'TM test' },
                   ]}
                 />
+                {item.review.suggestion && (
+                  <p className="small warn-text">
+                    {item.review.suggestion.type === 'deload' ? 'Deload' : 'TM test'} suggested:{' '}
+                    {item.review.suggestion.reason}
+                  </p>
+                )}
                 {item.review.proposals.map((p) => {
                   const t = c.tms[p.exerciseId]!
                   return (

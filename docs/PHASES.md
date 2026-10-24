@@ -220,6 +220,23 @@ The Progress tab becomes a page per person (chips at the top switch between them
 - Charts render correctly from six months of generated data at phone size. (The app is dark-only, so there's no light mode to check.)
 - They look right with your real data on your phone.
 
+## Phase 7: Fewer taps, better summaries
+
+From the list after Phase 6. Built:
+
+- **Removing sets.** "Skip this set today" in any unlogged set's editor: the set stays visible to undo, but drops out of the count and the next-set order. For good: "Edit these sets" on a lift in the program editor opens your own copy of its scheme (or the scheme itself, if it's already yours) to remove rows.
+- **Accessory groups.** Saved from a workout's accessories ("Save these accessories as a group") onto that program day, so followers get them too; a follower's group goes on the leader's day. In a workout, the day's groups sit above the accessory slots, ranked by the average "How was it?" rating of the workouts that used them (untried ones count as 3), plus up to one more for how much of the group works muscles behind this week. One tap adds the whole group (shared with followers, like picks). Groups can be removed in the program editor.
+- **Deload and TM-test suggestions** at Start Week: a deload when two or more lifts have stalled two weeks running; otherwise, after six normal weeks, a deload or a TM test, taking turns. The suggestion comes preselected with its reason and can be changed.
+- **Workout summary:** weight moved (weight × reps of working sets) against the last time that program day was done, sets and reps, duration, and each main lift's best e1RM against its last workout.
+- **Weekly recap** at Start Week: PRs, weight moved against the week before, muscles on target, and each TM lift's best e1RM against the week before.
+- **Compare on exercise pages:** up to three people on any exercise, with the same colours and rules as the main-lift comparison.
+- Earlier quick wins from the same list: last time's note on each exercise, and − / + on a rep-range set's weight.
+
+**Done when:**
+
+- Tests show skipped sets leave the count and the next set, and a logged set can't be skipped; groups save to the leader's day, rank by rating and fit, and add to followers' workouts; the deload and TM-test rules; and the workout and week numbers.
+- You use a group and a skipped set in a real workout.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)

@@ -70,7 +70,7 @@ export function nextSet(
   const done = doneKeys(logged)
   for (const slot of slots) {
     for (let i = 0; i < slot.sets.length; i++) {
-      if (!done.has(key(slot.slotId, i))) return { slotId: slot.slotId, index: i }
+      if (!done.has(key(slot.slotId, i)) && !slot.sets[i]!.skipped) return { slotId: slot.slotId, index: i }
     }
   }
   return undefined
@@ -85,6 +85,7 @@ export function dayProgress(
   let total = 0
   for (const slot of slots) {
     for (let i = 0; i < slot.sets.length; i++) {
+      if (slot.sets[i]!.skipped && !done.has(key(slot.slotId, i))) continue
       total++
       if (done.has(key(slot.slotId, i))) count++
     }
@@ -176,6 +177,8 @@ export interface EntryPlanInput {
   dayId: string
   swaps: Swaps
   accessories: ReadonlyArray<AccessoryPick>
+  /** Sets left out today, by slot id: set indexes. */
+  skips?: Readonly<Record<string, readonly number[]>>
   weekType: WeekType
   tms: Readonly<Record<string, number>>
   /** This person's logged sets, for carried-over weights. */
@@ -227,7 +230,9 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
   }
   const withCarried = (slot: PlannedSlot): PlannedSlot => {
     const carried = progressions.get(slot.slotId)
-    return carried ? { ...slot, carried } : slot
+    const skips = input.skips?.[slot.slotId]
+    const sets = skips?.length ? slot.sets.map((s, i) => (skips.includes(i) ? { ...s, skipped: true } : s)) : slot.sets
+    return { ...slot, sets, ...(carried ? { carried } : {}) }
   }
   const planned = planDay(day, ctx)
   const mains = planned.mains.map(withCarried)

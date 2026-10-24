@@ -138,3 +138,123 @@ function BestsTable({ people, lifts }: { people: Person[]; lifts: string[] }) {
     </section>
   )
 }
+
+/** The heaviest set of each workout, oldest first. */
+function topSets(sets: SetRow[]): { sessionId: string; at: number; weight: number }[] {
+  const by = new Map<string, { sessionId: string; at: number; weight: number }>()
+  for (const s of sets) {
+    const seen = by.get(s.sessionId)
+    if (!seen || s.weight > seen.weight) by.set(s.sessionId, { sessionId: s.sessionId, at: seen?.at ?? s.at, weight: s.weight })
+  }
+  return [...by.values()].sort((a, b) => a.at - b.at)
+}
+
+/** One exercise for up to three people: their lines together, and their bests side by side. */
+export function ExerciseCompare(props: { exerciseId: string; slots: Slots; from: number; to: number }) {
+  const { exerciseId } = props
+  const key = props.slots.join(',')
+  const people = useLiveQuery(async () => {
+    const out: { slot: number; profile: ProfileRow; sets: SetRow[]; bodyweight?: number }[] = []
+    for (const [slot, id] of props.slots.entries()) {
+      const profile = id ? await db.profiles.get(id) : undefined
+      if (!profile) continue
+      const sets = (await db.sets.where('[profileId+exerciseId]').equals([profile.id, exerciseId]).toArray()).filter(
+        (s) => !s.warmup,
+      )
+      out.push({ slot, profile, sets, bodyweight: (await loadBodyweights(profile.id))[0]?.lb })
+    }
+    return out
+  }, [key, exerciseId])
+  if (!people) return null
+  if (people.length < 2) return <p className="muted">Pick at least two people to compare, up to {MAX_COMPARED}.</p>
+
+  // Timed holds and high-rep work have no e1RM, so everyone gets their top set instead.
+  const timed = findExercise(exerciseId)?.unit === 'seconds'
+  const useE1rm = !timed && people.some((p) => e1rmSeries(p.sets, exerciseId).length > 0)
+  const lines = people
+    .map((p) => {
+      const points = useE1rm
+        ? e1rmSeries(p.sets, exerciseId).map((q) => ({ x: q.at, y: q.e1rm, key: `${p.profile.id}:${q.setId}` }))
+        : topSets(p.sets).map((t) => ({ x: t.at, y: t.weight, key: `${p.profile.id}:${t.sessionId}` }))
+      return { person: p, points }
+    })
+    .filter((l) => l.points.length > 0)
+
+  return (
+    <>
+      {lines.length > 0 && (
+        <section className="card">
+          <LineChart
+            label={`${nameOf(exerciseId)}: ${useE1rm ? 'e1RM' : 'top set'} for ${lines.map((l) => l.person.profile.name).join(', ')}`}
+            from={props.from}
+            to={props.to}
+            series={lines.map(({ person, points }) => ({
+              name: person.profile.name,
+              color: COMPARE_COLORS[person.slot]!,
+              dots: true,
+              points,
+            }))}
+            readout={(x) => (
+              <>
+                {formatDate(x)} ·{' '}
+                {lines
+                  .map(({ person, points }) => {
+                    const p = points.filter((q) => q.x <= x).at(-1)
+                    return `${person.profile.name} ${p ? Math.round(p.y) : '–'}`
+                  })
+                  .join(' · ')}
+              </>
+            )}
+          />
+        </section>
+      )}
+      <section className="card">
+        <h2>Bests</h2>
+        <table className="rep-table compare-table">
+          <thead>
+            <tr>
+              <th scope="col" />
+              {people.map((p) => (
+                <th key={p.profile.id} scope="col">
+                  <span className="compare-key" style={{ background: COMPARE_COLORS[p.slot] }} />
+                  {p.profile.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {!timed && (
+              <tr>
+                <th scope="row">Best e1RM</th>
+                {people.map((p) => {
+                  const best = bests(p.sets, exerciseId).e1rm?.e1rm
+                  return (
+                    <td key={p.profile.id}>
+                      {best === undefined ? '–' : Math.round(best)}
+                      {best !== undefined && p.bodyweight !== undefined && (
+                        <span className="muted small"> {(best / p.bodyweight).toFixed(2)}×</span>
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            )}
+            <tr>
+              <th scope="row">Heaviest</th>
+              {people.map((p) => {
+                const h = bests(p.sets, exerciseId).heaviest
+                return <td key={p.profile.id}>{h ? `${h.weight} × ${h.reps}` : '–'}</td>
+              })}
+            </tr>
+            <tr>
+              <th scope="row">Workouts</th>
+              {people.map((p) => (
+                <td key={p.profile.id}>{new Set(p.sets.map((s) => s.sessionId)).size}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </>
+  )
+}

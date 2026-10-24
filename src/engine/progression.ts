@@ -140,3 +140,43 @@ export function nextWorkingWeight(
   const up = next(top)
   return up === undefined ? { weight: top, reason: 'maxed', last: top } : { weight: up, reason: 'increase', last: top }
 }
+
+export interface WeekTypeSuggestion {
+  type: Exclude<WeekType, 'normal'>
+  /** Shown at Start Week, so the suggestion explains itself. */
+  reason: string
+}
+
+/** Normal weeks in a row before a deload or a TM test comes up. */
+export const WEEKS_BETWEEN_RESETS = 6
+
+/**
+ * What the next week should be, if not a normal one. Two or more lifts
+ * stalling (two weeks running at 0-1 reps on their 1+ set) calls for a
+ * deload. Otherwise, after six normal weeks, a deload or a TM test comes
+ * up, taking turns: a TM test if the last one was a deload, a deload if it
+ * was a TM test. `weeks` is every week so far, the ending one included.
+ */
+export function suggestWeekType(
+  weeks: ReadonlyArray<{ number: number; type: WeekType }>,
+  stalledLifts: number,
+): WeekTypeSuggestion | undefined {
+  if (stalledLifts >= 2) {
+    return { type: 'deload', reason: `${stalledLifts} lifts have stalled two weeks running.` }
+  }
+  let normal = 0
+  let last: WeekType | undefined
+  for (const w of [...weeks].sort((a, b) => b.number - a.number)) {
+    if (w.type !== 'normal') {
+      last = w.type
+      break
+    }
+    normal++
+  }
+  if (normal < WEEKS_BETWEEN_RESETS) return undefined
+  const since = last === 'deload' ? 'deload' : last === 'tmTest' ? 'TM test' : undefined
+  return {
+    type: last === 'deload' ? 'tmTest' : 'deload',
+    reason: since ? `${normal} normal weeks since the last ${since}.` : `${normal} normal weeks so far, with no deload yet.`,
+  }
+}

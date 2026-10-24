@@ -1,9 +1,16 @@
 import Dexie from 'dexie'
 import { findExercise } from '../data/exercises.ts'
 import { findScheme } from '../data/schemes.ts'
+import { weekRecap, type WeekRecap } from '../engine/metrics.ts'
 import type { WeekType } from '../engine/plan.ts'
 import { requiredTms, type Program, type ProgramDay } from '../engine/program.ts'
-import { defaultTable, proposeTmChanges, type TmProposal } from '../engine/progression.ts'
+import {
+  defaultTable,
+  proposeTmChanges,
+  suggestWeekType,
+  type TmProposal,
+  type WeekTypeSuggestion,
+} from '../engine/progression.ts'
 import {
   isWeekComplete,
   pendingDays,
@@ -13,7 +20,8 @@ import {
   type WeekState,
 } from '../engine/week.ts'
 import { db as defaultDb, newId, type TmChangeReason, type WeekRow, type WigwamDb } from './db.ts'
-import { loadProgram, loadTms } from './profiles.ts'
+import { prChecks, prKind } from '../engine/session.ts'
+import { loadProgram, loadTargets, loadTms } from './profiles.ts'
 
 export function weekState(week: WeekRow): WeekState {
   return { number: week.number, type: week.type, days: week.days }
@@ -113,6 +121,10 @@ function skipPending(week: WeekRow, program: Program | undefined): Record<string
 export interface WeekReview {
   week: WeekRow
   proposals: TmProposal[]
+  /** The week that's ending, in numbers, against the week before. */
+  recap: WeekRecap
+  /** A deload or TM test for the next week, when one is due. */
+  suggestion?: WeekTypeSuggestion
 }
 
 /** What Start Week shows: each TM's suggested change, from the week that's ending. */
@@ -137,7 +149,19 @@ export async function loadWeekReview(profileId: string, db: WigwamDb = defaultDb
     previous: progressionReps(sets.filter((s) => s.weekId !== week.id)),
     tables: (id) => profile?.progressionTables?.[id] ?? defaultTable(findExercise(id)?.region ?? 'upper'),
   })
-  return { week, proposals }
+  const weeks = await db.weeks.where('profileId').equals(profileId).toArray()
+  const stalled = proposals.filter((p) => p.reason === 'stall').length
+  const before = weeks.find((w) => w.number === week.number - 1)
+  const prs = prChecks(sets)
+  const recap = weekRecap({
+    week: thisWeek.filter((s) => !s.warmup),
+    previousWeek: before ? sets.filter((s) => s.weekId === before.id && !s.warmup) : undefined,
+    prs: thisWeek.filter((s) => !s.warmup && prKind(prs.get(s.id)) !== undefined).length,
+    targets: await loadTargets(profileId, db),
+    lookup: findExercise,
+    mainLifts: requiredTms(program, findScheme),
+  })
+  return { week, proposals, recap, suggestion: suggestWeekType(weeks, stalled) }
 }
 
 export interface WeekStart {

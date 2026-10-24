@@ -96,6 +96,7 @@ export async function planFor(
     dayId: entry.dayId,
     swaps: entry.swaps,
     accessories: entry.accessories,
+    skips: entry.skips,
     weekType: (await db.weeks.get(entry.weekId))!.type,
     tms: await loadTms(profileId, db),
     history: await db.sets.where('profileId').equals(profileId).toArray(),

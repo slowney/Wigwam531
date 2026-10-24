@@ -8,12 +8,13 @@ import { loadProgram } from '../../db/profiles.ts'
 import { deleteSession, rateEntry, reopenSession } from '../../db/sessions.ts'
 import { dayLabel } from '../../engine/program.ts'
 import { defaultTable, increaseFor } from '../../engine/progression.ts'
+import { change, workoutStats, type WorkoutStats } from '../../engine/metrics.ts'
 import { prChecks, prKind, type PrKind } from '../../engine/session.ts'
 import type { Rating, Stars } from '../../engine/types.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
 import { ConfirmButton } from '../components/forms.tsx'
 import { StarPicker } from '../components/RatingSheet.tsx'
-import { formatDate } from '../format.ts'
+import { formatDate, percentText } from '../format.ts'
 
 const PR_LABEL: Record<PrKind, string> = { e1rm: 'e1RM PR', reps: 'rep PR', heaviest: 'heaviest ever' }
 const PR_BADGE: Record<PrKind, string> = { e1rm: 'PR', reps: 'Rep PR', heaviest: 'Heaviest' }
@@ -91,6 +92,14 @@ export function SessionSummary() {
       const entry = entries.find((e) => e.profileId === profileId)
       const profile = await db.profiles.get(profileId)
       if (!entry || !profile) continue
+      // The last earlier time this person did this program day, for comparison.
+      let lastTime: string | undefined
+      let lastAt = -Infinity
+      for (const other of await db.entries.where('profileId').equals(profileId).toArray()) {
+        if (other.dayId !== entry.dayId || other.status !== 'done' || other.sessionId === id) continue
+        const at = (await db.sessions.get(other.sessionId))?.startedAt ?? -Infinity
+        if (at < session.startedAt && at > lastAt) [lastTime, lastAt] = [other.sessionId, at]
+      }
       people.push({
         entry,
         profile,
@@ -98,6 +107,7 @@ export function SessionSummary() {
         week: await db.weeks.get(entry.weekId),
         history: await db.sets.where('profileId').equals(profileId).toArray(),
         ratings: await loadRatings(profileId),
+        lastTime,
       })
     }
     return { session, people }
@@ -109,11 +119,14 @@ export function SessionSummary() {
   return (
     <>
       <h1>Workout done</h1>
-      <p className="muted">{formatDate(session.startedAt)}</p>
+      <p className="muted">
+        {formatDate(session.startedAt)}
+        {session.endedAt ? ` · ${Math.max(1, Math.round((session.endedAt - session.startedAt) / 60_000))} min` : ''}
+      </p>
 
       <BackupReminder only="weekDone" />
 
-      {data.people.map(({ entry, profile, program, week, history, ratings }) => {
+      {data.people.map(({ entry, profile, program, week, history, ratings, lastTime }) => {
         const sets = history.filter((s) => s.sessionId === id && !s.warmup).sort((a, b) => a.at - b.at)
         const prs = prChecks(history)
         const day = program?.days.find((d) => d.id === entry.dayId)
@@ -138,10 +151,15 @@ export function SessionSummary() {
             ) : (
               <>
                 <WorkoutRating entry={entry} />
-                <p className="no-margin">
-                  {sets.length} {sets.length === 1 ? 'set' : 'sets'} logged.
-                  {weekDone ? ` That finishes Week ${week!.number}.` : ''}
-                </p>
+                <WorkoutNumbers
+                  stats={workoutStats({
+                    today: sets,
+                    lastTime: lastTime ? history.filter((s) => s.sessionId === lastTime && !s.warmup) : undefined,
+                    earlier: history.filter((s) => s.at < session.startedAt && s.sessionId !== id),
+                    mainLifts: [...new Set(sets.filter((s) => s.role === 'main').map((s) => s.exerciseId))],
+                  })}
+                />
+                {weekDone && <p className="no-margin">That finishes Week {week!.number}.</p>}
                 {stars.map((s) => {
                   const tmId = s.tmExerciseId ?? s.exerciseId
                   const table =
@@ -182,6 +200,33 @@ export function SessionSummary() {
 
       {session.status === 'done' && <FixWorkout sessionId={session.id} />}
     </>
+  )
+}
+
+const pounds = (n: number) => Math.round(n).toLocaleString()
+
+/** Weight moved and each main lift's best e1RM, against last time. */
+function WorkoutNumbers({ stats }: { stats: WorkoutStats }) {
+  const vs = change(stats.tonnage, stats.lastTime)
+  return (
+    <div className="workout-numbers">
+      <p className="no-margin">
+        <strong>{pounds(stats.tonnage)} lb</strong> moved
+        {vs !== undefined ? <span className="muted"> ({percentText(vs)} on last time)</span> : null} · {stats.sets}{' '}
+        {stats.sets === 1 ? 'set' : 'sets'}, {stats.reps} reps
+      </p>
+      {stats.lifts.length > 0 && (
+        <p className="no-margin small">
+          {stats.lifts
+            .map((l) => {
+              const name = findExercise(l.exerciseId)?.short ?? findExercise(l.exerciseId)?.name ?? l.exerciseId
+              const diff = l.before !== undefined ? Math.round(l.e1rm - l.before) : undefined
+              return `${name} e1RM ${Math.round(l.e1rm)}${diff !== undefined ? ` (${diff >= 0 ? '+' : '−'}${Math.abs(diff)})` : ''}`
+            })
+            .join(' · ')}
+        </p>
+      )}
+    </div>
   )
 }
 

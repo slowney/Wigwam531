@@ -21,11 +21,23 @@ export type AccessorySlot =
   | { id: string; kind: 'flex' }
   | { id: string; kind: 'pinned'; exerciseId: string }
 
+/**
+ * Accessories that go together, saved on a program day and offered there
+ * as a set, with their own sets and reps. Followers get the leader's.
+ */
+export interface AccessoryGroup {
+  /** Workouts that used it point at this. */
+  id: string
+  name: string
+  items: Array<{ exerciseId: string; sets: number; reps: [number, number] }>
+}
+
 export interface ProgramDay {
   id: string
   name: string
   mains: MainSlot[]
   accessories: AccessorySlot[]
+  groups?: AccessoryGroup[]
 }
 
 export interface Program {

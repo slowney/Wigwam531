@@ -15,7 +15,7 @@ import {
   type WeekRow,
 } from '../../db/db.ts'
 import { loadRatings } from '../../db/library.ts'
-import { makeSwapPermanent } from '../../db/programs.ts'
+import { makeSwapPermanent, saveAccessoryGroup } from '../../db/programs.ts'
 import { loadProgram, loadTms } from '../../db/profiles.ts'
 import { loadRestrictions } from '../../db/restrictions.ts'
 import { weekState } from '../../db/weeks.ts'
@@ -34,13 +34,16 @@ import {
   setFromPlan,
   setRest,
   setRotate,
+  applyAccessoryGroup,
   setSlotWeight,
+  skipSet,
   swapExercise,
   updateAccessory,
   updateSet,
 } from '../../db/sessions.ts'
 import type { PlannedSet, PlannedSlot } from '../../engine/plan.ts'
-import { dayLabel, type Program } from '../../engine/program.ts'
+import { rankGroups } from '../../engine/groups.ts'
+import { dayLabel, type AccessoryGroup, type Program } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
 import {
   dayProgress,
@@ -65,7 +68,7 @@ import {
   type Gap,
   type SuggestInput,
 } from '../../engine/suggest.ts'
-import type { Exercise, Gym, Muscle, MuscleTargets, Rating, Restriction } from '../../engine/types.ts'
+import { MUSCLE_LABELS, type Exercise, type Gym, type Muscle, type MuscleTargets, type Rating, type Restriction } from '../../engine/types.ts'
 import { projectedWeek, type MuscleCounts } from '../../engine/volume.ts'
 import { nextLoad, previousLoad } from '../../engine/weights.ts'
 import { statusOf } from '../../engine/week.ts'
@@ -90,6 +93,8 @@ interface Person {
   ratings: Map<string, Rating>
   restrictions: RestrictionRow[]
   targets: MuscleTargets
+  /** Every workout of theirs, for ranking accessory groups by how they went. */
+  workouts: Array<{ groups?: string[]; rating?: number }>
 }
 
 export interface View {
@@ -133,6 +138,10 @@ async function loadSession(): Promise<{ session?: SessionRow; people: Person[]; 
       ratings: await loadRatings(profileId),
       restrictions: await loadRestrictions(profileId),
       targets: targetsFor(profile.muscleTargets),
+      workouts: (await db.entries.where('profileId').equals(profileId).toArray()).map((e) => ({
+        groups: e.groups,
+        rating: e.rating,
+      })),
     })
   }
   // The gym row is seeded on launch; the built-in one covers the gap if it's ever missing.
@@ -148,6 +157,7 @@ function viewOf(person: Person, gym: Gym, now: number): View {
       dayId,
       swaps: today ? person.entry.swaps : {},
       accessories: today ? person.entry.accessories : [],
+      skips: today ? person.entry.skips : undefined,
       weekType: person.week?.type ?? 'normal',
       tms: person.tms,
       history: person.history,
@@ -273,6 +283,7 @@ type SheetState =
   | { kind: 'swap'; profileId: string; slotId: string }
   | { kind: 'accessory'; profileId: string }
   | { kind: 'resize'; profileId: string; slotId: string }
+  | { kind: 'saveGroup'; profileId: string }
 
 interface Toast {
   text: string
@@ -378,6 +389,7 @@ export function Session() {
         weightStep={exerciseOf(slot.exerciseId)?.load === 'cable' ? data!.gym!.cableStep : 5}
         gym={data!.gym!}
         onNudge={(weight) => run(() => setSlotWeight(active!.person.entry.id, slot.slotId, weight))}
+        onSkip={(index, skipped) => run(() => skipSet(active!.person.entry.id, slot.slotId, index, skipped))}
         onLog={(index, planned, values) => run(() => log(active!, slot, index, planned, values))}
         onSheet={(s) => setSheet(s)}
         onWarmups={(done) =>
@@ -490,6 +502,12 @@ export function Session() {
           Picks also go to {followers.map((f) => f.person.profile.name).join(' and ')}
         </label>
       )}
+      <GroupChoices
+        view={active}
+        onApply={(group) =>
+          run(() => applyAccessoryGroup(active.person.entry.id, group, { forFollowers: share }))
+        }
+      />
       {active.slots.filter((s) => s.role === 'accessory').map(renderSlot)}
       {Array.from({ length: emptySlots }, (_, i) => (
         <button
@@ -509,6 +527,16 @@ export function Session() {
           onClick={() => setSheet({ kind: 'accessory', profileId: active.person.profile.id })}
         >
           + Add another
+        </button>
+      )}
+
+      {active.person.entry.accessories.some((a) => !a.pinned) && (
+        <button
+          type="button"
+          className="btn btn-quiet btn-small save-group"
+          onClick={() => setSheet({ kind: 'saveGroup', profileId: active.person.profile.id })}
+        >
+          Save these accessories as a group
         </button>
       )}
 
@@ -635,6 +663,7 @@ function SlotCard(props: {
   gym: Gym
   /** Today's weight for a rep-range exercise, before its next set. */
   onNudge: (weight: number) => void
+  onSkip: (index: number, skipped: boolean) => void
   onLog: (index: number, planned: PlannedSet, values: SetValues) => void
   onSheet: (sheet: SheetState) => void
   onWarmups: (done: boolean) => void
@@ -819,6 +848,7 @@ function SlotBody(
             onMissed={() => props.onSheet({ kind: 'reps', profileId, slotId: slot.slotId, index, short: true })}
             nudge={nudge && (nudge.down !== undefined || nudge.up !== undefined) ? { ...nudge, set: props.onNudge } : undefined}
             onEdit={() => props.onSheet({ kind: 'edit', profileId, slotId: slot.slotId, index })}
+            onUnskip={() => props.onSkip(index, false)}
           />
         )
       })}
@@ -844,6 +874,8 @@ function SetLine(props: {
   onReps: () => void
   /** Fewer reps than the target: a failed set. */
   onMissed: () => void
+  /** Puts a set skipped today back. */
+  onUnskip: () => void
   /** One step lighter or heavier before logging (rep-range work). */
   nudge?: { down?: number; up?: number; set: (weight: number) => void }
   onEdit: () => void
@@ -873,6 +905,19 @@ function SetLine(props: {
         </span>
         {flags}
         {props.pr && <span className="badge badge-pr">{PR_LABEL[props.pr]}</span>}
+      </button>
+    )
+  }
+
+  if (planned.skipped) {
+    return (
+      <button type="button" className="set set-skipped" onClick={props.onUnskip}>
+        <span className="set-num">–</span>
+        <span className="grow">
+          {weightText(props.weight, exercise)} × {targetText(planned, exercise)}
+          <span className="small"> · skipped today</span>
+        </span>
+        <span className="small">Undo</span>
       </button>
     )
   }
@@ -1036,6 +1081,20 @@ function SessionSheet(props: {
     )
   }
 
+  if (sheet.kind === 'saveGroup') {
+    const picks = entry.accessories.filter((a) => !a.pinned)
+    return (
+      <SaveGroupSheet
+        dayName={view.dayName}
+        items={picks.map((p) => ({ exerciseId: p.exerciseId, sets: p.sets, reps: p.reps }))}
+        onClose={props.onClose}
+        onSave={(name, items) =>
+          saveAccessoryGroup(view.person.profile.id, entry.dayId, { name, items }).then(props.onClose)
+        }
+      />
+    )
+  }
+
   const slot = view.slots.find((s) => s.slotId === sheet.slotId)
   if (!slot) return null
   const exercise = exerciseOf(slot.exerciseId)
@@ -1118,6 +1177,14 @@ function SessionSheet(props: {
             }
           : undefined
       }
+      onSkip={
+        logged
+          ? undefined
+          : () => {
+              props.onClose()
+              skipSet(entry.id, slot.slotId, sheet.index, true).catch((e: unknown) => props.onError((e as Error).message))
+            }
+      }
     />
   )
 }
@@ -1159,6 +1226,84 @@ function AccessorySizeSheet(props: {
           onClick={() => props.onSave(sets, [low, high]).catch((e: unknown) => setError((e as Error).message))}
         >
           Save
+        </button>
+      </div>
+    </Sheet>
+  )
+}
+
+/** The day's accessory groups, best first (see `rankGroups`): one tap adds a whole group. */
+function GroupChoices({ view, onApply }: { view: View; onApply: (group: AccessoryGroup) => void }) {
+  const day = view.person.program?.days.find((d) => d.id === view.person.entry.dayId)
+  const used = new Set(view.person.entry.groups ?? [])
+  const have = new Set(view.person.entry.accessories.map((a) => a.exerciseId))
+  // Nothing to offer once a group's been added, or everything in it is here anyway.
+  const groups = (day?.groups ?? []).filter((g) => !used.has(g.id) && g.items.some((i) => !have.has(i.exerciseId)))
+  if (groups.length === 0) return null
+  const ranked = rankGroups(groups, view.person.workouts, view.gaps, findExercise)
+  return (
+    <div className="group-choices">
+      <span className="label">Groups for this day</span>
+      {ranked.map(({ group, rating, uses, hits }) => (
+        <button key={group.id} type="button" className="group-card" onClick={() => onApply(group)}>
+          <span className="grow stack">
+            <strong>{group.name}</strong>
+            <span className="muted small">{group.items.map((i) => exerciseOf(i.exerciseId)?.name ?? i.exerciseId).join(' · ')}</span>
+            <span className="small">
+              {rating !== undefined ? `★ ${rating.toFixed(1)} over ${uses} ${uses === 1 ? 'workout' : 'workouts'}` : 'Not rated yet'}
+              {hits.length ? ` · behind: ${hits.map((m) => MUSCLE_LABELS[m].toLowerCase()).join(', ')}` : ''}
+            </span>
+          </span>
+          <span className="btn btn-small">Add</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+/** Names today's picks as a group on this program day, to offer again next time. */
+function SaveGroupSheet(props: {
+  dayName: string
+  items: AccessoryGroup['items']
+  onSave: (name: string, items: AccessoryGroup['items']) => Promise<void>
+  onClose: () => void
+}) {
+  const [name, setName] = useState('')
+  const [error, setError] = useState<string>()
+  return (
+    <Sheet title="Save as a group" onClose={props.onClose}>
+      <p className="muted small">
+        Offered on {props.dayName} from now on, ranked by how the workouts that used it went. Anyone following this
+        program gets it too.
+      </p>
+      <ul className="plain-list small">
+        {props.items.map((i) => (
+          <li key={i.exerciseId}>
+            {exerciseOf(i.exerciseId)?.name ?? i.exerciseId}: {i.sets} × {repRange(i.reps)}
+          </li>
+        ))}
+      </ul>
+      <div className="field section-label">
+        <label className="label" htmlFor="group-name">
+          Name
+        </label>
+        <input
+          id="group-name"
+          className="input"
+          value={name}
+          placeholder="Back & biceps"
+          autoComplete="off"
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      {error && <p className="error">{error}</p>}
+      <div className="actions">
+        <button
+          type="button"
+          className="btn grow"
+          onClick={() => props.onSave(name, props.items).catch((e: unknown) => setError((e as Error).message))}
+        >
+          Save group
         </button>
       </div>
     </Sheet>

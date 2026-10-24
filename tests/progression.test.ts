@@ -7,6 +7,7 @@ import {
   defaultTable,
   increaseFor,
   nextWorkingWeight,
+  suggestWeekType,
   proposeTmChanges,
   type ProposalInput,
   type TmProposal,
@@ -157,5 +158,27 @@ describe('double progression', () => {
     const session = [...sets(30, [10, 9]), { weight: 35, reps: 0 }]
     expect(nextWorkingWeight(session, [6, 10], 3, dumbbell, 'any')).toMatchObject({ weight: 35, reason: 'increase', last: 30 })
     expect(nextWorkingWeight(sets(35, [0, 0]), [6, 10], 3, dumbbell, 'any')).toMatchObject({ weight: 35, reason: 'hold' })
+  })
+})
+
+describe('suggesting a deload or a TM test', () => {
+  const weeks = (types: string[]) => types.map((type, i) => ({ number: i + 1, type: type as 'normal' | 'deload' | 'tmTest' }))
+
+  it('calls for a deload when two or more lifts have stalled', () => {
+    expect(suggestWeekType(weeks(['normal', 'normal']), 2)).toMatchObject({ type: 'deload' })
+    expect(suggestWeekType(weeks(['normal', 'normal']), 1)).toBeUndefined()
+  })
+
+  it('comes up after six normal weeks, taking turns', () => {
+    expect(suggestWeekType(weeks(Array(5).fill('normal')), 0)).toBeUndefined()
+    expect(suggestWeekType(weeks(Array(6).fill('normal')), 0)).toMatchObject({ type: 'deload' })
+    expect(suggestWeekType(weeks(['deload', ...Array(6).fill('normal')]), 0)).toMatchObject({
+      type: 'tmTest',
+      reason: '6 normal weeks since the last deload.',
+    })
+    expect(suggestWeekType(weeks(['deload', ...Array(6).fill('normal'), 'tmTest', ...Array(6).fill('normal')]), 0)).toMatchObject({
+      type: 'deload',
+    })
+    expect(suggestWeekType(weeks([...Array(6).fill('normal'), 'deload']), 0)).toBeUndefined()
   })
 })

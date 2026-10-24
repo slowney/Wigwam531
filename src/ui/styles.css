@@ -1702,3 +1702,59 @@ h2 {
   background: var(--bg);
   font-size: 22px;
 }
+
+/* A set left out today: still there to undo, but out of the way. */
+.set-skipped {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--border);
+}
+
+.set-skipped .small {
+  text-decoration: none;
+}
+
+.edit-sets {
+  align-self: flex-start;
+}
+
+.workout-numbers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 0;
+}
+
+.recap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0;
+}
+
+/* Accessory groups in a workout */
+.group-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.group-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.save-group {
+  margin: 0 0 12px;
+}

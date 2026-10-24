@@ -1,9 +1,18 @@
 import { findExercise } from '../data/exercises.ts'
-import { resolveProgram, slotTmId, type MainSlot, type Program, type ProgramOverrides } from '../engine/program.ts'
+import {
+  resolveProgram,
+  slotTmId,
+  type AccessoryGroup,
+  type MainSlot,
+  type Program,
+  type ProgramOverrides,
+} from '../engine/program.ts'
 import {
   clearOverride,
+  addGroup,
   cloneProgram,
   permanentSwap,
+  removeGroup,
   setOverride,
   updateMainSlot,
   type SlotFields,
@@ -237,6 +246,38 @@ export async function makeSwapPermanent(entryId: string, slotId: string, db: Wig
     delete swaps[slotId]
     await db.entries.update(entryId, { swaps })
   })
+}
+
+/**
+ * Saves accessories as a group on a program day. Groups live on the
+ * leader's program, so a follower's group is saved there too, for both
+ * of them: that's how groups are shared.
+ */
+export async function saveAccessoryGroup(
+  profileId: string,
+  dayId: string,
+  group: Omit<AccessoryGroup, 'id'>,
+  db: WigwamDb = defaultDb,
+  now = Date.now(),
+): Promise<string> {
+  const owner = (await db.programs.get(profileId))?.followsProfileId ?? profileId
+  let id = ''
+  await editProgram(
+    owner,
+    (p) =>
+      addGroup(p, dayId, group, () => {
+        id = newId()
+        return id
+      }),
+    db,
+    now,
+  )
+  return id
+}
+
+export async function removeAccessoryGroup(profileId: string, groupId: string, db: WigwamDb = defaultDb): Promise<void> {
+  const owner = (await db.programs.get(profileId))?.followsProfileId ?? profileId
+  await editProgram(owner, (p) => removeGroup(p, groupId), db)
 }
 
 export async function setProgressionTable(

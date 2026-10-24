@@ -173,3 +173,104 @@ const RANGE_DAYS: Record<Exclude<Range, 'All'>, number> = { '3M': 91, '6M': 182,
 export function rangeStart(range: Range, now: number): number {
   return range === 'All' ? -Infinity : now - RANGE_DAYS[range] * DAY
 }
+
+/**
+ * Weight moved: weight × reps over working sets. Bodyweight work logs its
+ * added weight, so only that counts.
+ */
+export function tonnage(sets: ReadonlyArray<{ weight: number; reps: number; warmup: boolean }>): number {
+  return sets.reduce((sum, s) => (s.warmup ? sum : sum + s.weight * s.reps), 0)
+}
+
+/** A change as a fraction of what it was: 0.06 for 6% more. Undefined with nothing to compare. */
+export function change(now: number, before: number | undefined): number | undefined {
+  return before ? (now - before) / before : undefined
+}
+
+export interface LiftChange {
+  exerciseId: string
+  e1rm: number
+  /** The best e1RM from the comparison: last time, or last week. */
+  before?: number
+}
+
+const bestE1rm = (sets: ReadonlyArray<MetricSet>, exerciseId: string) =>
+  e1rmSeries(sets, exerciseId).reduce<number | undefined>((m, p) => (m === undefined || p.e1rm > m ? p.e1rm : m), undefined)
+
+export interface WorkoutStats {
+  tonnage: number
+  sets: number
+  reps: number
+  /** Weight moved the last time this program day was done. */
+  lastTime?: number
+  lifts: LiftChange[]
+}
+
+/**
+ * One workout in numbers, against the last time its program day was done
+ * (`lastTime`) and, lift by lift, the last earlier workout with that lift.
+ */
+export function workoutStats(args: {
+  today: ReadonlyArray<MetricSet>
+  lastTime?: ReadonlyArray<MetricSet>
+  /** Everything logged before today. */
+  earlier: ReadonlyArray<MetricSet>
+  mainLifts: ReadonlyArray<string>
+}): WorkoutStats {
+  const working = args.today.filter((s) => !s.warmup)
+  const lifts: LiftChange[] = []
+  for (const id of args.mainLifts) {
+    const e1rm = bestE1rm(working, id)
+    if (e1rm === undefined) continue
+    const before = e1rmSeries(args.earlier, id).at(-1)
+    // The previous workout's best, not the all-time best: "how did today go".
+    const last = before && bestE1rm(args.earlier.filter((s) => s.sessionId === before.sessionId), id)
+    lifts.push({ exerciseId: id, e1rm, before: last })
+  }
+  return {
+    tonnage: tonnage(working),
+    sets: working.length,
+    reps: working.reduce((sum, s) => sum + s.reps, 0),
+    lastTime: args.lastTime ? tonnage(args.lastTime) : undefined,
+    lifts,
+  }
+}
+
+export interface WeekRecap {
+  tonnage: number
+  /** Weight moved the week before. */
+  lastWeek?: number
+  prs: number
+  /** Muscles at or over their weekly target, out of those with a target. */
+  musclesOnTarget: number
+  musclesWithTarget: number
+  lifts: LiftChange[]
+}
+
+/** A finished week, for Start Week: against the week before it. */
+export function weekRecap(args: {
+  week: ReadonlyArray<MetricSet & { weekId?: string }>
+  previousWeek?: ReadonlyArray<MetricSet>
+  /** How many of the week's sets were PRs, worked out by the caller against everything earlier. */
+  prs: number
+  targets: Readonly<Record<string, number>>
+  lookup: ExerciseLookup
+  mainLifts: ReadonlyArray<string>
+}): WeekRecap {
+  const volume = loggedVolume(args.week, args.lookup) as Record<string, number | undefined>
+  const muscles = Object.entries(args.targets).filter(([, target]) => target > 0)
+  const lifts: LiftChange[] = []
+  for (const id of args.mainLifts) {
+    const e1rm = bestE1rm(args.week, id)
+    if (e1rm === undefined) continue
+    lifts.push({ exerciseId: id, e1rm, before: args.previousWeek && bestE1rm(args.previousWeek, id) })
+  }
+  return {
+    tonnage: tonnage(args.week),
+    lastWeek: args.previousWeek ? tonnage(args.previousWeek) : undefined,
+    prs: args.prs,
+    musclesOnTarget: muscles.filter(([m, target]) => (volume[m] ?? 0) >= target).length,
+    musclesWithTarget: muscles.length,
+    lifts,
+  }
+}

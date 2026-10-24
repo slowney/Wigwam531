@@ -28,6 +28,8 @@ export interface PlannedSet {
   tmTest: boolean
   /** The gym's plates can't make this weight on this bar. */
   unloadable?: boolean
+  /** Left out today. It doesn't count toward the day, and nothing is logged for it. */
+  skipped?: boolean
 }
 
 export interface PlannedSlot {

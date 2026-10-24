@@ -25,6 +25,8 @@ export function SetEditor(props: {
   saveLabel: string
   onSave: (values: SetValues) => void
   onDelete?: () => void
+  /** Leaves this set out of today's workout. */
+  onSkip?: () => void
   onClose: () => void
 }) {
   const [weightText, setWeightText] = useState(
@@ -114,6 +116,16 @@ export function SetEditor(props: {
           </button>
         )}
       </div>
+      {props.onSkip && (
+        <div className="sheet-foot">
+          <button type="button" className="btn btn-quiet" onClick={props.onSkip}>
+            Skip this set today
+          </button>
+          <p className="muted small">
+            To drop it for good, change the lift's sets in its program: Edit program, tap the lift, then Edit these sets.
+          </p>
+        </div>
+      )}
     </Sheet>
   )
 }

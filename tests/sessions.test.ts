@@ -16,10 +16,12 @@ import {
   setFromPlan,
   setRest,
   setSlotWeight,
+  skipSet,
   startSession,
   swapExercise,
 } from '../src/db/sessions.ts'
 import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus } from '../src/db/weeks.ts'
+import { dayProgress, nextSet } from '../src/engine/session.ts'
 import { addFollower, addLeader, doWorkout, freshDb, lifts, planFor } from './helpers.ts'
 
 async function entryOf(db: ReturnType<typeof freshDb>, sessionId: string, profileId: string) {
@@ -330,5 +332,33 @@ describe('nudging a weight', () => {
     const slot = (await planFor(db, lead, entry.id)).slots.find((s) => s.slotId === pick.id)!
     await logSet(setFromPlan(entry, slot, 0, slot.sets[0]!, { weight: 55, reps: 10 }), undefined, db)
     expect((await db.entries.get(entry.id))?.weights).toEqual({})
+  })
+})
+
+describe('skipping a set today', () => {
+  it("drops it from the count and the next set, and can't skip one already logged", async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    const entry = await entryOf(db, session, lead)
+    const before = await planFor(db, lead, entry.id)
+    const ohp = before.slots[1]!
+    await skipSet(entry.id, ohp.slotId, 2, true, db)
+    await skipSet(entry.id, ohp.slotId, 5, true, db)
+    const after = await planFor(db, lead, (await entryOf(db, session, lead)).id)
+    expect(after.slots[1]!.sets.filter((s) => s.skipped)).toHaveLength(2)
+    expect(dayProgress(after.slots, []).total).toBe(dayProgress(before.slots, []).total - 2)
+
+    const bench = after.slots[0]!
+    const fresh = await entryOf(db, session, lead)
+    await logSet(setFromPlan(fresh, bench, 0, bench.sets[0]!, { weight: 170, reps: 5 }), undefined, db)
+    await expect(skipSet(entry.id, bench.slotId, 0, true, db)).rejects.toThrow('already logged')
+    await skipSet(entry.id, ohp.slotId, 2, false, db)
+    expect((await entryOf(db, session, lead)).skips).toEqual({ [ohp.slotId]: [5] })
+  })
+
+  it('moves the next set past it', () => {
+    const slots = [{ slotId: 'a', sets: [{ skipped: true }, {}] }] as unknown as Parameters<typeof nextSet>[0]
+    expect(nextSet(slots, [])).toEqual({ slotId: 'a', index: 1 })
   })
 })

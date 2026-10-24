@@ -21,6 +21,7 @@ import {
   overrideDiff,
   removeAccessorySlot,
   removeDay,
+  removeGroup,
   removeMainSlot,
   renameDay,
   renameProgram,
@@ -463,6 +464,29 @@ function DayCard(props: {
         />
       </div>
 
+      {day.groups && day.groups.length > 0 && (
+        <>
+          <span className="label section-label">Accessory groups</span>
+          <ul className="list">
+            {day.groups.map((g) => (
+              <li key={g.id} className="row">
+                <span className="grow stack">
+                  <span>{g.name}</span>
+                  <span className="muted small">{g.items.map((i) => nameOf(i.exerciseId)).join(' · ')}</span>
+                </span>
+                <ConfirmButton
+                  small
+                  label="Remove"
+                  confirmLabel="Remove?"
+                  onConfirm={() => onEdit((p) => removeGroup(p, g.id))}
+                />
+              </li>
+            ))}
+          </ul>
+          <p className="muted small no-margin">Saved from a workout's accessories, and offered on this day.</p>
+        </>
+      )}
+
       <div className="actions day-actions">
         <button type="button" className="btn btn-quiet btn-small" onClick={() => setRenaming(day.name)}>
           Rename
@@ -532,6 +556,9 @@ function FollowedProgram(
             ))}
           </ul>
           <p className="muted small no-margin accessories-line">Accessories: {accessoryText(day, findExercise)}</p>
+          {day.groups && day.groups.length > 0 && (
+            <p className="muted small no-margin">Groups: {day.groups.map((g) => g.name).join(' · ')}</p>
+          )}
         </section>
       ))}
 
