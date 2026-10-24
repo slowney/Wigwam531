@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { HOME_GYM } from '../src/data/gym.ts'
 import {
-  backupDue,
   backupFileName,
+  backupReminder,
   describeBackup,
   exportBackup,
   importBackup,
+  loadBackupState,
   parseBackup,
   type BackupFile,
+  type BackupState,
 } from '../src/db/backup.ts'
 import { SCHEMA_VERSION, getSetting, openDb, setSetting } from '../src/db/db.ts'
 import { addBodyweight, archiveProfile, createProfile, setTm } from '../src/db/profiles.ts'
@@ -149,16 +151,53 @@ describe('reading a backup file', () => {
 
 describe('backup reminder', () => {
   const day = 24 * 60 * 60 * 1000
+  const state = (overrides: Partial<BackupState>): BackupState => ({
+    lastBackupAt: 0,
+    dismissedAt: null,
+    lastWeekDoneAt: null,
+    hasProfiles: true,
+    ...overrides,
+  })
+
   it('stays quiet until there is someone to lose', () => {
-    expect(backupDue(null, 0, false)).toBe(false)
+    expect(backupReminder(state({ hasProfiles: false, lastBackupAt: null }), 0)).toBeUndefined()
   })
+
   it('nags when there has never been a backup', () => {
-    expect(backupDue(null, 0, true)).toBe(true)
+    expect(backupReminder(state({ lastBackupAt: null }), 0)).toBe('never')
   })
+
   it('nags once the last backup is over a week old', () => {
-    expect(backupDue(0, 7 * day, true)).toBe(false)
-    expect(backupDue(0, 7 * day + 1, true)).toBe(true)
+    expect(backupReminder(state({}), 7 * day)).toBeUndefined()
+    expect(backupReminder(state({}), 7 * day + 1)).toBe('stale')
   })
+
+  it('prompts when a week finishes after the last backup', () => {
+    expect(backupReminder(state({ lastBackupAt: 100, lastWeekDoneAt: 200 }), 300)).toBe('weekDone')
+    expect(backupReminder(state({ lastBackupAt: 300, lastWeekDoneAt: 200 }), 400)).toBeUndefined()
+  })
+
+  it('takes "Not now" until the next week finishes', () => {
+    const dismissed = state({ lastBackupAt: 100, lastWeekDoneAt: 200, dismissedAt: 250 })
+    expect(backupReminder(dismissed, 300)).toBeUndefined()
+    expect(backupReminder({ ...dismissed, lastWeekDoneAt: 400 }, 500)).toBe('weekDone')
+  })
+
+  it('reads the latest finished week from the database', async () => {
+    const db = await seededDb(freshName())
+    const lead = (await db.profiles.toArray()).find((p) => p.name === 'Lead')!
+    await db.weeks.bulkAdd([
+      { id: 'w1', profileId: lead.id, number: 1, type: 'normal', startedAt: 1, completedAt: 900, days: {} },
+      { id: 'w2', profileId: lead.id, number: 2, type: 'normal', startedAt: 2, days: {} },
+    ])
+    expect(await loadBackupState(db)).toEqual({
+      lastBackupAt: 6000,
+      dismissedAt: null,
+      lastWeekDoneAt: 900,
+      hasProfiles: true,
+    })
+  })
+
   it('names files by local date', () => {
     expect(backupFileName(new Date(2026, 9, 3))).toBe('wigwam531-backup-2026-10-03.json')
   })

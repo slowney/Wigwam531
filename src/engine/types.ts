@@ -88,6 +88,8 @@ export interface Exercise {
   /** Permanent once anything is logged against it. Rename `name`, never this. */
   id: string
   name: string
+  /** For tight spots like day labels ("Day 2: Squat/Sumo"). Falls back to `name`. */
+  short?: string
   /** Everything listed is required. */
   equipment: Equipment[]
   pattern: Pattern

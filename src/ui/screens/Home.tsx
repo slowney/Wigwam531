@@ -1,10 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router'
-import { backupDue } from '../../db/backup.ts'
-import { db, getSetting } from '../../db/db.ts'
+import { findExercise } from '../../data/exercises.ts'
+import { db } from '../../db/db.ts'
 import { activeSession } from '../../db/sessions.ts'
 import { loadWeekOverview, type WeekOverview } from '../../db/weeks.ts'
-import { daysAgo } from '../format.ts'
+import { dayLabel } from '../../engine/program.ts'
+import { BackupReminder } from '../BackupPrompt.tsx'
 
 function weekLine(o: WeekOverview | undefined): string {
   if (!o?.program) return 'No program'
@@ -12,7 +13,8 @@ function weekLine(o: WeekOverview | undefined): string {
   if (o.complete) return `Week ${n} done · ready for Start Week`
   const type = o.week?.type === 'deload' ? ' (deload)' : o.week?.type === 'tmTest' ? ' (TM test)' : ''
   const done = o.program.days.length - o.pending.length
-  return `Week ${n}${type} · next ${o.pending[0]?.name ?? '—'} · ${done} of ${o.program.days.length} done`
+  const next = o.pending[0] ? dayLabel(o.pending[0], findExercise) : '—'
+  return `Week ${n}${type} · ${done} of ${o.program.days.length} done · next ${next}`
 }
 
 export function Home() {
@@ -22,16 +24,10 @@ export function Home() {
       .sort((a, b) => a.createdAt - b.createdAt)
     const overviews: Record<string, WeekOverview> = {}
     for (const p of profiles) overviews[p.id] = await loadWeekOverview(p.id)
-    return {
-      profiles,
-      overviews,
-      lastBackupAt: await getSetting<number | null>('lastBackupAt', null),
-      active: await activeSession(),
-    }
+    return { profiles, overviews, active: await activeSession() }
   }, [])
   if (!data) return null
-  const { profiles, overviews, lastBackupAt, active } = data
-  const now = Date.now()
+  const { profiles, overviews, active } = data
   const finished = profiles.filter((p) => overviews[p.id]?.complete)
   const names = (ids: string[]) =>
     ids.map((id) => profiles.find((p) => p.id === id)?.name).filter(Boolean).join(', ')
@@ -53,12 +49,7 @@ export function Home() {
         </Link>
       )}
 
-      {backupDue(lastBackupAt, now, profiles.length > 0) && (
-        <Link to="/settings" className="card card-warn">
-          {lastBackupAt === null ? 'No backup yet.' : `Last backup ${daysAgo(lastBackupAt, now)}.`} Tap to save
-          one.
-        </Link>
-      )}
+      <BackupReminder />
 
       {profiles.length === 0 ? (
         <section className="card">

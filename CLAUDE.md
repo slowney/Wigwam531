@@ -11,11 +11,9 @@ writing code.
 **Status:**
 - Phase 0 is done and was verified on the phone.
 - Phase 1 (engine) is done. The user compared a printed week with their real TMs against the nSuns app and it matched.
-- Phase 2 (profiles, library, backup) is built. It's waiting on the on-phone check that a backup saves to Files and restores.
-- Phase 3 (workout flow) is built.
-  - A mock three-person week ran start to finish in the phone-size preview.
-  - Kill-and-resume works there too.
-  - It's waiting on a real garage session.
+- Phase 2 (profiles, library, backup) is done. A backup was saved and restored on the phone.
+- Phase 3 (workout flow) is done. A real garage session went well.
+- Follow-ups from that session are built and pushed: day labels, foldable exercises, the workout rating, and the week-end backup prompt.
 - Phase 4 is next.
 
 ## Hard rules

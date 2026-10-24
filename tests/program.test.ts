@@ -1,11 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { NSUNS_4DAY } from '../src/data/presets.ts'
-import { resolveProgram, type Program, type ProgramOverrides } from '../src/engine/program.ts'
+import { findExercise } from '../src/data/exercises.ts'
+import { NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
+import { dayLabel, resolveProgram, type Program, type ProgramOverrides } from '../src/engine/program.ts'
 import type { LoggedSet } from '../src/engine/types.ts'
 import { isWeekComplete, nextDay, progressionReps, tmTestReps, type WeekState } from '../src/engine/week.ts'
 
 const slot = (program: Program, id: string) =>
   program.days.flatMap((d) => d.mains).find((m) => m.id === id)
+
+describe('day labels', () => {
+  it('name each day by its main lifts', () => {
+    expect(NSUNS_4DAY.days.map((d) => dayLabel(d, findExercise))).toEqual([
+      'Day 1: Bench/OHP',
+      'Day 2: Squat/Sumo',
+      'Day 3: OHP/Incline',
+      'Day 4: Deadlift/Front squat',
+    ])
+  })
+
+  it('include the heavy row', () => {
+    expect(dayLabel(NSUNS_4DAY_ROW.days[0]!, findExercise)).toBe('Day 1: Bench/OHP/Row')
+  })
+
+  it('fall back to the full name, then to the bare day name', () => {
+    const slot = { id: 's', exerciseId: 'db-row', tier: 'T1' as const, schemeId: 'range-3x8-12', warmups: false }
+    expect(dayLabel({ id: 'd5', name: 'Day 5', mains: [slot], accessories: [] }, findExercise)).toBe('Day 5: One-arm DB row')
+    expect(dayLabel({ id: 'd5', name: 'Day 5', mains: [], accessories: [] }, findExercise)).toBe('Day 5')
+  })
+})
 
 describe('following a leader', () => {
   // A partner who pulls from a trap bar instead of a straight bar.

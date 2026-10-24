@@ -7,8 +7,10 @@ import { db } from '../../db/db.ts'
 import { loadTms } from '../../db/profiles.ts'
 import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus, weekState } from '../../db/weeks.ts'
 import type { PlannedSlot } from '../../engine/plan.ts'
+import { dayLabel } from '../../engine/program.ts'
 import { planEntry } from '../../engine/session.ts'
 import { statusOf, type DayStatus } from '../../engine/week.ts'
+import { BackupReminder } from '../BackupPrompt.tsx'
 import { BackLink, ConfirmButton } from '../components/forms.tsx'
 
 const STATUS_LABEL: Record<DayStatus, string> = { pending: 'To do', done: 'Done', skipped: 'Skipped' }
@@ -64,7 +66,8 @@ export function WeekView() {
         Week {number}
         <span className="muted">{label}</span>
       </h1>
-      <p className="muted no-margin">{profile.name}</p>
+      <p className="muted">{profile.name}</p>
+      <BackupReminder only="weekDone" />
 
       {program.days.map((day) => {
         const status = week ? statusOf(weekState(week), day.id) : 'pending'
@@ -84,7 +87,7 @@ export function WeekView() {
         return (
           <section key={day.id} className={`card day day-${status}`}>
             <div className="title-row">
-              <h2 className="grow no-margin">{day.name}</h2>
+              <h2 className="grow no-margin">{dayLabel(day, findExercise)}</h2>
               <span className={`status status-${status}`}>{STATUS_LABEL[status]}</span>
             </div>
             {plan?.day.mains.map((slot) => (

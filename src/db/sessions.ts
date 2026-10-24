@@ -1,7 +1,9 @@
 import { findExercise } from '../data/exercises.ts'
 import type { AccessoryPick, PlannedSet, PlannedSlot } from '../engine/plan.ts'
+import type { Stars } from '../engine/types.ts'
 import { db as defaultDb, newId, type EntryRow, type SessionRow, type SetRow, type WigwamDb } from './db.ts'
-import { ensureFirstWeek, loadWeekOverview } from './weeks.ts'
+import { loadProgram } from './profiles.ts'
+import { completedAtFor, ensureFirstWeek, loadWeekOverview } from './weeks.ts'
 
 // Everything about a workout in progress is written here the moment it
 // happens: the sets, today's swaps and accessories, whose tab is open, each
@@ -213,21 +215,41 @@ export async function setEntryNotes(entryId: string, notes: string, db: WigwamDb
   await db.entries.update(entryId, { notes })
 }
 
+/** Remembers an exercise folded or opened by hand, so it stays that way through a reload. */
+export async function setCollapsed(
+  entryId: string,
+  slotId: string,
+  collapsed: boolean,
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  await db.transaction('rw', db.entries, async () => {
+    const entry = await db.entries.get(entryId)
+    if (entry) await db.entries.update(entryId, { collapsed: { ...entry.collapsed, [slotId]: collapsed } })
+  })
+}
+
+/** How the whole workout felt. Undefined clears it. */
+export async function rateEntry(entryId: string, rating: Stars | undefined, db: WigwamDb = defaultDb): Promise<void> {
+  await db.entries.update(entryId, { rating })
+}
+
 /**
  * Marks each person's day done if they logged at least one working set.
  * Someone who logged nothing keeps the day pending to do another time.
  */
 export async function finishSession(sessionId: string, db: WigwamDb = defaultDb, now = Date.now()): Promise<void> {
-  await db.transaction('rw', [db.sessions, db.entries, db.sets, db.weeks], async () => {
+  await db.transaction('rw', [db.sessions, db.entries, db.sets, db.weeks, db.programs], async () => {
     for (const entry of await db.entries.where('sessionId').equals(sessionId).toArray()) {
       const worked = await db.sets
         .where('entryId')
         .equals(entry.id)
         .filter((s) => !s.warmup)
         .count()
-      if (worked > 0) {
-        const week = await db.weeks.get(entry.weekId)
-        if (week) await db.weeks.update(week.id, { days: { ...week.days, [entry.dayId]: 'done' } })
+      const week = worked > 0 ? await db.weeks.get(entry.weekId) : undefined
+      if (week) {
+        const days = { ...week.days, [entry.dayId]: 'done' as const }
+        const program = await loadProgram(entry.profileId, db)
+        await db.weeks.update(week.id, { days, completedAt: completedAtFor(week, days, program, now) })
       }
       await db.entries.update(entry.id, {
         status: worked > 0 ? 'done' : 'empty',

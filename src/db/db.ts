@@ -75,6 +75,11 @@ export interface WeekRow {
   startedAt: number
   /** Set by End Week, or when the next week starts. */
   endedAt?: number
+  /**
+   * When the last day was done or skipped. Cleared if a day is unskipped.
+   * A week finished since the last backup is what prompts the next one.
+   */
+  completedAt?: number
   /** Days missing from the map are pending. */
   days: Record<string, DayStatus>
 }
@@ -106,7 +111,11 @@ export interface EntryRow {
   /** Their own rest countdown, saved so it survives the app being killed. */
   restEndsAt?: number
   restSeconds?: number
+  /** Exercises folded or opened by hand, by slot id. Saved so a reload looks the same. */
+  collapsed?: Record<string, boolean>
   notes?: string
+  /** How the whole workout felt, asked for at the end. */
+  rating?: Stars
   status: 'active' | 'done' | 'empty'
 }
 

@@ -1,9 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { findExercise } from '../../data/exercises.ts'
 import { db, type ProfileRow } from '../../db/db.ts'
 import { activeSession, startSession } from '../../db/sessions.ts'
 import { loadWeekOverview, type WeekOverview } from '../../db/weeks.ts'
+import { dayLabel, type ProgramDay } from '../../engine/program.ts'
 import { BackLink } from '../components/forms.tsx'
 
 export function StartWorkout() {
@@ -53,6 +55,7 @@ function Picker(props: { profiles: ProfileRow[]; overviews: Record<string, WeekO
   const dayNames = new Set(
     chosen.map((p) => overviews[p.id]?.program?.days.find((d) => d.id === dayFor(p.id))?.name),
   )
+  const label = (day: ProgramDay | undefined) => (day ? dayLabel(day, findExercise) : '—')
 
   async function start() {
     setError(undefined)
@@ -102,14 +105,14 @@ function Picker(props: { profiles: ProfileRow[]; overviews: Record<string, WeekO
                 >
                   {o.pending.map((d, i) => (
                     <option key={d.id} value={d.id}>
-                      {d.name}
+                      {label(d)}
                       {i === 0 ? ' (next)' : ''}
                     </option>
                   ))}
                 </select>
               ) : (
                 <span className="muted small">
-                  Week {weekNumber} · next {o?.pending[0]?.name ?? '—'}
+                  Week {weekNumber} · next {label(o?.pending[0])}
                 </span>
               )}
             </div>

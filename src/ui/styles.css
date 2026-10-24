@@ -952,3 +952,86 @@ h2 {
   font: inherit;
   text-align: left;
 }
+
+/* Foldable exercises */
+
+.slot-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.chevron {
+  width: 14px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.slot-count {
+  color: var(--muted);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.slot-count-done {
+  color: var(--ok);
+}
+
+.slot-collapsed .slot-head {
+  margin-bottom: 0;
+}
+
+.slot-summary {
+  margin: 2px 0 0 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Workout rating */
+
+.workout-rating {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 6px 0 10px;
+}
+
+.stars {
+  display: flex;
+}
+
+.star {
+  min-width: 44px;
+  min-height: var(--tap);
+  border: 0;
+  background: transparent;
+  color: var(--border);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.star-on {
+  color: var(--accent);
+}
+
+/* Long day labels ("Day 4: Deadlift/Front squat") shrink instead of
+   pushing the row off a phone screen. */
+.person-row .select {
+  flex: 1;
+  min-width: 0;
+  max-width: 230px;
+}
+
+.person-chip {
+  flex: none;
+}

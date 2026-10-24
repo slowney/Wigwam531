@@ -59,16 +59,35 @@ export async function loadWeekOverview(profileId: string, db: WigwamDb = default
   return { week, program, complete, pending: complete ? [] : pendingDays(program, weekState(week)) }
 }
 
+/**
+ * A day's new status, plus the week's completion stamp: set the moment the
+ * last day is done or skipped, cleared if a day is unskipped again.
+ */
 export async function setDayStatus(
   weekId: string,
   dayId: string,
   status: DayStatus,
   db: WigwamDb = defaultDb,
+  now = Date.now(),
 ): Promise<void> {
-  await db.transaction('rw', db.weeks, async () => {
+  await db.transaction('rw', [db.weeks, db.programs], async () => {
     const week = await db.weeks.get(weekId)
-    if (week) await db.weeks.update(weekId, { days: { ...week.days, [dayId]: status } })
+    if (!week) return
+    const days = { ...week.days, [dayId]: status }
+    const program = await loadProgram(week.profileId, db)
+    await db.weeks.update(weekId, { days, completedAt: completedAtFor(week, days, program, now) })
   })
+}
+
+export function completedAtFor(
+  week: WeekRow,
+  days: Record<string, DayStatus>,
+  program: Program | undefined,
+  now: number,
+): number | undefined {
+  if (!program) return week.completedAt
+  const done = isWeekComplete(program, { number: week.number, type: week.type, days })
+  return done ? (week.completedAt ?? now) : undefined
 }
 
 /** Skips whatever is left, so the week can be reviewed and the next one started. */
@@ -77,7 +96,11 @@ export async function endWeek(weekId: string, db: WigwamDb = defaultDb, now = Da
     const week = await db.weeks.get(weekId)
     if (!week) return
     const program = await loadProgram(week.profileId, db)
-    await db.weeks.update(weekId, { days: skipPending(week, program), endedAt: week.endedAt ?? now })
+    await db.weeks.update(weekId, {
+      days: skipPending(week, program),
+      endedAt: week.endedAt ?? now,
+      completedAt: week.completedAt ?? now,
+    })
   })
 }
 
@@ -130,7 +153,11 @@ export async function startWeeks(starts: WeekStart[], db: WigwamDb = defaultDb, 
       const current = await currentWeek(start.profileId, db)
       if (current) {
         const program = await loadProgram(start.profileId, db)
-        await db.weeks.update(current.id, { days: skipPending(current, program), endedAt: current.endedAt ?? now })
+        await db.weeks.update(current.id, {
+          days: skipPending(current, program),
+          endedAt: current.endedAt ?? now,
+          completedAt: current.completedAt ?? now,
+        })
       }
       const tms = await loadTms(start.profileId, db)
       for (const change of start.tms) {

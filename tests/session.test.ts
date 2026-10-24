@@ -13,6 +13,7 @@ import {
   prChecks,
   prKind,
   restSeconds,
+  slotCollapsed,
   workingWeight,
 } from '../src/engine/session.ts'
 import { gymChecks, nextLoad } from '../src/engine/weights.ts'
@@ -94,6 +95,22 @@ describe('progress through a day', () => {
   it('is finished when every planned set is logged', () => {
     const all = slots.flatMap((s) => s.sets.map((_, index) => ({ slotId: s.slotId, index, warmup: false })))
     expect(nextSet(slots, all)).toBeUndefined()
+  })
+})
+
+describe('folding exercises', () => {
+  it('folds a finished exercise on its own', () => {
+    expect(slotCollapsed(undefined, { done: 9, total: 9 })).toBe(true)
+    expect(slotCollapsed(undefined, { done: 3, total: 9 })).toBe(false)
+  })
+
+  it('never folds a slot with nothing planned', () => {
+    expect(slotCollapsed(undefined, { done: 0, total: 0 })).toBe(false)
+  })
+
+  it('keeps a choice made by hand either way', () => {
+    expect(slotCollapsed(false, { done: 9, total: 9 })).toBe(false)
+    expect(slotCollapsed(true, { done: 0, total: 9 })).toBe(true)
   })
 })
 

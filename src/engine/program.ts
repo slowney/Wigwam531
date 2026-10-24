@@ -1,4 +1,5 @@
 import type { SchemeLookup } from './schemes.ts'
+import type { ExerciseLookup } from './types.ts'
 
 export type Tier = 'T1' | 'T2' | 'T3'
 
@@ -44,6 +45,15 @@ export interface ProgramOverrides {
 
 export function slotTmId(slot: MainSlot): string {
   return slot.tmExerciseId ?? slot.exerciseId
+}
+
+/** "Day 2: Squat/Sumo": the day's name plus its main lifts. */
+export function dayLabel(day: ProgramDay, lookup: ExerciseLookup): string {
+  const lifts = day.mains.map((slot) => {
+    const exercise = lookup(slot.exerciseId)
+    return exercise?.short ?? exercise?.name ?? slot.exerciseId
+  })
+  return lifts.length ? `${day.name}: ${lifts.join('/')}` : day.name
 }
 
 /**

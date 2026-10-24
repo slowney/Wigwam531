@@ -1,4 +1,4 @@
-import { db as defaultDb, SCHEMA_VERSION, type WigwamDb } from './db.ts'
+import { db as defaultDb, getSetting, SCHEMA_VERSION, type WigwamDb } from './db.ts'
 
 // A backup is every table, verbatim. Restoring replaces everything on the
 // phone, all or nothing: there is no merge, so there's nothing to get wrong.
@@ -80,10 +80,41 @@ export function describeBackup(file: BackupFile): { exportedAt: Date; profiles: 
 const DAY = 24 * 60 * 60 * 1000
 export const BACKUP_EVERY_DAYS = 7
 
-/** Nag once there's something worth losing and the last backup is a week old. */
-export function backupDue(lastBackupAt: number | null, now: number, hasProfiles: boolean): boolean {
-  if (!hasProfiles) return false
-  return lastBackupAt === null || now - lastBackupAt > BACKUP_EVERY_DAYS * DAY
+export type BackupReason = 'weekDone' | 'never' | 'stale'
+
+export interface BackupState {
+  lastBackupAt: number | null
+  /** "Not now" on a week-finished prompt. */
+  dismissedAt: number | null
+  /** The most recent week anyone finished. */
+  lastWeekDoneAt: number | null
+  hasProfiles: boolean
+}
+
+/**
+ * Why a backup should be offered right now, if at all. A week finished since
+ * the last backup comes first, and "Not now" holds that prompt until the next
+ * week finishes. "Never backed up" and "over a week old" stay until a backup
+ * is saved.
+ */
+export function backupReminder(state: BackupState, now: number): BackupReason | undefined {
+  if (!state.hasProfiles) return undefined
+  const handled = Math.max(state.lastBackupAt ?? 0, state.dismissedAt ?? 0)
+  if (state.lastWeekDoneAt !== null && state.lastWeekDoneAt > handled) return 'weekDone'
+  if (state.lastBackupAt === null) return 'never'
+  if (now - state.lastBackupAt > BACKUP_EVERY_DAYS * DAY) return 'stale'
+  return undefined
+}
+
+export async function loadBackupState(db: WigwamDb = defaultDb): Promise<BackupState> {
+  const profiles = (await db.profiles.toArray()).filter((p) => !p.archived)
+  const finished = (await db.weeks.toArray()).flatMap((w) => (w.completedAt === undefined ? [] : [w.completedAt]))
+  return {
+    lastBackupAt: await getSetting<number | null>('lastBackupAt', null, db),
+    dismissedAt: await getSetting<number | null>('backupDismissedAt', null, db),
+    lastWeekDoneAt: finished.length ? Math.max(...finished) : null,
+    hasProfiles: profiles.length > 0,
+  }
 }
 
 export function backupFileName(now: Date): string {

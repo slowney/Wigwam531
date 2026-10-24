@@ -41,9 +41,33 @@ describe('weeks', () => {
     await endWeek(week.id, db, 99)
     expect(await db.weeks.get(week.id)).toMatchObject({
       endedAt: 99,
+      completedAt: 99,
       days: { d1: 'done', d2: 'skipped', d3: 'skipped', d4: 'skipped' },
     })
     expect((await loadWeekOverview(id, db)).complete).toBe(true)
+  })
+})
+
+describe('finishing a week', () => {
+  it('is stamped the moment the last day is done or skipped, and unstamped by an unskip', async () => {
+    const db = freshDb()
+    const id = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    await doWorkout(db, [{ profileId: id, dayId: 'd1', star: 4, startWeight: 135 }], 1_000)
+    await doWorkout(db, [{ profileId: id, dayId: 'd2', star: 4 }], 2_000)
+    await doWorkout(db, [{ profileId: id, dayId: 'd3', star: 4 }], 3_000)
+    const week = (await loadWeekOverview(id, db)).week!
+    expect(week.completedAt).toBeUndefined()
+
+    await setDayStatus(week.id, 'd4', 'skipped', db, 9_000)
+    expect((await db.weeks.get(week.id))?.completedAt).toBe(9_000)
+    await setDayStatus(week.id, 'd4', 'pending', db, 9_500)
+    expect((await db.weeks.get(week.id))?.completedAt).toBeUndefined()
+
+    // Finishing the last day in a workout stamps it at the workout's end.
+    await doWorkout(db, [{ profileId: id, dayId: 'd4', star: 2 }], 10_000)
+    const finished = await db.weeks.get(week.id)
+    const session = (await db.sessions.toArray()).find((s) => s.startedAt === 10_000)
+    expect(finished?.completedAt).toBe(session?.endedAt)
   })
 })
 

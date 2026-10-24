@@ -8,6 +8,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'bench-press',
     name: 'Bench press',
+    short: 'Bench',
     equipment: ['barbell', 'bench', 'rack'],
     pattern: 'horizontalPush',
     region: 'upper',
@@ -19,6 +20,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'overhead-press',
     name: 'Overhead press',
+    short: 'OHP',
     equipment: ['barbell', 'rack'],
     pattern: 'verticalPush',
     region: 'upper',
@@ -56,6 +58,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'sumo-deadlift',
     name: 'Sumo deadlift',
+    short: 'Sumo',
     equipment: ['barbell'],
     pattern: 'hinge',
     region: 'lower',
@@ -76,6 +79,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'incline-bench-press',
     name: 'Incline bench press',
+    short: 'Incline',
     equipment: ['barbell', 'inclineBench', 'rack'],
     pattern: 'horizontalPush',
     region: 'upper',
@@ -87,6 +91,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'front-squat',
     name: 'Front squat',
+    short: 'Front squat',
     equipment: ['barbell', 'rack'],
     pattern: 'squat',
     region: 'lower',
@@ -99,6 +104,7 @@ export const MAIN_LIFTS: Exercise[] = [
   {
     id: 'barbell-row',
     name: 'Barbell row',
+    short: 'Row',
     equipment: ['barbell'],
     pattern: 'horizontalPull',
     region: 'upper',

@@ -1,66 +1,22 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState, type ChangeEvent } from 'react'
-import {
-  backupFileName,
-  describeBackup,
-  exportBackup,
-  importBackup,
-  parseBackup,
-  type BackupFile,
-} from '../db/backup.ts'
+import { describeBackup, importBackup, parseBackup, type BackupFile } from '../db/backup.ts'
 import { getSetting, setSetting } from '../db/db.ts'
 import { ensureSeeded } from '../db/seed.ts'
+import { useBackupSaver } from './backupFile.ts'
 import { formatDate } from './format.ts'
-
-type SaveResult = 'shared' | 'downloaded' | 'cancelled'
-
-/**
- * Must be called straight from a tap: Safari only opens the share sheet
- * with the tap's "user activation" still live, and any await before
- * navigator.share() would spend it.
- */
-function saveFile(text: string, name: string): Promise<SaveResult> {
-  // JSON first; plain text if this Safari won't share JSON files.
-  for (const type of ['application/json', 'text/plain']) {
-    const file = new File([text], name, { type })
-    if (navigator.canShare?.({ files: [file] })) {
-      return navigator.share({ files: [file] }).then(
-        () => 'shared' as const,
-        (e: unknown) => {
-          if (e instanceof DOMException && e.name === 'AbortError') return 'cancelled' as const
-          throw e
-        },
-      )
-    }
-  }
-  // Desktop browsers: a plain download.
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
-  const link = document.createElement('a')
-  link.href = url
-  link.download = name
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 10_000)
-  return Promise.resolve('downloaded')
-}
 
 export function BackupSection() {
   const lastBackupAt = useLiveQuery(() => getSetting<number | null>('lastBackupAt', null), [])
-  // Kept ready ahead of the tap, for the share-sheet reason above. It's a
-  // live query, so it's always the current data.
-  const prepared = useLiveQuery(() => exportBackup(), [])
+  const saver = useBackupSaver()
   const [pending, setPending] = useState<BackupFile>()
   const [message, setMessage] = useState<{ text: string; error?: boolean }>()
   const picker = useRef<HTMLInputElement>(null)
 
   function save() {
-    if (!prepared) return
-    const now = new Date()
-    const text = JSON.stringify({ ...prepared, exportedAt: now.toISOString() })
-    saveFile(text, backupFileName(now)).then(
-      async (result) => {
-        if (result === 'cancelled') return
-        await setSetting('lastBackupAt', now.getTime())
-        setMessage({ text: result === 'shared' ? 'Backup saved.' : 'Backup downloaded.' })
+    saver.save().then(
+      (result) => {
+        if (result !== 'cancelled') setMessage({ text: result === 'shared' ? 'Backup saved.' : 'Backup downloaded.' })
       },
       (e: unknown) => setMessage({ text: `Couldn't save the backup: ${(e as Error).message}`, error: true }),
     )
@@ -105,7 +61,7 @@ export function BackupSection() {
         backup to Files or iCloud Drive every week or so.
       </p>
       <div className="actions">
-        <button type="button" className="btn" disabled={!prepared} onClick={save}>
+        <button type="button" className="btn" disabled={!saver.ready} onClick={save}>
           Save a backup
         </button>
         <button type="button" className="btn btn-quiet" onClick={() => picker.current?.click()}>

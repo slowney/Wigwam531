@@ -104,6 +104,13 @@ is still pending.
 - **Finish:** PR badges (compared against earlier sessions only) and a finish summary showing next week's bumps
 - **Recovery:** the session resumes after the app is killed mid-workout, and reopening the app lands back on it
 
+**Added after the first real session:**
+
+- day names that carry their lifts ("Day 2: Squat/Sumo")
+- foldable exercises
+- a whole-workout rating per person
+- a backup prompt when a week finishes
+
 **Done when:**
 
 - A mock week for three profiles runs start to finish in the phone-size preview.

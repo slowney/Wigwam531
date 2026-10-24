@@ -16,6 +16,7 @@ import {
   logWarmups,
   removeAccessory,
   setActiveProfile,
+  setCollapsed,
   setEntryNotes,
   setFromPlan,
   setRest,
@@ -24,7 +25,7 @@ import {
   updateSet,
 } from '../../db/sessions.ts'
 import type { PlannedSet, PlannedSlot } from '../../engine/plan.ts'
-import type { Program } from '../../engine/program.ts'
+import { dayLabel, type Program } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
 import {
   dayProgress,
@@ -34,6 +35,7 @@ import {
   prChecks,
   prKind,
   restSeconds,
+  slotCollapsed,
   type PrKind,
 } from '../../engine/session.ts'
 import type { Exercise, Gym } from '../../engine/types.ts'
@@ -107,10 +109,12 @@ function viewOf(person: Person, gym: Gym): View {
     })
   const slots = plan?.slots ?? []
   const logged = person.history.filter((s) => s.entryId === person.entry.id)
+  // Labelled from the program day, so a swap for today doesn't rename it.
+  const programDay = person.program?.days.find((d) => d.id === person.entry.dayId)
   return {
     person,
     slots,
-    dayName: plan?.day.name ?? 'Unknown day',
+    dayName: programDay ? dayLabel(programDay, findExercise) : 'Unknown day',
     logged,
     next: nextSet(slots, logged),
     progress: dayProgress(slots, logged),
@@ -318,6 +322,7 @@ export function Session() {
           }
           onUnswap={() => run(() => swapExercise(active.person.entry.id, slot.slotId, undefined))}
           onRemove={() => run(() => removeAccessory(active.person.entry.id, slot.slotId))}
+          onToggle={(collapsed) => run(() => setCollapsed(active.person.entry.id, slot.slotId, collapsed))}
         />
       ))}
 
@@ -427,6 +432,7 @@ function SlotCard(props: {
   onWarmups: (done: boolean) => void
   onUnswap: () => void
   onRemove: () => void
+  onToggle: (collapsed: boolean) => void
 }) {
   const { view, slot } = props
   const profileId = view.person.profile.id
@@ -434,6 +440,9 @@ function SlotCard(props: {
   const here = view.logged.filter((s) => s.slotId === slot.slotId)
   const working = here.filter((s) => !s.warmup)
   const warmedUp = here.some((s) => s.warmup)
+  const progress = dayProgress([slot], view.logged)
+  const finished = progress.total > 0 && progress.done >= progress.total
+  const collapsed = slotCollapsed(view.person.entry.collapsed?.[slot.slotId], progress)
   const programmed = view.person.program?.days
     .find((d) => d.id === view.person.entry.dayId)
     ?.mains.find((m) => m.id === slot.slotId)?.exerciseId
@@ -449,33 +458,73 @@ function SlotCard(props: {
     meta = `${slot.tier} · ${borrowed}TM ${slot.tm}`
   }
 
+  const doneLine = [...working]
+    .sort((a, b) => a.index - b.index)
+    .map((s) => `${weightText(s.weight, exercise)}×${s.reps}`)
+    .join(' · ')
+
   return (
-    <section className="card slot">
+    <section className={collapsed ? 'card slot slot-collapsed' : 'card slot'}>
       <div className="slot-head">
-        <div className="grow stack">
-          <strong>{exercise?.name ?? slot.exerciseId}</strong>
-          <span className="muted small">
-            {meta}
-            {swappedFrom && ` · swapped from ${exerciseOf(swappedFrom)?.name ?? swappedFrom} today`}
+        <button
+          type="button"
+          className="slot-toggle grow"
+          aria-expanded={!collapsed}
+          onClick={() => props.onToggle(!collapsed)}
+        >
+          <span className="chevron" aria-hidden="true">
+            {collapsed ? '▸' : '▾'}
           </span>
-        </div>
-        {working.length === 0 && slot.role === 'main' && !swappedFrom && (
+          <span className="grow stack">
+            <strong>{exercise?.name ?? slot.exerciseId}</strong>
+            <span className="muted small">
+              {meta}
+              {swappedFrom && ` · swapped from ${exerciseOf(swappedFrom)?.name ?? swappedFrom} today`}
+            </span>
+          </span>
+          <span className={finished ? 'slot-count slot-count-done' : 'slot-count'}>
+            {finished ? '✓ ' : ''}
+            {progress.done}/{progress.total}
+          </span>
+        </button>
+        {!collapsed && working.length === 0 && slot.role === 'main' && !swappedFrom && (
           <button type="button" className="btn btn-quiet btn-small" onClick={() => props.onSheet({ kind: 'swap', profileId, slotId: slot.slotId })}>
             Swap
           </button>
         )}
-        {working.length === 0 && swappedFrom && (
+        {!collapsed && working.length === 0 && swappedFrom && (
           <button type="button" className="btn btn-quiet btn-small" onClick={props.onUnswap}>
             Undo swap
           </button>
         )}
-        {working.length === 0 && slot.role === 'accessory' && (
+        {!collapsed && working.length === 0 && slot.role === 'accessory' && (
           <button type="button" className="btn btn-quiet btn-small" onClick={props.onRemove}>
             Remove
           </button>
         )}
       </div>
 
+      {collapsed ? (
+        <p className="slot-summary muted small">{doneLine || 'Nothing logged yet'}</p>
+      ) : (
+        <SlotBody {...props} exercise={exercise} working={working} warmedUp={warmedUp} lastWeight={lastWeight} />
+      )}
+    </section>
+  )
+}
+
+function SlotBody(
+  props: Parameters<typeof SlotCard>[0] & {
+    exercise?: Exercise
+    working: SetRow[]
+    warmedUp: boolean
+    lastWeight?: number
+  },
+) {
+  const { view, slot, exercise, working, warmedUp, lastWeight } = props
+  const profileId = view.person.profile.id
+  return (
+    <>
       {slot.missingTm && (
         <p className="muted small">
           Set a {exerciseOf(slot.tmExerciseId ?? slot.exerciseId)?.name} TM on{' '}
@@ -515,7 +564,7 @@ function SlotCard(props: {
           />
         )
       })}
-    </section>
+    </>
   )
 }
 

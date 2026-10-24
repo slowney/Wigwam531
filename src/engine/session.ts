@@ -92,6 +92,14 @@ export function dayProgress(
   return { done: count, total }
 }
 
+/**
+ * A finished exercise folds itself away so the next one is in view. Once a
+ * slot has been folded or opened by hand, that choice sticks.
+ */
+export function slotCollapsed(choice: boolean | undefined, progress: { done: number; total: number }): boolean {
+  return choice ?? (progress.total > 0 && progress.done >= progress.total)
+}
+
 export const REST_SECONDS = { heavy: 180, main: 120, accessory: 90 } as const
 
 /**

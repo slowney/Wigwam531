@@ -7,8 +7,10 @@ import {
   finishSession,
   logSet,
   logWarmups,
+  rateEntry,
   removeAccessory,
   setActiveProfile,
+  setCollapsed,
   setFromPlan,
   setRest,
   startSession,
@@ -141,6 +143,26 @@ describe('today-only changes', () => {
     await expect(removeAccessory(entry.id, curl.slotId, db)).rejects.toThrow('already logged')
     await swapExercise(entry.id, 'd1-t2', undefined, db)
     expect((await db.entries.get(entry.id))?.swaps).toEqual({})
+  })
+})
+
+describe('folding and rating', () => {
+  it('remembers exercises folded by hand and the workout rating', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const id = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    const entry = await entryOf(db, id, lead)
+
+    await setCollapsed(entry.id, 'd1-t1', true, db)
+    await setCollapsed(entry.id, 'd1-t2', false, db)
+    await rateEntry(entry.id, 4, db)
+    expect(await db.entries.get(entry.id)).toMatchObject({
+      collapsed: { 'd1-t1': true, 'd1-t2': false },
+      rating: 4,
+    })
+
+    await rateEntry(entry.id, undefined, db)
+    expect((await db.entries.get(entry.id))?.rating).toBeUndefined()
   })
 })
 

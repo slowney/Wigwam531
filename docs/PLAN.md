@@ -271,7 +271,9 @@ range, the next session suggests the next step up:
   - **Logging:** tap ✓ to log a set as prescribed, or use the stepper to change reps. AMRAP sets get a big rep picker.
   - **Per set:** swap, notes and RPE.
   - **Accessories:** slots with the picker, plus Fill all.
-  - **Finish:** a summary with PRs, next week's bumps, and ratings for anything new.
+  - **Exercises fold.** Tap a header to fold an exercise to one line. Finished ones fold themselves unless opened by hand, and the choice is saved with the workout.
+  - **Finish:** a summary with PRs, next week's bumps, a 1–5 "How was it?" rating per person, and (in Phase 4) ratings for any new exercises.
+- **Day names** carry their main lifts everywhere: "Day 2: Squat/Sumo".
 - **Start Week:** per profile, the last 1+ results, suggested bumps (editable), stall warnings and the week type. Several profiles can be started at once.
 - **Week:** all of a profile's days with weights and done/skipped status.
 - **Program editor:** days, main slots (exercise, TM source, scheme, progression), accessory slots and schemes. Changes apply to pending days right away. Followers see your program plus their overrides.
@@ -341,9 +343,9 @@ fantasy bot.
 | exercises | custom exercises (built-ins ship in code) |
 | programs | profileId, followsProfileId, days → main and accessory slots, slot overrides |
 | trainingMaxes | profileId, exerciseId, lb, date, reason |
-| weeks | profileId, number, type, per-day status, progression decisions |
+| weeks | profileId, number, type, per-day status, when it was completed and ended |
 | sessions | date, gymId, participants, notes |
-| entries | sessionId, profileId, weekId, day, status, notes |
+| entries | sessionId, profileId, weekId, day, status, today's swaps and accessories, rest countdown, folded exercises, notes, workout rating |
 | sets | entryId, profileId, exerciseId, role, prescribed and actual weight/reps, AMRAP, warm-up, RPE, note, time |
 | ratings | profileId, exerciseId, stars or hidden |
 | restrictions | profileId, muscles/patterns/tags, note, until |
@@ -358,7 +360,9 @@ volume are calculated when read instead of being stored.
 
 - **Saved immediately:** every logged set is written as soon as you log it. Killing the app, reloading or updating mid-workout resumes exactly where you were.
 - **Fixing mistakes:** undo the last set, or edit any past session.
-- **Backup:** Export sends a JSON file through the share sheet to Files or iCloud Drive, and Import restores it. A banner nags when the last backup is more than a week or 4 sessions old.
+- **Backup:** Export sends a JSON file through the share sheet to Files or iCloud Drive, and Import restores it.
+  - **When a week finishes:** a backup is offered on that workout's summary, after End Week, and on Home. "Not now" holds it until the next week finishes.
+  - **Overdue:** Home also reminds you if there has never been a backup or the last one is more than a week old, until one is saved.
 - **Persistent storage:** the app asks iOS not to clear its storage (`navigator.storage.persist()`).
 - **Schema changes:** they add fields; existing fields are never renamed or given a new meaning. Exports carry a schema version, and old exports are migrated on import.
 

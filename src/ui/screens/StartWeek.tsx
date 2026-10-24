@@ -5,6 +5,7 @@ import { findExercise } from '../../data/exercises.ts'
 import { db, type ProfileRow, type TmChangeReason } from '../../db/db.ts'
 import { loadWeekOverview, loadWeekReview, startWeeks, type WeekOverview, type WeekReview } from '../../db/weeks.ts'
 import type { WeekType } from '../../engine/plan.ts'
+import { dayLabel } from '../../engine/program.ts'
 import type { TmProposal } from '../../engine/progression.ts'
 import { BackLink, Segmented } from '../components/forms.tsx'
 
@@ -110,7 +111,7 @@ function Review({ items }: { items: Item[] }) {
         const id = item.profile.id
         const c = choices[id]!
         const n = item.review.week.number
-        const pending = item.overview.pending.map((d) => d.name)
+        const pending = item.overview.pending.map((d) => dayLabel(d, findExercise))
         return (
           <section key={id} className="card">
             <label className="toggle title-row">
