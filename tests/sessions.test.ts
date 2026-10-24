@@ -15,6 +15,7 @@ import {
   setCollapsed,
   setFromPlan,
   setRest,
+  setSlotWeight,
   startSession,
   swapExercise,
 } from '../src/db/sessions.ts'
@@ -313,5 +314,21 @@ describe('a failed set', () => {
     expect(await db.sets.get(id)).toMatchObject({ reps: 2, prescribedReps: 3 })
     await finishSession(session, db)
     expect((await loadWeekOverview(lead, db)).week?.days).toEqual({ d1: 'done' })
+  })
+})
+
+describe('nudging a weight', () => {
+  it("is saved with the workout, and cleared once a set is logged at it", async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    const entry = await entryOf(db, session, lead)
+    await addAccessory(entry.id, 'db-row', { forFollowers: false }, db)
+    const pick = (await db.entries.get(entry.id))!.accessories[0]!
+    await setSlotWeight(entry.id, pick.id, 55, db)
+    expect((await db.entries.get(entry.id))?.weights).toEqual({ [pick.id]: 55 })
+    const slot = (await planFor(db, lead, entry.id)).slots.find((s) => s.slotId === pick.id)!
+    await logSet(setFromPlan(entry, slot, 0, slot.sets[0]!, { weight: 55, reps: 10 }), undefined, db)
+    expect((await db.entries.get(entry.id))?.weights).toEqual({})
   })
 })

@@ -114,8 +114,32 @@ export async function logSet(
   await db.transaction('rw', [db.sets, db.entries], async () => {
     await db.sets.add({ ...set, id, at: now })
     if (restSeconds) await db.entries.update(set.entryId, { restEndsAt: now + restSeconds * 1000, restSeconds })
+    // A nudged weight has done its job once a set is logged: that set's weight carries on.
+    const entry = await db.entries.get(set.entryId)
+    if (entry?.weights?.[set.slotId] !== undefined) {
+      const weights = { ...entry.weights }
+      delete weights[set.slotId]
+      await db.entries.update(set.entryId, { weights })
+    }
   })
   return id
+}
+
+/** Today's weight for a rep-range exercise, nudged before the next set. Undefined goes back to the plan's. */
+export async function setSlotWeight(
+  entryId: string,
+  slotId: string,
+  weight: number | undefined,
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  await db.transaction('rw', db.entries, async () => {
+    const entry = await db.entries.get(entryId)
+    if (!entry) return
+    const weights = { ...entry.weights }
+    if (weight === undefined) delete weights[slotId]
+    else weights[slotId] = weight
+    await db.entries.update(entryId, { weights })
+  })
 }
 
 /** All of a lift's warm-ups in one tap. */

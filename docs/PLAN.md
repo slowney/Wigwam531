@@ -306,6 +306,8 @@ failed set (no reps) doesn't count toward the working weight.
   - **Header:** a tab per person showing their progress and their own rest countdown. "Rotate" moves to the next lifter after each logged set.
   - **Rest:** visual only: 3:00 after 1–3 rep sets at 80% of TM or more, 2:00 after other main-lift sets, 1:30 after accessories.
   - **Logging:** tap ✓ to log a set as prescribed, or "Missed" to pick the reps you got, down to 0. Rep ranges get a button per rep count. AMRAP sets get a big rep picker. Tapping the set itself opens the editor for weight, reps, RPE and a note.
+  - **Last time's note:** a note left on an exercise last time shows on it this time.
+  - **Nudging a weight:** rep-range sets have − / + beside the weight, one gym-aware step (the next dumbbell, the next pin, 5 lb on a bar), for grabbing a different weight before the next set.
   - **Out of order:** the main lifts run in order, but each accessory's next set is always ready to log, since accessories get done whenever the bar is busy.
   - **Per set:** swap, notes and RPE.
   - **Accessories:** slots with the picker, plus Fill all.

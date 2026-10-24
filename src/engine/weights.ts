@@ -78,6 +78,27 @@ export function nextLoad(current: number, load: LoadType, gym: Gym): number | un
   }
 }
 
+/** The next weight down, the mirror of `nextLoad`. Undefined at the lightest there is. */
+export function previousLoad(current: number, load: LoadType, gym: Gym): number | undefined {
+  const below = (list: number[]) => [...list].reverse().find((w) => w < current)
+  switch (load) {
+    case 'dumbbell':
+      return below(gym.dumbbells)
+    case 'kettlebell':
+      return below(gym.kettlebells)
+    case 'cable':
+      return current - gym.cableStep > 0 ? current - gym.cableStep : undefined
+    case 'bodyweight':
+    case 'band':
+      return undefined
+    case 'barbell':
+    case 'trapBar':
+    case 'ezBar':
+    case 'landmine':
+      return current - 5 > 0 ? current - 5 : undefined
+  }
+}
+
 /** Bar weight for warm-ups and plate checks; undefined for non-bar lifts. */
 export function barWeight(load: LoadType, gym: Gym): number | undefined {
   switch (load) {

@@ -1682,3 +1682,23 @@ h2 {
   color: var(--text);
   font-weight: 600;
 }
+
+/* Last time's note on an exercise, and nudging a rep-range weight. */
+.slot-note {
+  margin-bottom: 6px;
+}
+
+.nudge {
+  display: flex;
+  gap: 6px;
+}
+
+.nudge-btn {
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0;
+  border: 1px solid var(--border);
+  /* The ready set's background is the quiet button colour. */
+  background: var(--bg);
+  font-size: 22px;
+}

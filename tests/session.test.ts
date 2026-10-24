@@ -7,6 +7,7 @@ import { planAccessory, planDay, type PlanContext } from '../src/engine/plan.ts'
 import {
   applySwaps,
   dayProgress,
+  lastNotes,
   lastSessionSets,
   nextLifter,
   nextSet,
@@ -243,5 +244,19 @@ describe('PRs', () => {
     const pyramid = [170, 190, 215].map((w, i) => set(`p${i}`, 'first', i, w, 3))
     const checks = prChecks(pyramid)
     expect(pyramid.map((s) => prKind(checks.get(s.id)))).toEqual([undefined, undefined, undefined])
+  })
+})
+
+describe("last time's notes", () => {
+  it("come from the last earlier workout that did the exercise, once each", () => {
+    const history = [
+      { ...set('1', 'old', 1, 45, 10), note: 'too easy' },
+      { ...set('2', 'last', 10, 50, 10), note: 'elbow sore' },
+      { ...set('3', 'last', 11, 50, 9), note: 'elbow sore' },
+      set('4', 'last', 12, 50, 8),
+      { ...set('5', 'today', 20, 50, 10), note: 'fine today' },
+    ]
+    expect(lastNotes(history, 'db-row', 'today')).toEqual({ at: 10, notes: ['elbow sore'] })
+    expect(lastNotes(history.slice(3, 4), 'db-row', 'today')).toBeUndefined()
   })
 })

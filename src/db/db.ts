@@ -134,6 +134,11 @@ export interface EntryRow {
   /** Their own rest countdown, saved so it survives the app being killed. */
   restEndsAt?: number
   restSeconds?: number
+  /**
+   * Rep-range work whose weight was nudged with ± before the next set, by
+   * slot id. Logging a set at it clears it again: the logged weight carries on.
+   */
+  weights?: Record<string, number>
   /** Exercises folded or opened by hand, by slot id. Saved so a reload looks the same. */
   collapsed?: Record<string, boolean>
   notes?: string

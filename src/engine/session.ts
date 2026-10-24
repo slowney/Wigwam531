@@ -148,6 +148,17 @@ export function lastSessionSets<S extends HistorySet>(
   return sets.filter((s) => s.sessionId === latest.sessionId).sort((a, b) => a.at - b.at)
 }
 
+/** Notes left on an exercise the last time it was done, to read before doing it again. */
+export function lastNotes<S extends HistorySet & { note?: string }>(
+  history: ReadonlyArray<S>,
+  exerciseId: string,
+  excludeSessionId?: string,
+): { at: number; notes: string[] } | undefined {
+  const sets = lastSessionSets(history, exerciseId, excludeSessionId)
+  const notes = [...new Set(sets.flatMap((s) => (s.note?.trim() ? [s.note.trim()] : [])))]
+  return notes.length ? { at: sets[0]!.at, notes } : undefined
+}
+
 /** Today's double-progression weight for a rep-range slot, from the last session that did it. */
 export function workingWeight(
   history: ReadonlyArray<HistorySet>,

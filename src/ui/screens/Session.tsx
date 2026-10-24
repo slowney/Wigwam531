@@ -34,6 +34,7 @@ import {
   setFromPlan,
   setRest,
   setRotate,
+  setSlotWeight,
   swapExercise,
   updateAccessory,
   updateSet,
@@ -43,6 +44,7 @@ import { dayLabel, type Program } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
 import {
   dayProgress,
+  lastNotes,
   lastSessionSets,
   nextLifter,
   nextSet,
@@ -65,6 +67,7 @@ import {
 } from '../../engine/suggest.ts'
 import type { Exercise, Gym, Muscle, MuscleTargets, Rating, Restriction } from '../../engine/types.ts'
 import { projectedWeek, type MuscleCounts } from '../../engine/volume.ts'
+import { nextLoad, previousLoad } from '../../engine/weights.ts'
 import { statusOf } from '../../engine/week.ts'
 import { AccessoryPicker, gapText } from '../components/AccessoryPicker.tsx'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
@@ -373,6 +376,8 @@ export function Session() {
         view={active!}
         slot={slot}
         weightStep={exerciseOf(slot.exerciseId)?.load === 'cable' ? data!.gym!.cableStep : 5}
+        gym={data!.gym!}
+        onNudge={(weight) => run(() => setSlotWeight(active!.person.entry.id, slot.slotId, weight))}
         onLog={(index, planned, values) => run(() => log(active!, slot, index, planned, values))}
         onSheet={(s) => setSheet(s)}
         onWarmups={(done) =>
@@ -627,6 +632,9 @@ function SlotCard(props: {
   view: View
   slot: PlannedSlot
   weightStep: number
+  gym: Gym
+  /** Today's weight for a rep-range exercise, before its next set. */
+  onNudge: (weight: number) => void
   onLog: (index: number, planned: PlannedSet, values: SetValues) => void
   onSheet: (sheet: SheetState) => void
   onWarmups: (done: boolean) => void
@@ -670,6 +678,7 @@ function SlotCard(props: {
     .map((s) => `${weightText(s.weight, exercise)}×${s.reps}`)
     .join(' · ')
   const conflict = exercise ? view.restrictions.find((r) => restricts(r, exercise)) : undefined
+  const lastNote = lastNotes(view.person.history, slot.exerciseId, view.person.entry.sessionId)
 
   return (
     <section className={collapsed ? 'card slot slot-collapsed' : 'card slot'}>
@@ -728,6 +737,11 @@ function SlotCard(props: {
         </button>
       )}
 
+      {!collapsed && lastNote && (
+        <p className="small muted no-margin slot-note">
+          ✎ Last time, {formatDate(lastNote.at)}: {lastNote.notes.join(' · ')}
+        </p>
+      )}
       {!collapsed && conflict && (
         <p className="small warn-text no-margin slot-warn">
           Goes against the {conflict.name.toLowerCase()} restriction.
@@ -778,7 +792,14 @@ function SlotBody(
         // Accessories get done whenever the bar's busy, so each one's next set
         // is ready to log out of order. The main lifts keep their order.
         const ready = isNext || (slot.role === 'accessory' && index === firstOpen)
-        const prefill = slot.kind === 'range' ? (lastWeight ?? planned.weight) : planned.weight
+        // A weight nudged with ± wins until a set is logged at it.
+        const prefill =
+          slot.kind === 'range' ? (view.person.entry.weights?.[slot.slotId] ?? lastWeight ?? planned.weight) : planned.weight
+        const load = exercise?.load
+        const nudge =
+          ready && slot.kind === 'range' && prefill !== undefined && load
+            ? { down: previousLoad(prefill, load, props.gym), up: nextLoad(prefill, load, props.gym) }
+            : undefined
         return (
           <SetLine
             key={index}
@@ -796,6 +817,7 @@ function SlotBody(
             }
             onReps={() => props.onSheet({ kind: 'reps', profileId, slotId: slot.slotId, index })}
             onMissed={() => props.onSheet({ kind: 'reps', profileId, slotId: slot.slotId, index, short: true })}
+            nudge={nudge && (nudge.down !== undefined || nudge.up !== undefined) ? { ...nudge, set: props.onNudge } : undefined}
             onEdit={() => props.onSheet({ kind: 'edit', profileId, slotId: slot.slotId, index })}
           />
         )
@@ -822,6 +844,8 @@ function SetLine(props: {
   onReps: () => void
   /** Fewer reps than the target: a failed set. */
   onMissed: () => void
+  /** One step lighter or heavier before logging (rep-range work). */
+  nudge?: { down?: number; up?: number; set: (weight: number) => void }
   onEdit: () => void
 }) {
   const { planned, logged, exercise } = props
@@ -901,7 +925,33 @@ function SetLine(props: {
         ))}
       </span>
     )
-    if (quick.length > 3) below = buttons
+    if (props.nudge) {
+      // The weight's − / + take the line beside the set; reps go beneath.
+      const { down, up, set } = props.nudge
+      below = buttons
+      controls = (
+        <span className="nudge">
+          <button
+            type="button"
+            className="btn btn-quiet nudge-btn"
+            aria-label={down !== undefined ? `Lighter: ${down}` : 'Nothing lighter'}
+            disabled={down === undefined}
+            onClick={() => down !== undefined && set(down)}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="btn btn-quiet nudge-btn"
+            aria-label={up !== undefined ? `Heavier: ${up}` : 'Nothing heavier'}
+            disabled={up === undefined}
+            onClick={() => up !== undefined && set(up)}
+          >
+            +
+          </button>
+        </span>
+      )
+    } else if (quick.length > 3) below = buttons
     else controls = buttons
   } else {
     controls = (
@@ -1025,7 +1075,7 @@ function SessionSheet(props: {
   const working = view.logged.filter((s) => s.slotId === slot.slotId && !s.warmup)
   const logged = working.find((s) => s.index === sheet.index)
   const lastWeight = working.length ? working[working.length - 1]!.weight : undefined
-  const prefill = slot.kind === 'range' ? (lastWeight ?? planned.weight) : planned.weight
+  const prefill = slot.kind === 'range' ? (entry.weights?.[slot.slotId] ?? lastWeight ?? planned.weight) : planned.weight
   const title = `${exercise?.name ?? ''} · set ${sheet.index + 1}`
 
   if (sheet.kind === 'reps' && prefill !== undefined) {

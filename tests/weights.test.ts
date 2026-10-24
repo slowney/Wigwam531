@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { HOME_GYM } from '../src/data/gym.ts'
-import { canLoad, maxLoad, nextLoad, percentOf, roundWeight, tmFromOneRepMax } from '../src/engine/weights.ts'
+import { canLoad, maxLoad, nextLoad, percentOf, previousLoad, roundWeight, tmFromOneRepMax } from '../src/engine/weights.ts'
 
 describe('rounding', () => {
   it('rounds to the nearest 5 lb, halves up', () => {
@@ -62,5 +62,15 @@ describe('the next step up', () => {
 
   it('has no weight step for bodyweight work', () => {
     expect(nextLoad(0, 'bodyweight', HOME_GYM)).toBeUndefined()
+  })
+})
+
+describe('the next step down', () => {
+  it('mirrors the step up, and stops at the lightest there is', () => {
+    expect(previousLoad(170, 'barbell', HOME_GYM)).toBe(165)
+    expect(previousLoad(40, 'dumbbell', HOME_GYM)).toBe(35)
+    expect(previousLoad(5, 'dumbbell', HOME_GYM)).toBeUndefined()
+    expect(previousLoad(60, 'cable', HOME_GYM)).toBe(50)
+    expect(previousLoad(0, 'bodyweight', HOME_GYM)).toBeUndefined()
   })
 })
