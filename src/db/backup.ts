@@ -50,7 +50,7 @@ export function parseBackup(text: string): BackupFile {
 
 /** Older backups are brought up to date here, one schema version at a time. */
 function upgradeBackup(file: BackupFile): BackupFile {
-  // Versions 2 to 4 only added tables, so older files restore as they are
+  // Versions 2 to 5 only added tables, so older files restore as they are
   // and the new tables start empty.
   return { ...file, schemaVersion: SCHEMA_VERSION }
 }

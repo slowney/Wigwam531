@@ -45,4 +45,17 @@ export const SCHEMES: Scheme[] = [
 
 const byId = new Map(SCHEMES.map((s) => [s.id, s]))
 
-export const findScheme: SchemeLookup = (id) => byId.get(id) ?? parseRangeSchemeId(id)
+// Schemes built in the app live in IndexedDB; the app keeps this copy in
+// step, the same way it does for custom exercises.
+let custom = new Map<string, Scheme>()
+
+export function setCustomSchemes(list: ReadonlyArray<Scheme>): void {
+  custom = new Map(list.map((s) => [s.id, s]))
+}
+
+export const findScheme: SchemeLookup = (id) => byId.get(id) ?? custom.get(id) ?? parseRangeSchemeId(id)
+
+/** Built-ins first, then the ones made in the app. */
+export function allSchemes(): Scheme[] {
+  return [...SCHEMES, ...custom.values()]
+}

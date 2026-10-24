@@ -150,19 +150,53 @@ PLAN.md.
 
 ## Phase 5: Program editor
 
-- **Days:** add, remove and reorder (3–5 days)
-- **Main slots:** exercise, TM source, scheme, tier and progression type, up to 3 per day
-- **Custom schemes**
-- **Accessory slots:** pinned and flex, per day (pinning moved here from Phase 4)
-- **Live edits:** changes apply immediately to the pending days of the current week
-- **Followers:** they see your program plus their own overrides; per-slot override, and unfollow
+- **Days:** add, remove, rename, duplicate and reorder (↑/↓), 1–7 days
+- **Main slots:** exercise, TM source, scheme, tier and warm-ups, up to 3 per day. Progression follows the scheme: a ★ set moves its TM, a rep range uses double progression.
+- **Custom schemes:** percent-of-TM schemes built set by set, with 1+ and ★ sets. Built-in ones can be copied, not changed.
+- **TM increases:** each person's bump table per lift (0–1 / 2–3 / 4–5 / 6+ reps)
+- **Accessory slots:** pinned and open, per day (pinning moved here from Phase 4). Pinned accessories are added to the workout when it starts.
+- **Live edits:** changes apply immediately to the days still to do this week. An edit that would pull a day or a lift out from under today's workout is refused until it's finished.
+- **Custom programs:** build one from scratch (pick a number of days) or from a copy, save it to My programs, and switch any profile to any program, when it's created or later. Followers come along when their leader switches; their per-lift changes don't.
+- **Followers:** they see your program plus their own overrides; per-slot override, "Use Lead's again", and unfollow
 - **Making it stick:** "make permanent" turns a today-only swap into a program edit
-- **Library:** editing exercises in the library
+- **Accessories in the session:** sets × reps can be changed today, and start there next time
+- **Library:** exercises added in the app can be edited or deleted (built-ins are view-only), plus set schemes and My programs
 
 **Done when:**
 
 - A test edits Day 3 mid-week. Day 3's plan changes; completed days and history don't.
 - A follower's override survives the leader editing the same day.
+- You restructure something real and train a week on it.
+
+## Phase 5b: Garage feedback
+
+From the first full week in the garage. The two bugs ship with Phase 5.
+
+**Bugs:**
+
+- **Tab bar drift.** After coming back to a workout, the bottom tab bar can float up into the page while scrolling. iOS loses track of `position: fixed` elements after the keyboard closes or the app resumes. The fix: the page itself no longer scrolls; the screen scrolls inside a fixed frame, and the tab bar sits in the layout instead of being pinned to the screen. Needs checking on the phone.
+- **Set editor overflow.** The weight row in the set editor runs off the right edge, because the weight box wouldn't shrink to fit.
+
+**Changes:**
+
+- **Delete or reopen a finished workout**, from its summary.
+  - Delete removes it and every set logged in it, and its days go back to to-do. This is how dummy test workouts get cleared.
+  - Reopen puts it back in progress with everything logged kept, for a workout finished too early.
+  - Neither undoes a TM change that Start Week has already made from it. The confirm step says so.
+- **Fail a set.** Any set can be logged short, down to 0 reps, in a tap or two. Short sets show as short. Progression rules don't change: TMs still move only on the ★ set, and a short accessory set just holds the weight.
+- **Rep buttons for accessories**, the same as the heavy row: tap the reps you got. Tapping the set itself still opens the editor to change the weight. Wide ranges (15–20) wrap onto a second line instead of hiding behind a Reps button.
+- **"+ New exercise" in the accessory picker** all the time, not only when a search finds nothing.
+- **Accessory progression that actually moves.** The weight already carries over from last time, but it only goes up once *every* set reaches the top of the range, which accessories rarely manage. New rule: once a set at the working weight reaches the top of the range, the next time that exercise is picked starts one step up (+5 lb on a bar, the next dumbbell, the next pin). The set line says why ("+5 from last time").
+- **Higher default weekly targets**, mostly 10–16, for the muscles nSuns leaves short. Anyone who has changed a target keeps their own number.
+
+**Done when:**
+
+- Tests show:
+  - deleting a workout puts its days back to to-do and leaves every other workout alone
+  - a reopened workout finishes again correctly
+  - a short set logs and shows as short
+  - an accessory that hit the top of its range starts a step up next time, and one that didn't holds
+- On your phone, the tab bar stays put after a workout resumes, and the set editor fits.
 
 ## Phase 6: Progress and metrics
 

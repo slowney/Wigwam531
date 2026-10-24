@@ -34,7 +34,16 @@ export async function startSession(
       const overview = await loadWeekOverview(p.profileId, db)
       const name = (await db.profiles.get(p.profileId))?.name ?? 'Someone'
       if (overview.complete) throw new Error(`${name}'s week is finished. Start the next week first.`)
-      if (!overview.pending.some((d) => d.id === p.dayId)) throw new Error(`${name} has already done that day.`)
+      const day = overview.pending.find((d) => d.id === p.dayId)
+      if (!day) throw new Error(`${name} has already done that day.`)
+      // Pinned accessories become today's picks like any other, so they can
+      // be resized or dropped for today without touching the program.
+      const pinned: AccessoryPick[] = []
+      for (const slot of day.accessories) {
+        if (slot.kind !== 'pinned') continue
+        const pick = await pickFor(p.profileId, slot.exerciseId, db)
+        if (pick) pinned.push({ ...pick, pinned: true })
+      }
       await db.entries.add({
         id: newId(),
         sessionId,
@@ -42,7 +51,7 @@ export async function startSession(
         weekId: week.id,
         dayId: p.dayId,
         swaps: {},
-        accessories: [],
+        accessories: pinned,
         status: 'active',
       })
     }
@@ -186,20 +195,72 @@ export async function addAccessory(
 ): Promise<void> {
   const exercise = findExercise(exerciseId)
   if (!exercise) throw new Error(`Unknown exercise "${exerciseId}".`)
-  const pick = (): AccessoryPick => ({ id: newId(), exerciseId, sets: exercise.sets, reps: [exercise.reps[0], exercise.reps[1]] })
 
-  await db.transaction('rw', [db.entries, db.programs], async () => {
+  await db.transaction('rw', [db.entries, db.programs, db.sessions], async () => {
     const entry = await db.entries.get(entryId)
     if (!entry) return
-    await db.entries.update(entryId, { accessories: [...entry.accessories, pick()] })
+    const pick = async (profileId: string) => (await pickFor(profileId, exerciseId, db))!
+    await db.entries.update(entryId, { accessories: [...entry.accessories, await pick(entry.profileId)] })
     if (!options.forFollowers) return
     const followers = new Set(
       (await db.programs.where('followsProfileId').equals(entry.profileId).toArray()).map((p) => p.profileId),
     )
     for (const other of await db.entries.where('sessionId').equals(entry.sessionId).toArray()) {
       if (!followers.has(other.profileId) || other.accessories.some((a) => a.exerciseId === exerciseId)) continue
-      await db.entries.update(other.id, { accessories: [...other.accessories, pick()] })
+      await db.entries.update(other.id, { accessories: [...other.accessories, await pick(other.profileId)] })
     }
+  })
+}
+
+/** A new pick, at this person's own last sets × reps for it, else the library's. */
+async function pickFor(profileId: string, exerciseId: string, db: WigwamDb): Promise<AccessoryPick | undefined> {
+  const exercise = findExercise(exerciseId)
+  if (!exercise) return undefined
+  const last = await rememberedPick(profileId, exerciseId, db)
+  return {
+    id: newId(),
+    exerciseId,
+    sets: last?.sets ?? exercise.sets,
+    reps: last ? [last.reps[0], last.reps[1]] : [exercise.reps[0], exercise.reps[1]],
+  }
+}
+
+/** The sets × reps this person used the last time they picked this accessory. */
+export async function rememberedPick(
+  profileId: string,
+  exerciseId: string,
+  db: WigwamDb = defaultDb,
+): Promise<AccessoryPick | undefined> {
+  let latest: { at: number; pick: AccessoryPick } | undefined
+  for (const entry of await db.entries.where('profileId').equals(profileId).toArray()) {
+    const pick = [...entry.accessories].reverse().find((a) => a.exerciseId === exerciseId)
+    if (!pick) continue
+    const at = (await db.sessions.get(entry.sessionId))?.startedAt ?? 0
+    if (!latest || at >= latest.at) latest = { at, pick }
+  }
+  return latest?.pick
+}
+
+/** Today's sets × reps for an accessory. It's remembered for next time through `rememberedPick`. */
+export async function updateAccessory(
+  entryId: string,
+  pickId: string,
+  changes: { sets: number; reps: [number, number] },
+  db: WigwamDb = defaultDb,
+): Promise<void> {
+  if (!(changes.sets >= 1 && changes.reps[0] >= 1 && changes.reps[0] <= changes.reps[1])) {
+    throw new Error('Sets and reps need to be at least 1, low end first.')
+  }
+  await db.transaction('rw', [db.entries, db.sets], async () => {
+    const logged = await workingSetsLogged(entryId, pickId, db)
+    if (changes.sets < logged) throw new Error(`${logged} sets are already logged for it today.`)
+    const entry = await db.entries.get(entryId)
+    if (!entry) return
+    await db.entries.update(entryId, {
+      accessories: entry.accessories.map((a) =>
+        a.id === pickId ? { ...a, sets: changes.sets, reps: [changes.reps[0], changes.reps[1]] } : a,
+      ),
+    })
   })
 }
 

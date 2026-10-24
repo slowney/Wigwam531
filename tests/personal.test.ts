@@ -4,10 +4,23 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { allExercises, findExercise, setCustomExercises } from '../src/data/exercises.ts'
 import { RESTRICTION_PRESETS } from '../src/data/restrictionPresets.ts'
 import { DEFAULT_TARGETS } from '../src/data/targets.ts'
-import { addCustomExercise, customExercise, loadRatings, setRating, type NewExercise } from '../src/db/library.ts'
+import {
+  addCustomExercise,
+  customExercise,
+  deleteCustomExercise,
+  loadRatings,
+  setRating,
+  toNewExercise,
+  updateCustomExercise,
+  type NewExercise,
+} from '../src/db/library.ts'
+import { saveProgram } from '../src/db/programs.ts'
+import { addAccessory, startSession } from '../src/db/sessions.ts'
+import { addPinned, removeAccessorySlot } from '../src/engine/programEdit.ts'
 import {
   addFocus,
   loadFocuses,
+  loadProgram,
   loadTargets,
   removeFocus,
   resetMuscleTargets,
@@ -151,5 +164,43 @@ describe('restrictions', () => {
     ])
     await removeRestriction(kneesId, db)
     expect((await loadRestrictions(id, db)).map((r) => r.name)).toEqual(['Lower back'])
+  })
+})
+
+describe('editing custom exercises', () => {
+  it('fill the form back in exactly as it was', async () => {
+    const db = freshDb()
+    const added = await addCustomExercise({ ...yRaise, extraEquipment: ['inclineBench'], tags: ['shoulderRisk'] }, db)
+    expect(customExercise(toNewExercise(added), added.id)).toEqual(added)
+  })
+
+  it('change everything but the id', async () => {
+    const db = freshDb()
+    const added = await addCustomExercise(yRaise, db, 5)
+    const edited = await updateCustomExercise(added.id, { ...yRaise, name: 'Cable Y raise', sets: 4 }, db)
+    expect(edited.id).toBe(added.id)
+    expect(await db.exercises.get(added.id)).toMatchObject({ name: 'Cable Y raise', sets: 4, createdAt: 5 })
+    expect(findExercise(added.id)?.name).toBe('Cable Y raise')
+    await expect(updateCustomExercise('face-pull', yRaise, db)).rejects.toThrow('Built-in')
+  })
+
+  it("can't be deleted while a program or the history uses them", async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const added = await addCustomExercise(yRaise, db)
+    await saveProgram(lead, addPinned((await loadProgram(lead, db))!, 'd1', added.id, () => 'pin-1'), db)
+    await expect(deleteCustomExercise(added.id, db)).rejects.toThrow("It's in Lead's program")
+    await saveProgram(lead, removeAccessorySlot((await loadProgram(lead, db))!, 'pin-1'), db)
+
+    await setRating(lead, added.id, { stars: 4 }, db)
+    await deleteCustomExercise(added.id, db)
+    expect(findExercise(added.id)).toBeUndefined()
+    expect((await loadRatings(lead, db)).has(added.id)).toBe(false)
+
+    const logged = await addCustomExercise(yRaise, db)
+    const session = await startSession([{ profileId: lead, dayId: 'd2' }], 'home', db)
+    const entry = (await db.entries.where('sessionId').equals(session).first())!
+    await addAccessory(entry.id, logged.id, { forFollowers: false }, db)
+    await expect(deleteCustomExercise(logged.id, db)).rejects.toThrow('history')
   })
 })

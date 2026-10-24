@@ -4,6 +4,7 @@ import { presetRatings, type RatingPresetId } from '../data/ratingPresets.ts'
 import { DEFAULT_TARGETS, targetsFor } from '../data/targets.ts'
 import type { Focus, Muscle, MuscleTargets } from '../engine/types.ts'
 import { resolveProgram, type Program } from '../engine/program.ts'
+import { blankProgram, cloneProgram } from '../engine/programEdit.ts'
 import { currentTms } from '../engine/tms.ts'
 import {
   db as defaultDb,
@@ -14,7 +15,13 @@ import {
   type WigwamDb,
 } from './db.ts'
 
-export type ProgramChoice = { kind: 'preset'; presetId: string } | { kind: 'follow'; leaderId: string }
+export type ProgramChoice =
+  | { kind: 'preset'; presetId: string }
+  | { kind: 'follow'; leaderId: string }
+  /** One of "My programs". */
+  | { kind: 'template'; templateId: string }
+  /** Built from scratch: this many empty days, filled in afterwards in the editor. */
+  | { kind: 'blank'; days: number }
 
 export interface NewProfile {
   name: string
@@ -32,7 +39,7 @@ export async function createProfile(input: NewProfile, db: WigwamDb = defaultDb,
   if (!name) throw new Error('A profile needs a name.')
   const id = newId()
 
-  await db.transaction('rw', [db.profiles, db.programs, db.trainingMaxes, db.ratings], async () => {
+  await db.transaction('rw', [db.profiles, db.programs, db.trainingMaxes, db.ratings, db.templates], async () => {
     let program: ProgramRow
     if (input.program.kind === 'preset') {
       const { presetId } = input.program
@@ -40,6 +47,12 @@ export async function createProfile(input: NewProfile, db: WigwamDb = defaultDb,
       if (!preset) throw new Error(`Unknown program "${presetId}".`)
       // A copy, so editing this profile's program never touches the preset.
       program = { profileId: id, program: structuredClone(preset), updatedAt: now }
+    } else if (input.program.kind === 'template') {
+      const template = await db.templates.get(input.program.templateId)
+      if (!template) throw new Error('That saved program no longer exists.')
+      program = { profileId: id, program: cloneProgram(template, template.name, newId), updatedAt: now }
+    } else if (input.program.kind === 'blank') {
+      program = { profileId: id, program: blankProgram(`${name}'s program`, input.program.days, newId), updatedAt: now }
     } else {
       const leader = await db.programs.get(input.program.leaderId)
       if (!leader) throw new Error("That profile doesn't have a program to follow.")

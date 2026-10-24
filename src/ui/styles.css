@@ -32,6 +32,7 @@ body {
 }
 
 body {
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -41,18 +42,29 @@ button {
   touch-action: manipulation;
 }
 
+/* The page itself never scrolls: the screen scrolls inside a frame pinned
+   to the viewport, and the tab bar is part of the frame. iOS misplaces
+   position: fixed elements after the keyboard closes or the app resumes,
+   which floated a fixed tab bar into the middle of a workout. */
 .app {
-  min-height: 100dvh;
+  position: fixed;
+  inset: 0;
   display: flex;
   flex-direction: column;
 }
 
-.screen {
+.scroller {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.screen {
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(var(--safe-top) + 16px) 16px calc(56px + var(--safe-bottom) + 24px);
+  padding: calc(var(--safe-top) + 16px) 16px 24px;
 }
 
 h1 {
@@ -124,10 +136,7 @@ h2 {
 }
 
 .tabbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  flex: none;
   display: flex;
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -887,6 +896,9 @@ h2 {
 
 .stepper-value {
   flex: 1;
+  /* An input won't shrink below its default width without this, and the
+     row ran off the right edge of a phone screen. */
+  min-width: 0;
   min-height: 56px;
   text-align: center;
   font-size: 24px;
@@ -1209,4 +1221,170 @@ h2 {
 .section-label {
   display: block;
   margin-top: 16px;
+}
+
+/* Program editor */
+
+.btn-wide {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.no-top {
+  margin-top: 0;
+}
+
+.counts-spaced {
+  margin: 12px 0;
+}
+
+.move-buttons {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
+
+.edit-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+}
+
+.edit-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.edit-main .badge {
+  margin-left: 8px;
+  vertical-align: 2px;
+}
+
+.add-line {
+  margin-top: 8px;
+}
+
+.day-actions {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.accessories-line {
+  margin-top: 10px;
+}
+
+/* A choice that opens a picker: the current value, and a way to change it. */
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.prog-lift .pick-row {
+  margin: 8px 0;
+  border: 0;
+  padding: 8px 0;
+  background: transparent;
+}
+
+.sheet-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.sheet-foot .btn + .btn {
+  margin-left: 10px;
+}
+
+/* Scheme editor: one row per set. */
+
+.scheme-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.scheme-row {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr) 44px 44px 44px;
+  align-items: center;
+  gap: 6px;
+}
+
+.scheme-head {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.input-tiny {
+  width: 100%;
+  min-width: 0;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.chip-square {
+  justify-content: center;
+  min-width: 44px;
+  min-height: var(--tap);
+  padding: 0;
+  border-radius: 10px;
+}
+
+.chip-square.chip-on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.scheme-row .step {
+  min-width: 44px;
+}
+
+.add-set {
+  margin-bottom: 6px;
+}
+
+.scheme-list {
+  margin: 0 0 12px;
+  padding-left: 24px;
+  line-height: 1.8;
+  font-variant-numeric: tabular-nums;
+}
+
+.plain-list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+/* Workout: a swap to keep, an accessory to resize. */
+
+.swap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
 }

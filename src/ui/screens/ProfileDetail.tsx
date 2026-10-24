@@ -7,6 +7,7 @@ import { db, type BodyweightRow, type RestrictionRow } from '../../db/db.ts'
 import { loadRestrictions, removeRestriction } from '../../db/restrictions.ts'
 import { MUSCLE_LABELS, type Focus } from '../../engine/types.ts'
 import { FocusSheet } from '../components/FocusSheet.tsx'
+import { ProgressionSheet } from '../components/ProgressionSheet.tsx'
 import { RestrictionSheet } from '../components/RestrictionSheet.tsx'
 import {
   addBodyweight,
@@ -19,7 +20,7 @@ import {
   restoreProfile,
   setTm,
 } from '../../db/profiles.ts'
-import { requiredTms } from '../../engine/program.ts'
+import { progressedTms, requiredTms } from '../../engine/program.ts'
 import { BackLink, ConfirmButton, parseLb } from '../components/forms.tsx'
 import { formatDate } from '../format.ts'
 
@@ -39,6 +40,7 @@ export function ProfileDetail() {
       restrictions: await loadRestrictions(id),
     }
   }, [id])
+  const [editingIncreases, setEditingIncreases] = useState(false)
   if (!data) return null
 
   const { profile } = data
@@ -55,6 +57,7 @@ export function ProfileDetail() {
   const lifts = data.program ? requiredTms(data.program, findScheme) : []
   // TMs for lifts the program no longer uses stay visible; they're still history.
   const extra = Object.keys(tms).filter((id) => !lifts.includes(id))
+  const moved = data.program ? progressedTms(data.program, findScheme) : []
 
   return (
     <>
@@ -74,9 +77,14 @@ export function ProfileDetail() {
           {data.leader ? `Follows ${data.leader.name}: ` : ''}
           {data.program?.name ?? 'None'}
         </p>
-        <Link to={`/profiles/${profile.id}/week`} className="btn btn-quiet btn-small week-link">
-          This week's plan
-        </Link>
+        <div className="link-row week-link">
+          <Link to={`/profiles/${profile.id}/week`} className="btn btn-quiet btn-small">
+            This week's plan
+          </Link>
+          <Link to={`/profiles/${profile.id}/program`} className="btn btn-quiet btn-small">
+            Edit program
+          </Link>
+        </div>
       </section>
 
       <section className="card">
@@ -84,6 +92,19 @@ export function ProfileDetail() {
         {[...lifts, ...extra].map((exerciseId) => (
           <TmRow key={exerciseId} profileId={profile.id} exerciseId={exerciseId} value={tms[exerciseId]} />
         ))}
+        {moved.length > 0 && (
+          <button type="button" className="btn btn-quiet btn-small week-link" onClick={() => setEditingIncreases(true)}>
+            TM increases
+          </button>
+        )}
+        {editingIncreases && (
+          <ProgressionSheet
+            profileId={profile.id}
+            lifts={moved}
+            tables={profile.progressionTables ?? {}}
+            onClose={() => setEditingIncreases(false)}
+          />
+        )}
       </section>
 
       <AccessoriesCard profileId={profile.id} restrictions={data.restrictions ?? []} focuses={profile.focuses ?? []} />

@@ -2,6 +2,7 @@ import Dexie, { type EntityTable, type Table } from 'dexie'
 import type { AccessoryPick, WeekType } from '../engine/plan.ts'
 import type { Program, ProgramOverrides } from '../engine/program.ts'
 import type { ProgressionTable } from '../engine/progression.ts'
+import type { Scheme } from '../engine/schemes.ts'
 import type { Exercise, Focus, Gym, Muscle, Restriction, Stars } from '../engine/types.ts'
 import type { DayStatus } from '../engine/week.ts'
 
@@ -72,6 +73,14 @@ export interface CustomExerciseRow extends Exercise {
 
 export interface RestrictionRow extends Restriction {
   profileId: string
+  createdAt: number
+}
+
+/** A set scheme made in the app. Built-in ones ship in code. */
+export type CustomSchemeRow = Scheme & { createdAt: number }
+
+/** A program saved to reuse ("My programs"). Applying one copies it with fresh ids. */
+export interface TemplateRow extends Program {
   createdAt: number
 }
 
@@ -176,10 +185,12 @@ export type WigwamDb = Dexie & {
   entries: EntityTable<EntryRow, 'id'>
   sets: EntityTable<SetRow, 'id'>
   restrictions: EntityTable<RestrictionRow, 'id'>
+  schemes: EntityTable<CustomSchemeRow, 'id'>
+  templates: EntityTable<TemplateRow, 'id'>
 }
 
 /** The latest db.version() below. Backups carry it so old ones can be upgraded. */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export function openDb(name = 'wigwam531'): WigwamDb {
   const db = new Dexie(name) as WigwamDb
@@ -205,6 +216,7 @@ export function openDb(name = 'wigwam531'): WigwamDb {
     sets: 'id, entryId, sessionId, profileId, weekId, [profileId+exerciseId]',
   })
   db.version(4).stores({ restrictions: 'id, profileId' })
+  db.version(5).stores({ schemes: 'id', templates: 'id' })
   return db
 }
 

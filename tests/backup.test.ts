@@ -83,9 +83,11 @@ describe('backup round trip', () => {
       'programs',
       'ratings',
       'restrictions',
+      'schemes',
       'sessions',
       'sets',
       'settings',
+      'templates',
       'trainingMaxes',
       'weeks',
     ])

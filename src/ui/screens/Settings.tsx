@@ -1,5 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { db, isPersisted } from '../../db/db.ts'
 import { maxLoad } from '../../engine/weights.ts'
 import { BackupSection } from '../BackupSection.tsx'
@@ -47,6 +48,32 @@ function GymSection() {
   )
 }
 
+const LIBRARY = [
+  { to: '/settings/exercises', label: 'Exercises' },
+  { to: '/settings/schemes', label: 'Set schemes' },
+  { to: '/settings/programs', label: 'My programs' },
+]
+
+function LibrarySection() {
+  return (
+    <section className="card">
+      <h2>Library</h2>
+      <ul className="list">
+        {LIBRARY.map((l) => (
+          <li key={l.to}>
+            <Link to={l.to} className="list-row">
+              <span className="grow">{l.label}</span>
+              <span className="chev" aria-hidden="true">
+                ›
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export function Settings() {
   const [persisted, setPersisted] = useState<boolean | undefined | null>(null)
   useEffect(() => {
@@ -58,6 +85,7 @@ export function Settings() {
     <>
       <h1>Settings</h1>
       <BackupSection />
+      <LibrarySection />
       <GymSection />
       <section className="card">
         <h2>This device</h2>

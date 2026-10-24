@@ -14,8 +14,9 @@ writing code.
 - Phase 2 (profiles, library, backup) is done. A backup was saved and restored on the phone.
 - Phase 3 (workout flow) is done. A real garage session went well.
 - Follow-ups from that session are built and pushed: day labels, foldable exercises, the workout rating, and the week-end backup prompt.
-- Phase 4 (accessory suggestions) is built. The user's first impression is good, and a "focus" (extra accessory sets for chosen muscles) was added after it. It's waiting on a real week of use.
-- Phase 5 is next.
+- Phase 4 (accessory suggestions) is built and has had real use. A "focus" (extra accessory sets for chosen muscles) was added after it.
+- Phase 5 (program editor and custom programs) is built and was clicked through in the phone-size preview. It's waiting on the user restructuring something real and training a week on it.
+- Phase 5b (feedback from the garage) is planned in `docs/PHASES.md`. Its two bugs (tab bar drift, set editor overflow) shipped with Phase 5 and need checking on the phone. The rest waits for the user's go.
 
 ## Hard rules
 
@@ -73,6 +74,7 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - **Node:** installed in `C:\Program Files\nodejs`. A shell started before it was installed needs it added to PATH.
 - **Routing:** hash routing, because GitHub Pages has no fallback route for single-page apps.
 - **UI:** dark theme, touch targets of 48px or more, safe-area insets respected, nothing that only works on hover.
+- **Layout:** the page itself never scrolls. `.app` is pinned to the viewport and `.scroller` scrolls inside it, with the tab bar as an ordinary flex child. iOS misplaces `position: fixed` bars after the keyboard closes or the app resumes, so don't pin new bars to the screen; overlays (sheets, toasts) are the exception.
 
 ## iPhone PWA gotchas
 
@@ -89,4 +91,6 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - **Weeks.** Each profile has its own week, and days aren't tied to the calendar. A skipped lift keeps its TM.
 - **Followers.** Partners follow the leader's program with their own TMs, and can override individual slots.
 - **Custom exercises** live in IndexedDB. `setCustomExercises` keeps a copy where `findExercise` sees it: `App` refreshes it on every change, and `addCustomExercise` does too. So use `findExercise` and `allExercises()`, never `EXERCISES` alone, anywhere a user's own exercise could turn up.
+- **Custom schemes** work the same way: `setCustomSchemes`, `findScheme` and `allSchemes()`, never `SCHEMES` alone.
+- **Program edits** go through `editProgram` (it applies the change to the stored program inside a transaction, so quick taps can't undo each other) or `overrideSlot` for followers. Both check today's workout: nothing may remove a day someone is partway through, or drop or change a lift they've logged sets on.
 - **The garage** has one pair each of 45/35/25/15/10/5/2.5 plates, so 320 lb is the most a 45 lb barbell can hold.

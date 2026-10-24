@@ -263,9 +263,9 @@ the library.
 
 ### Slots and rep ranges
 
-- **Flex slots** are filled at the workout from suggestions: 3 per day by default, and you can add or remove them in the session. This is the default setup, since you pick by feel.
-- **Pinned slots** run the same exercise every time that day comes around. The volume math already counts them, but pinning one arrives with the program editor in Phase 5. Your default program doesn't use them.
-- **Rep ranges:** each exercise carries its own default. Most are 3 × 8–12. Light isolation work (lateral raises, face pulls, calves) is 3 × 15–20. Heavier dumbbell and cable compounds (DB rows, split squats) are 3 × 6–10. Ranges can be changed per person and in the session.
+- **Flex slots** are filled at the workout from suggestions: 3 per day by default, set per day in the program editor. This is the default setup, since you pick by feel.
+- **Pinned slots** run the same exercise every time that day comes around. They're put into the workout when it starts, like a pick made by hand, so they can be resized or dropped for that day without touching the program. Your default program doesn't use them.
+- **Rep ranges:** each exercise carries its own default. Most are 3 × 8–12. Light isolation work (lateral raises, face pulls, calves) is 3 × 15–20. Heavier dumbbell and cable compounds (DB rows, split squats) are 3 × 6–10. Sets × reps can be changed in the session, and each person's change is where that exercise starts for them next time.
 
 ### Accessory progression
 
@@ -302,10 +302,17 @@ range, the next session suggests the next step up:
 - **Day names** carry their main lifts everywhere: "Day 2: Squat/Sumo".
 - **Start Week:** per profile, the last 1+ results, suggested bumps (editable), stall warnings and the week type. Several profiles can be started at once.
 - **Week:** all of a profile's days with weights and done/skipped status.
-- **Program editor:** days, main slots (exercise, TM source, scheme, progression), accessory slots and schemes. Changes apply to pending days right away. Followers see your program plus their overrides.
+- **Program editor** (from a profile's "Edit program"):
+  - **Days:** add, rename, duplicate, remove and reorder with ↑/↓. Days named "Day N" renumber when moved; renamed ones keep their name.
+  - **Main lifts:** up to 3 a day, each with its exercise, tier, sets and reps (any rep range, or a percent scheme), whose TM the percentages use, and warm-ups. Progression follows the scheme: a ★ set moves its TM, a rep range uses double progression.
+  - **Accessories:** pinned exercises and the number of open slots, per day.
+  - **When changes apply:** straight away, to the days still to do this week. History keeps what was prescribed. An edit that would pull a day or a lift out from under today's workout waits until it's finished.
+  - **Followers** see the leader's program with their own changes on top: "Change for me" on any lift, "Use Lead's again", or unfollow to take a copy of their own.
+  - **Whole program:** switch to a preset, one of My programs, a copy of someone's, someone to follow, or empty days to build from scratch. Save the current one to My programs. Followers come along when their leader switches; their per-lift changes don't.
+- **TM increases:** per profile and lift, how much the TM goes up for 0–1 / 2–3 / 4–5 / 6+ reps on the ★ set.
 - **Progress:** charts and the PR board, per profile.
 - **Profile:** TMs, bodyweight, ratings, muscle targets, injuries, who they follow, and the advanced-metrics toggle.
-- **Settings:** gyms and equipment, the exercise library, rest timer and warm-up defaults, backup and restore.
+- **Settings:** gyms and equipment, the library (exercises, set schemes, My programs), rest timer and warm-up defaults, backup and restore. Exercises and schemes made in the app can be changed or deleted while nothing uses them; built-in ones can be looked at, and schemes copied.
 
 Session screen sketch (TM 225 bench):
 
@@ -367,7 +374,9 @@ fantasy bot.
 | bodyweights | profileId, date, lb |
 | gyms | name, equipment tags, dumbbell weights, plates, bars, cable stack steps |
 | exercises | custom exercises (built-ins ship in code) |
+| schemes | custom percent schemes (built-ins ship in code) |
 | programs | profileId, followsProfileId, days → main and accessory slots, slot overrides |
+| templates | My programs: saved programs that profiles start from or switch to, each getting its own copy |
 | trainingMaxes | profileId, exerciseId, lb, date, reason |
 | weeks | profileId, number, type, per-day status, when it was completed and ended |
 | sessions | date, gymId, participants, notes |

@@ -74,6 +74,23 @@ export function requiredTms(program: Program, schemes: SchemeLookup): string[] {
 }
 
 /**
+ * The TMs a program moves at Start Week: those with a ★ set on them
+ * somewhere. A TM only ever borrowed by other slots isn't one of them.
+ */
+export function progressedTms(program: Program, schemes: SchemeLookup): string[] {
+  const ids: string[] = []
+  for (const day of program.days) {
+    for (const slot of day.mains) {
+      const scheme = schemes(slot.schemeId)
+      if (scheme?.kind !== 'percent' || !scheme.sets.some((s) => s.progression)) continue
+      const id = slotTmId(slot)
+      if (!ids.includes(id)) ids.push(id)
+    }
+  }
+  return ids
+}
+
+/**
  * A follower's effective program: the leader's, with their overrides laid
  * on top. Overrides for slots the leader has since deleted are ignored
  * rather than resurrected.

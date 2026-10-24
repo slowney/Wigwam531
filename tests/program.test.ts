@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { findExercise } from '../src/data/exercises.ts'
 import { NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
-import { dayLabel, resolveProgram, type Program, type ProgramOverrides } from '../src/engine/program.ts'
+import { findScheme } from '../src/data/schemes.ts'
+import { dayLabel, progressedTms, resolveProgram, type Program, type ProgramOverrides } from '../src/engine/program.ts'
 import type { LoggedSet } from '../src/engine/types.ts'
 import { isWeekComplete, nextDay, progressionReps, tmTestReps, type WeekState } from '../src/engine/week.ts'
 
@@ -26,6 +27,15 @@ describe('day labels', () => {
     const slot = { id: 's', exerciseId: 'db-row', tier: 'T1' as const, schemeId: 'range-3x8-12', warmups: false }
     expect(dayLabel({ id: 'd5', name: 'Day 5', mains: [slot], accessories: [] }, findExercise)).toBe('Day 5: One-arm DB row')
     expect(dayLabel({ id: 'd5', name: 'Day 5', mains: [], accessories: [] }, findExercise)).toBe('Day 5')
+  })
+})
+
+describe('TMs a program moves', () => {
+  it("are the ones with a ★ set, not the ones only borrowed", () => {
+    expect(progressedTms(NSUNS_4DAY_ROW, findScheme)).toEqual(['bench-press', 'squat', 'overhead-press', 'deadlift'])
+    // Drop the T1 deadlift: sumo still borrows the deadlift TM, but nothing moves it.
+    const noDeadlift = { ...NSUNS_4DAY, days: NSUNS_4DAY.days.slice(0, 3) }
+    expect(progressedTms(noDeadlift, findScheme)).toEqual(['bench-press', 'squat', 'overhead-press'])
   })
 })
 

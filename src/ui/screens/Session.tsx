@@ -15,6 +15,7 @@ import {
   type WeekRow,
 } from '../../db/db.ts'
 import { loadRatings } from '../../db/library.ts'
+import { makeSwapPermanent } from '../../db/programs.ts'
 import { loadProgram, loadTms } from '../../db/profiles.ts'
 import { loadRestrictions } from '../../db/restrictions.ts'
 import { weekState } from '../../db/weeks.ts'
@@ -34,6 +35,7 @@ import {
   setRest,
   setRotate,
   swapExercise,
+  updateAccessory,
   updateSet,
 } from '../../db/sessions.ts'
 import type { PlannedSet, PlannedSlot } from '../../engine/plan.ts'
@@ -66,11 +68,12 @@ import { projectedWeek, type MuscleCounts } from '../../engine/volume.ts'
 import { statusOf } from '../../engine/week.ts'
 import { AccessoryPicker, gapText } from '../components/AccessoryPicker.tsx'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
-import { ConfirmButton } from '../components/forms.tsx'
+import { ConfirmButton, Stepper } from '../components/forms.tsx'
 import { QuickAddSheet } from '../components/QuickAddSheet.tsx'
 import { RatingSheet } from '../components/RatingSheet.tsx'
+import { Sheet } from '../components/Sheet.tsx'
 import { RepPicker, SetEditor, type SetValues } from '../components/SetEditor.tsx'
-import { formatDate } from '../format.ts'
+import { formatDate, repRange } from '../format.ts'
 import { useNow, useWakeLock } from '../hooks.ts'
 
 interface Person {
@@ -265,6 +268,7 @@ type SheetState =
   | { kind: 'reps'; profileId: string; slotId: string; index: number }
   | { kind: 'swap'; profileId: string; slotId: string }
   | { kind: 'accessory'; profileId: string }
+  | { kind: 'resize'; profileId: string; slotId: string }
 
 interface Toast {
   text: string
@@ -357,7 +361,8 @@ export function Session() {
   const followersOf = (v: View) => views.filter((x) => x.person.followsProfileId === v.person.profile.id)
   const followers = followersOf(active)
   const share = shareWithFollowers && followers.length > 0
-  const picked = active.person.entry.accessories.length
+  // Pinned accessories come with the day; only picks fill its open slots.
+  const picked = active.person.entry.accessories.filter((a) => !a.pinned).length
   const emptySlots = Math.max(0, active.flexSlots - picked)
 
   function renderSlot(slot: PlannedSlot) {
@@ -382,6 +387,7 @@ export function Session() {
           })
         }
         onUnswap={() => run(() => swapExercise(active!.person.entry.id, slot.slotId, undefined))}
+        onPermanent={() => run(() => makeSwapPermanent(active!.person.entry.id, slot.slotId))}
         onRemove={() => run(() => removeAccessory(active!.person.entry.id, slot.slotId))}
         onToggle={(collapsed) => run(() => setCollapsed(active!.person.entry.id, slot.slotId, collapsed))}
       />
@@ -566,7 +572,7 @@ export function Session() {
         <QuickAddSheet
           name={quickAdd.name}
           onClose={() => setQuickAdd(undefined)}
-          onAdded={(exercise) => {
+          onSaved={(exercise) => {
             const v = views.find((x) => x.person.profile.id === quickAdd.profileId)
             setQuickAdd(undefined)
             setSheet(undefined)
@@ -624,6 +630,7 @@ function SlotCard(props: {
   onSheet: (sheet: SheetState) => void
   onWarmups: (done: boolean) => void
   onUnswap: () => void
+  onPermanent: () => void
   onRemove: () => void
   onToggle: (collapsed: boolean) => void
 }) {
@@ -643,7 +650,8 @@ function SlotCard(props: {
   const lastWeight = working.length ? working[working.length - 1]!.weight : undefined
 
   let meta = ''
-  if (slot.role === 'accessory') meta = 'Accessory'
+  const pick = view.person.entry.accessories.find((a) => a.id === slot.slotId)
+  if (slot.role === 'accessory') meta = pick?.pinned ? 'Pinned accessory' : 'Accessory'
   else if (slot.kind === 'range') meta = `${slot.tier}`
   else if (slot.missingTm) meta = `${slot.tier} · no TM entered`
   else {
@@ -686,17 +694,33 @@ function SlotCard(props: {
             Swap
           </button>
         )}
-        {!collapsed && working.length === 0 && swappedFrom && (
-          <button type="button" className="btn btn-quiet btn-small" onClick={props.onUnswap}>
-            Undo swap
-          </button>
-        )}
         {!collapsed && working.length === 0 && slot.role === 'accessory' && (
           <button type="button" className="btn btn-quiet btn-small" onClick={props.onRemove}>
             Remove
           </button>
         )}
       </div>
+
+      {!collapsed && swappedFrom && (
+        <div className="swap-row">
+          {working.length === 0 && (
+            <button type="button" className="btn btn-quiet btn-small" onClick={props.onUnswap}>
+              Undo swap
+            </button>
+          )}
+          <ConfirmButton small label="Make permanent" confirmLabel="Tap again to keep it" onConfirm={props.onPermanent} />
+        </div>
+      )}
+      {!collapsed && pick && (
+        <button
+          type="button"
+          className="btn btn-quiet btn-small swap-row"
+          onClick={() => props.onSheet({ kind: 'resize', profileId, slotId: slot.slotId })}
+        >
+          {pick.sets} × {repRange(pick.reps)}
+          {exercise?.unit === 'seconds' ? ' s' : ''} · Change
+        </button>
+      )}
 
       {!collapsed && conflict && (
         <p className="small warn-text no-margin slot-warn">
@@ -945,6 +969,21 @@ function SessionSheet(props: {
     )
   }
 
+  if (sheet.kind === 'resize') {
+    const pick = entry.accessories.find((a) => a.id === slot.slotId)
+    if (!pick) return null
+    return (
+      <AccessorySizeSheet
+        title={exercise?.name ?? slot.exerciseId}
+        sets={pick.sets}
+        reps={pick.reps}
+        seconds={exercise?.unit === 'seconds'}
+        onClose={props.onClose}
+        onSave={(sets, reps) => updateAccessory(entry.id, pick.id, { sets, reps }).then(props.onClose)}
+      />
+    )
+  }
+
   const planned = slot.sets[sheet.index]
   if (!planned) return null
   const working = view.logged.filter((s) => s.slotId === slot.slotId && !s.warmup)
@@ -993,5 +1032,48 @@ function SessionSheet(props: {
           : undefined
       }
     />
+  )
+}
+
+/** Today's sets × reps for an accessory. Whatever's chosen is where it starts next time too. */
+function AccessorySizeSheet(props: {
+  title: string
+  sets: number
+  reps: [number, number]
+  seconds: boolean
+  onSave: (sets: number, reps: [number, number]) => Promise<void>
+  onClose: () => void
+}) {
+  const [sets, setSets] = useState(props.sets)
+  const [low, setLow] = useState(props.reps[0])
+  const [high, setHigh] = useState(props.reps[1])
+  const [error, setError] = useState<string>()
+  return (
+    <Sheet title={props.title} onClose={props.onClose}>
+      <div className="counts counts-spaced">
+        <Stepper label="Sets" value={sets} min={1} max={10} onChange={setSets} />
+        <Stepper
+          label={props.seconds ? 'Seconds from' : 'Reps from'}
+          value={low}
+          min={1}
+          onChange={(n) => {
+            setLow(n)
+            if (n > high) setHigh(n)
+          }}
+        />
+        <Stepper label="to" value={high} min={low} onChange={setHigh} />
+      </div>
+      <p className="muted small">Next time this accessory comes up, it starts at this too.</p>
+      {error && <p className="error">{error}</p>}
+      <div className="actions">
+        <button
+          type="button"
+          className="btn grow"
+          onClick={() => props.onSave(sets, [low, high]).catch((e: unknown) => setError((e as Error).message))}
+        >
+          Save
+        </button>
+      </div>
+    </Sheet>
   )
 }

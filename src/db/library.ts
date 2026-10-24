@@ -1,4 +1,5 @@
 import { setCustomExercises } from '../data/exercises.ts'
+import type { Program } from '../engine/program.ts'
 import type { Equipment, Exercise, LoadType, Muscle, Pattern, Rating, Stars, Tag } from '../engine/types.ts'
 import { db as defaultDb, newId, type CustomExerciseRow, type WigwamDb } from './db.ts'
 
@@ -79,6 +80,94 @@ export async function addCustomExercise(input: NewExercise, db: WigwamDb = defau
   await db.exercises.add({ ...exercise, createdAt: now })
   await syncCustomExercises(db)
   return exercise
+}
+
+/**
+ * The same form, filled back in from a stored exercise, for editing. The
+ * equipment its load type brings is left out of the extras, as it was
+ * when it was made.
+ */
+export function toNewExercise(exercise: Exercise): NewExercise {
+  const implied = LOAD_EQUIPMENT[exercise.load] ?? []
+  const muscles = Object.entries(exercise.muscles) as [Muscle, 1 | 0.5][]
+  const tags = exercise.tags ?? []
+  return {
+    name: exercise.name,
+    load: exercise.load,
+    extraEquipment: exercise.equipment.filter((e) => !implied.includes(e)),
+    pattern: exercise.pattern,
+    primary: muscles.filter(([, w]) => w === 1).map(([m]) => m),
+    secondary: muscles.filter(([, w]) => w === 0.5).map(([m]) => m),
+    sets: exercise.sets,
+    reps: [exercise.reps[0], exercise.reps[1]],
+    seconds: exercise.unit === 'seconds',
+    tags,
+    lowerBack: exercise.lowerBack !== undefined,
+  }
+}
+
+/** Edits change everything but the id, which logged sets point at. */
+export async function updateCustomExercise(id: string, input: NewExercise, db: WigwamDb = defaultDb): Promise<Exercise> {
+  const existing = await db.exercises.get(id)
+  if (!existing) throw new Error("Built-in exercises can't be changed.")
+  const exercise = customExercise(input, id)
+  await db.exercises.put({ ...exercise, createdAt: existing.createdAt })
+  await syncCustomExercises(db)
+  return exercise
+}
+
+export interface ExerciseUse {
+  /** Programs and saved programs it's in, by name. */
+  programs: string[]
+  /** Logged, picked for a workout, or given a TM: it's part of the history. */
+  history: boolean
+}
+
+const inDays = (days: Program['days'], id: string) =>
+  days.some(
+    (d) =>
+      d.mains.some((m) => m.exerciseId === id || m.tmExerciseId === id) ||
+      d.accessories.some((a) => a.kind === 'pinned' && a.exerciseId === id),
+  )
+
+export async function exerciseUse(id: string, db: WigwamDb = defaultDb): Promise<ExerciseUse> {
+  const programs: string[] = []
+  for (const row of await db.programs.toArray()) {
+    const overridden = Object.values(row.overrides?.slots ?? {}).some((o) => o.exerciseId === id || o.tmExerciseId === id)
+    if ((row.program && inDays(row.program.days, id)) || overridden) {
+      programs.push(`${(await db.profiles.get(row.profileId))?.name ?? 'Someone'}'s program`)
+    }
+  }
+  for (const t of await db.templates.toArray()) if (inDays(t.days, id)) programs.push(t.name)
+  let history = false
+  for (const profile of await db.profiles.toArray()) {
+    const key = [profile.id, id]
+    if (
+      (await db.sets.where('[profileId+exerciseId]').equals(key).count()) ||
+      (await db.trainingMaxes.where('[profileId+exerciseId]').equals(key).count())
+    ) {
+      history = true
+    }
+  }
+  history ||= (await db.entries
+    .filter((e) => e.accessories.some((a) => a.exerciseId === id) || Object.values(e.swaps).includes(id))
+    .count()) > 0
+  return { programs, history }
+}
+
+/** Only an exercise nothing uses or remembers. Its ratings go with it. */
+export async function deleteCustomExercise(id: string, db: WigwamDb = defaultDb): Promise<void> {
+  const tables = [db.exercises, db.ratings, db.programs, db.templates, db.profiles, db.sets, db.trainingMaxes, db.entries]
+  await db.transaction('rw', tables, async () => {
+    const use = await exerciseUse(id, db)
+    if (use.history) {
+      throw new Error("It's in the workout history, so it stays. Hide it in a profile's exercise ratings instead.")
+    }
+    if (use.programs.length) throw new Error(`It's in ${use.programs.join(', ')}. Take it out of those first.`)
+    await db.exercises.delete(id)
+    await db.ratings.filter((r) => r.exerciseId === id).delete()
+  })
+  await syncCustomExercises(db)
 }
 
 export async function loadRatings(profileId: string, db: WigwamDb = defaultDb): Promise<Map<string, Rating>> {

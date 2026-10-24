@@ -176,3 +176,42 @@ export function ConfirmButton(props: {
     </button>
   )
 }
+
+/** A small number nudged up and down: no keyboard, nothing to mistype. */
+export function Stepper(props: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  step?: number
+  format?: (value: number) => string
+}) {
+  const { value, min = 0, max = Infinity, step = 1 } = props
+  return (
+    <div className="count">
+      <span className="label">{props.label}</span>
+      <div className="tm-stepper">
+        <button
+          type="button"
+          className="btn btn-quiet step"
+          aria-label={`${props.label}: less`}
+          disabled={value <= min}
+          onClick={() => props.onChange(Math.max(min, value - step))}
+        >
+          −
+        </button>
+        <output className="tm-value">{props.format ? props.format(value) : value}</output>
+        <button
+          type="button"
+          className="btn btn-quiet step"
+          aria-label={`${props.label}: more`}
+          disabled={value >= max}
+          onClick={() => props.onChange(Math.min(max, value + step))}
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )
+}

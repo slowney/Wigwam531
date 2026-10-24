@@ -181,6 +181,8 @@ export interface AccessoryPick {
   exerciseId: string
   sets: number
   reps: [number, number]
+  /** Put in when the workout started, from one of the day's pinned slots. Doesn't fill an open slot. */
+  pinned?: boolean
 }
 
 /**

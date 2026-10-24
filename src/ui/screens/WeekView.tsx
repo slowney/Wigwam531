@@ -12,6 +12,7 @@ import { planEntry } from '../../engine/session.ts'
 import { statusOf, type DayStatus } from '../../engine/week.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
 import { BackLink, ConfirmButton } from '../components/forms.tsx'
+import { accessoryText } from '../format.ts'
 
 const STATUS_LABEL: Record<DayStatus, string> = { pending: 'To do', done: 'Done', skipped: 'Skipped' }
 
@@ -97,6 +98,7 @@ export function WeekView() {
                 <div className="small mono">{setsText(slot)}</div>
               </div>
             ))}
+            <p className="muted small day-slot">Accessories: {accessoryText(day, findExercise)}</p>
             {!complete && status === 'pending' && (
               <button type="button" className="btn btn-quiet btn-small" onClick={() => void setStatus(day.id, 'skipped')}>
                 Skip this day
