@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { allExercises, findExercise } from '../../data/exercises.ts'
 import { HOME_GYM } from '../../data/gym.ts'
@@ -265,7 +265,8 @@ const clock = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour:
 
 type SheetState =
   | { kind: 'edit'; profileId: string; slotId: string; index: number }
-  | { kind: 'reps'; profileId: string; slotId: string; index: number }
+  /** With `short`, only up to the target: logging a failed set. */
+  | { kind: 'reps'; profileId: string; slotId: string; index: number; short?: boolean }
   | { kind: 'swap'; profileId: string; slotId: string }
   | { kind: 'accessory'; profileId: string }
   | { kind: 'resize'; profileId: string; slotId: string }
@@ -658,6 +659,11 @@ function SlotCard(props: {
     const borrowed = slot.tmExerciseId && slot.tmExerciseId !== slot.exerciseId ? `${exerciseOf(slot.tmExerciseId)?.name ?? ''} ` : ''
     meta = `${slot.tier} · ${borrowed}TM ${slot.tm}`
   }
+  // Rep-range work says when it has moved up since last time, and why.
+  const { carried } = slot
+  if (carried?.reason === 'increase' && carried.weight !== undefined && carried.last !== undefined) {
+    meta += ` · +${carried.weight - carried.last} from last time`
+  }
 
   const doneLine = [...working]
     .sort((a, b) => a.index - b.index)
@@ -747,6 +753,7 @@ function SlotBody(
 ) {
   const { view, slot, exercise, working, warmedUp, lastWeight } = props
   const profileId = view.person.profile.id
+  const firstOpen = slot.sets.findIndex((_, i) => !working.some((s) => s.index === i))
   return (
     <>
       {slot.missingTm && (
@@ -768,6 +775,9 @@ function SlotBody(
       {slot.sets.map((planned, index) => {
         const logged = working.find((s) => s.index === index)
         const isNext = view.next?.slotId === slot.slotId && view.next.index === index
+        // Accessories get done whenever the bar's busy, so each one's next set
+        // is ready to log out of order. The main lifts keep their order.
+        const ready = isNext || (slot.role === 'accessory' && index === firstOpen)
         const prefill = slot.kind === 'range' ? (lastWeight ?? planned.weight) : planned.weight
         return (
           <SetLine
@@ -775,7 +785,8 @@ function SlotBody(
             number={index + 1}
             planned={planned}
             logged={logged}
-            current={isNext}
+            current={ready}
+            next={isNext}
             weight={prefill}
             exercise={exercise}
             pr={logged ? prKind(view.prs.get(logged.id)) : undefined}
@@ -784,6 +795,7 @@ function SlotBody(
               props.onLog(index, planned, { weight: prefill, reps: reps ?? planned.repsMax ?? planned.reps })
             }
             onReps={() => props.onSheet({ kind: 'reps', profileId, slotId: slot.slotId, index })}
+            onMissed={() => props.onSheet({ kind: 'reps', profileId, slotId: slot.slotId, index, short: true })}
             onEdit={() => props.onSheet({ kind: 'edit', profileId, slotId: slot.slotId, index })}
           />
         )
@@ -792,16 +804,24 @@ function SlotBody(
   )
 }
 
+// Past this, a row of rep buttons stops being quicker than the rep picker.
+const MAX_QUICK_REPS = 10
+
 function SetLine(props: {
   number: number
   planned: PlannedSet
   logged?: SetRow
+  /** Ready to log: shows the log buttons. */
   current: boolean
+  /** The person's next set overall, picked out more strongly. */
+  next: boolean
   weight?: number
   exercise?: Exercise
   pr?: PrKind
   onQuick: (reps?: number) => void
   onReps: () => void
+  /** Fewer reps than the target: a failed set. */
+  onMissed: () => void
   onEdit: () => void
 }) {
   const { planned, logged, exercise } = props
@@ -816,7 +836,7 @@ function SetLine(props: {
   if (logged) {
     const short = !planned.amrap && logged.reps < planned.reps
     return (
-      <button type="button" className="set set-done" onClick={props.onEdit}>
+      <button type="button" className={short ? 'set set-done set-short' : 'set set-done'} onClick={props.onEdit}>
         <span className="set-num">✓</span>
         <span className="grow">
           <strong>
@@ -825,7 +845,7 @@ function SetLine(props: {
           </strong>
           {logged.rpe !== undefined && <span className="muted"> @{logged.rpe}</span>}
           {logged.note && <span className="muted"> ✎</span>}
-          {short && <span className="muted small"> of {targetText(planned, exercise)}</span>}
+          {short && <span className="small warn-text"> of {targetText(planned, exercise)}</span>}
         </span>
         {flags}
         {props.pr && <span className="badge badge-pr">{PR_LABEL[props.pr]}</span>}
@@ -851,44 +871,60 @@ function SetLine(props: {
     )
   }
 
-  const range = planned.repsMax !== undefined && exercise?.unit !== 'seconds' ? planned.repsMax - planned.reps : undefined
-  let controls
+  // Rep ranges get a button per rep count, one tap to log; timed holds don't.
+  const quick =
+    planned.repsMax !== undefined && exercise?.unit !== 'seconds'
+      ? Array.from({ length: planned.repsMax - planned.reps + 1 }, (_, i) => planned.reps + i)
+      : undefined
+  let controls: ReactNode
+  // Rep buttons too many to share the line with the set go on a line of their own.
+  let below: ReactNode
   if (props.weight === undefined) {
     controls = (
       <button type="button" className="btn btn-small" onClick={props.onEdit}>
         Pick weight
       </button>
     )
-  } else if (planned.amrap || (range !== undefined && range > 4)) {
+  } else if (planned.amrap || (quick && quick.length > MAX_QUICK_REPS)) {
     controls = (
       <button type="button" className="btn log-btn" onClick={props.onReps}>
         Reps
       </button>
     )
-  } else if (range !== undefined) {
-    controls = (
+  } else if (quick) {
+    const buttons = (
       <span className="quick-reps">
-        {Array.from({ length: range + 1 }, (_, i) => planned.reps + i).map((reps) => (
+        {quick.map((reps) => (
           <button key={reps} type="button" className="btn quick-rep" onClick={() => props.onQuick(reps)}>
             {reps}
           </button>
         ))}
       </span>
     )
+    if (quick.length > 3) below = buttons
+    else controls = buttons
   } else {
     controls = (
-      <button type="button" className="btn log-btn" aria-label="Log set as planned" onClick={() => props.onQuick()}>
-        ✓
-      </button>
+      <>
+        {exercise?.unit !== 'seconds' && (
+          <button type="button" className="btn btn-quiet miss-btn" onClick={props.onMissed}>
+            Missed
+          </button>
+        )}
+        <button type="button" className="btn log-btn" aria-label="Log set as planned" onClick={() => props.onQuick()}>
+          ✓
+        </button>
+      </>
     )
   }
 
   return (
-    <div className="set set-current">
+    <div className={`set set-current${props.next ? '' : ' set-ready'}${below ? ' set-wide' : ''}`}>
       <button type="button" className="set-main" onClick={props.onEdit}>
         {label}
       </button>
       {controls}
+      {below}
     </div>
   )
 }
@@ -999,6 +1035,7 @@ function SessionSheet(props: {
         target={`${weightText(prefill, exercise)} × ${targetText(planned, exercise)}`}
         low={planned.reps}
         high={planned.repsMax}
+        max={sheet.short ? planned.reps : undefined}
         onClose={props.onClose}
         onPick={(reps) => props.onLog(slot, sheet.index, planned, { weight: prefill, reps })}
       />

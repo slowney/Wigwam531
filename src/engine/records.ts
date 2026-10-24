@@ -26,10 +26,13 @@ export interface PrCheck {
 }
 
 export function checkPr(set: { weight: number; reps: number }, history: ReadonlyArray<SetLike>): PrCheck {
-  const working = history.filter((h) => !h.warmup)
+  // A failed set (no reps) wasn't lifted: it's no PR, and it doesn't stand
+  // in the way of one later.
+  const working = history.filter((h) => !h.warmup && h.reps > 0)
   if (working.length === 0) {
     return { firstTime: true, heaviest: false, repPr: false, e1rmPr: false }
   }
+  if (set.reps < 1) return { firstTime: false, heaviest: false, repPr: false, e1rmPr: false }
 
   const heaviest = set.weight > Math.max(...working.map((h) => h.weight))
 

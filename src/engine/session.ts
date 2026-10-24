@@ -10,7 +10,7 @@ import {
   type WeekType,
 } from './plan.ts'
 import type { Program, ProgramDay } from './program.ts'
-import { nextWorkingWeight, type DoubleProgression } from './progression.ts'
+import { nextWorkingWeight, type DoubleProgression, type RangeRule } from './progression.ts'
 import { checkPr, type PrCheck } from './records.ts'
 import { rangeSchemeId, type SchemeLookup } from './schemes.ts'
 import type { ExerciseLookup, Gym } from './types.ts'
@@ -155,8 +155,9 @@ export function workingWeight(
   scheme: { sets: number; reps: [number, number] },
   next: (weight: number) => number | undefined,
   excludeSessionId?: string,
+  rule: RangeRule = 'every',
 ): DoubleProgression {
-  return nextWorkingWeight(lastSessionSets(history, exerciseId, excludeSessionId), scheme.reps, scheme.sets, next)
+  return nextWorkingWeight(lastSessionSets(history, exerciseId, excludeSessionId), scheme.reps, scheme.sets, next, rule)
 }
 
 export interface EntryPlanInput {
@@ -181,21 +182,29 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
   if (!programDay) return undefined
   const day = applySwaps(programDay, input.swaps, (id) => input.tms[id] !== undefined, input.lookup)
 
-  const carried = (exerciseId: string, scheme: { sets: number; reps: [number, number] }) => {
-    const load = input.lookup(exerciseId)?.load ?? 'barbell'
-    return workingWeight(input.history, exerciseId, scheme, (w) => nextLoad(w, load, input.gym), input.sessionId).weight
-  }
-  const workingWeights: Record<string, number> = {}
+  // Rep-range main lifts (the heavy row) need every set at the top of the
+  // range to move up; accessories need one.
   const ranges = [
     ...day.mains.flatMap((slot) => {
       const scheme = input.schemes(slot.schemeId)
-      return scheme?.kind === 'range' ? [{ exerciseId: slot.exerciseId, scheme }] : []
+      return scheme?.kind === 'range' ? [{ slotId: slot.id, exerciseId: slot.exerciseId, scheme, rule: 'every' as const }] : []
     }),
-    ...input.accessories.map((pick) => ({ exerciseId: pick.exerciseId, scheme: pick })),
+    ...input.accessories.map((pick) => ({ slotId: pick.id, exerciseId: pick.exerciseId, scheme: pick, rule: 'any' as const })),
   ]
-  for (const { exerciseId, scheme } of ranges) {
-    const weight = carried(exerciseId, scheme)
-    if (weight !== undefined) workingWeights[exerciseId] = weight
+  const progressions = new Map<string, DoubleProgression>()
+  const workingWeights: Record<string, number> = {}
+  for (const { slotId, exerciseId, scheme, rule } of ranges) {
+    const load = input.lookup(exerciseId)?.load ?? 'barbell'
+    const progression = workingWeight(
+      input.history,
+      exerciseId,
+      scheme,
+      (w) => nextLoad(w, load, input.gym),
+      input.sessionId,
+      rule,
+    )
+    progressions.set(slotId, progression)
+    if (progression.weight !== undefined) workingWeights[exerciseId] = progression.weight
   }
 
   const ctx: PlanContext = {
@@ -205,8 +214,16 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
     schemes: input.schemes,
     ...gymChecks(input.gym, input.lookup),
   }
+  const withCarried = (slot: PlannedSlot): PlannedSlot => {
+    const carried = progressions.get(slot.slotId)
+    return carried ? { ...slot, carried } : slot
+  }
   const planned = planDay(day, ctx)
-  return { day: planned, slots: [...planned.mains, ...input.accessories.map((pick) => planAccessory(pick, ctx))] }
+  const mains = planned.mains.map(withCarried)
+  return {
+    day: { ...planned, mains },
+    slots: [...mains, ...input.accessories.map((pick) => withCarried(planAccessory(pick, ctx)))],
+  }
 }
 
 /**

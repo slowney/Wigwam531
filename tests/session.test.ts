@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findExercise } from '../src/data/exercises.ts'
 import { HOME_GYM } from '../src/data/gym.ts'
-import { NSUNS_4DAY } from '../src/data/presets.ts'
+import { NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
 import { findScheme } from '../src/data/schemes.ts'
 import { planAccessory, planDay, type PlanContext } from '../src/engine/plan.ts'
 import {
@@ -10,6 +10,7 @@ import {
   lastSessionSets,
   nextLifter,
   nextSet,
+  planEntry,
   prChecks,
   prKind,
   restSeconds,
@@ -176,12 +177,49 @@ describe('carrying working weights over', () => {
     expect(workingWeight(history, 'db-row', { sets: 3, reps: [6, 10] }, nextDumbbell, 'today')).toEqual({
       weight: 50,
       reason: 'hold',
+      last: 50,
     })
     const earned = history.map((s) => (s.sessionId === 'last' && !s.warmup ? { ...s, reps: 10 } : s))
     expect(workingWeight(earned, 'db-row', { sets: 3, reps: [6, 10] }, nextDumbbell, 'today')).toEqual({
       weight: 55,
       reason: 'increase',
+      last: 50,
     })
+  })
+
+  it('steps an accessory up once a single set reaches the top', () => {
+    expect(workingWeight(history, 'db-row', { sets: 3, reps: [6, 10] }, nextDumbbell, 'today', 'any')).toEqual({
+      weight: 55,
+      reason: 'increase',
+      last: 50,
+    })
+  })
+
+  it("plans accessories by that rule and the heavy row by the stricter one, saying why", () => {
+    // Last time: rows 135 × 8, 8, 8, 7 and DB rows 50 × 10, 9, 8.
+    const logged = [
+      ...[8, 8, 8, 7].map((reps, i) => ({ ...set(`r${i}`, 'last', 10 + i, 135, reps), exerciseId: 'barbell-row' })),
+      ...[10, 9, 8].map((reps, i) => set(`d${i}`, 'last', 20 + i, 50, reps)),
+    ]
+    const plan = planEntry({
+      program: NSUNS_4DAY_ROW,
+      dayId: 'd1',
+      swaps: {},
+      accessories: [{ id: 'pick', exerciseId: 'db-row', sets: 3, reps: [6, 10] }],
+      weekType: 'normal',
+      tms: TMS,
+      history: logged,
+      sessionId: 'today',
+      gym: HOME_GYM,
+      lookup: findExercise,
+      schemes: findScheme,
+    })!
+    const row = plan.slots.find((s) => s.exerciseId === 'barbell-row')!
+    const dbRow = plan.slots.find((s) => s.slotId === 'pick')!
+    expect(row.sets[0]?.weight).toBe(135)
+    expect(row.carried).toMatchObject({ reason: 'hold', last: 135 })
+    expect(dbRow.sets[0]?.weight).toBe(55)
+    expect(dbRow.carried).toMatchObject({ reason: 'increase', last: 50 })
   })
 })
 

@@ -180,14 +180,16 @@ From the first full week in the garage. The two bugs ship with Phase 5.
 **Changes:**
 
 - **Delete or reopen a finished workout**, from its summary.
-  - Delete removes it and every set logged in it, and its days go back to to-do. This is how dummy test workouts get cleared.
-  - Reopen puts it back in progress with everything logged kept, for a workout finished too early.
-  - Neither undoes a TM change that Start Week has already made from it. The confirm step says so.
-- **Fail a set.** Any set can be logged short, down to 0 reps, in a tap or two. Short sets show as short. Progression rules don't change: TMs still move only on the ★ set, and a short accessory set just holds the weight.
-- **Rep buttons for accessories**, the same as the heavy row: tap the reps you got. Tapping the set itself still opens the editor to change the weight. Wide ranges (15–20) wrap onto a second line instead of hiding behind a Reps button.
+  - Delete removes it and every set logged in it, and its days go back to to-do (skipped, if their week has ended). This is how dummy test workouts get cleared.
+  - Reopen puts it back in progress with everything logged kept, for a workout finished too early. Not once the week has ended, or while another workout is going.
+  - Neither undoes a TM change that Start Week has already made from it. The card says so.
+  - **Finding one:** the Progress tab lists every finished workout until Phase 6's charts arrive, and each done day in the week view links to its workout.
+- **Fail a set.** Fixed-rep sets keep the one-tap ✓ and get a "Missed" button that opens the rep picker from 0 up to the target. Short sets show their ✓ and "of 5" in amber. Progression rules don't change: TMs still move only on the ★ set, a failed set is never a PR, and a short accessory set just holds the weight.
+- **Rep buttons for accessories**, the same as the heavy row: tap the reps you got. Tapping the set itself still opens the editor to change the weight. Ranges with more than three rep counts (8–12, 15–20) put their buttons on a line of their own instead of hiding behind a Reps button.
+- **Accessories out of order.** Each accessory's next set is ready to log at any time, since accessories get done whenever the bar is busy. The main lifts keep their order, and the person's next set overall is still the one picked out in orange.
 - **"+ New exercise" in the accessory picker** all the time, not only when a search finds nothing.
-- **Accessory progression that actually moves.** The weight already carries over from last time, but it only goes up once *every* set reaches the top of the range, which accessories rarely manage. New rule: once a set at the working weight reaches the top of the range, the next time that exercise is picked starts one step up (+5 lb on a bar, the next dumbbell, the next pin). The set line says why ("+5 from last time").
-- **Higher default weekly targets**, mostly 10–16, for the muscles nSuns leaves short. Anyone who has changed a target keeps their own number.
+- **Accessory progression that actually moves.** The weight already carried over from last time, but it only went up once *every* set reached the top of the range, which accessories rarely manage. Now one set at the working weight reaching the top is enough: the next time that exercise is picked starts one step up (+5 lb on a bar, the next dumbbell, the next pin), and the exercise's header says "+5 from last time". The heavy row keeps the every-set rule.
+- **Higher default weekly targets:** lats and side delts 14; chest, rear delts, biceps, triceps, glutes and hamstrings 12; quads and abs 10; calves down to 3. The rest are unchanged. Anyone who has changed a target keeps their own number.
 
 **Done when:**
 

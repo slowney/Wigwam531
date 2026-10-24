@@ -96,27 +96,66 @@ describe('double progression', () => {
   })
 
   it('steps up once every set reaches the top of the range', () => {
-    expect(nextWorkingWeight(sets(135, [8, 8, 8, 8]), [6, 8], 4, barbell)).toEqual({ weight: 140, reason: 'increase' })
+    expect(nextWorkingWeight(sets(135, [8, 8, 8, 8]), [6, 8], 4, barbell)).toEqual({
+      weight: 140,
+      reason: 'increase',
+      last: 135,
+    })
   })
 
   it('holds while any set is short', () => {
-    expect(nextWorkingWeight(sets(135, [8, 8, 7, 8]), [6, 8], 4, barbell)).toEqual({ weight: 135, reason: 'hold' })
+    expect(nextWorkingWeight(sets(135, [8, 8, 7, 8]), [6, 8], 4, barbell)).toEqual({
+      weight: 135,
+      reason: 'hold',
+      last: 135,
+    })
   })
 
   it('holds when fewer sets were done than the scheme asks for', () => {
-    expect(nextWorkingWeight(sets(135, [8, 8, 8]), [6, 8], 4, barbell)).toEqual({ weight: 135, reason: 'hold' })
+    expect(nextWorkingWeight(sets(135, [8, 8, 8]), [6, 8], 4, barbell)).toMatchObject({ weight: 135, reason: 'hold' })
   })
 
   it('ignores a lighter back-off set', () => {
     const session = [...sets(135, [8, 8, 8, 8]), { weight: 115, reps: 12 }]
-    expect(nextWorkingWeight(session, [6, 8], 4, barbell)).toEqual({ weight: 140, reason: 'increase' })
+    expect(nextWorkingWeight(session, [6, 8], 4, barbell)).toMatchObject({ weight: 140, reason: 'increase' })
   })
 
   it('moves to the next dumbbell pair', () => {
-    expect(nextWorkingWeight(sets(35, [12, 12, 12]), [8, 12], 3, dumbbell)).toEqual({ weight: 40, reason: 'increase' })
+    expect(nextWorkingWeight(sets(35, [12, 12, 12]), [8, 12], 3, dumbbell)).toMatchObject({ weight: 40, reason: 'increase' })
   })
 
   it('holds at the 55s, the heaviest dumbbells in the garage', () => {
-    expect(nextWorkingWeight(sets(55, [12, 12, 12]), [8, 12], 3, dumbbell)).toEqual({ weight: 55, reason: 'maxed' })
+    expect(nextWorkingWeight(sets(55, [12, 12, 12]), [8, 12], 3, dumbbell)).toEqual({
+      weight: 55,
+      reason: 'maxed',
+      last: 55,
+    })
+  })
+
+  describe('for accessories, one set at the top is enough', () => {
+    it('steps up when any set at the working weight reaches the top', () => {
+      expect(nextWorkingWeight(sets(30, [10, 8, 7]), [6, 10], 3, dumbbell, 'any')).toMatchObject({
+        weight: 35,
+        reason: 'increase',
+      })
+    })
+
+    it('holds when none did', () => {
+      expect(nextWorkingWeight(sets(30, [9, 8, 7]), [6, 10], 3, dumbbell, 'any')).toMatchObject({
+        weight: 30,
+        reason: 'hold',
+      })
+    })
+
+    it('only counts sets at the working weight, not a lighter back-off', () => {
+      const session = [...sets(30, [9, 8]), { weight: 25, reps: 10 }]
+      expect(nextWorkingWeight(session, [6, 10], 3, dumbbell, 'any')).toMatchObject({ weight: 30, reason: 'hold' })
+    })
+  })
+
+  it('leaves a failed set out when finding the working weight', () => {
+    const session = [...sets(30, [10, 9]), { weight: 35, reps: 0 }]
+    expect(nextWorkingWeight(session, [6, 10], 3, dumbbell, 'any')).toMatchObject({ weight: 35, reason: 'increase', last: 30 })
+    expect(nextWorkingWeight(sets(35, [0, 0]), [6, 10], 3, dumbbell, 'any')).toMatchObject({ weight: 35, reason: 'hold' })
   })
 })

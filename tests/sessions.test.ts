@@ -3,11 +3,13 @@ import { openDb } from '../src/db/db.ts'
 import {
   activeSession,
   addAccessory,
+  deleteSession,
   discardSession,
   finishSession,
   logSet,
   logWarmups,
   rateEntry,
+  reopenSession,
   removeAccessory,
   setActiveProfile,
   setCollapsed,
@@ -16,8 +18,8 @@ import {
   startSession,
   swapExercise,
 } from '../src/db/sessions.ts'
-import { endWeek, ensureFirstWeek, setDayStatus } from '../src/db/weeks.ts'
-import { addFollower, addLeader, freshDb, lifts, planFor } from './helpers.ts'
+import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus } from '../src/db/weeks.ts'
+import { addFollower, addLeader, doWorkout, freshDb, lifts, planFor } from './helpers.ts'
 
 async function entryOf(db: ReturnType<typeof freshDb>, sessionId: string, profileId: string) {
   return (await db.entries.where('sessionId').equals(sessionId).toArray()).find((e) => e.profileId === profileId)!
@@ -229,5 +231,87 @@ describe('the app being killed mid-workout', () => {
     expect(await reopened.entries.get(entry.id)).toMatchObject({ restEndsAt: 121_000 })
     expect(await reopened.sets.where('sessionId').equals(id).count()).toBe(1)
     reopened.close()
+  })
+})
+
+describe('fixing a finished workout', () => {
+  it('deleting one puts its days back to to-do and leaves every other workout alone', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const partner = await addFollower(db, 'Partner', lead, lifts(185, 225, 95, 275))
+    const dummy = await doWorkout(db, [{ profileId: lead, dayId: 'd1', startWeight: 135 }, { profileId: partner, dayId: 'd1', startWeight: 95 }], 1_000)
+    const real = await doWorkout(db, [{ profileId: lead, dayId: 'd2' }], 5_000)
+    const kept = await db.sets.where('sessionId').equals(real).count()
+
+    await deleteSession(dummy, db)
+    expect(await db.sessions.get(dummy)).toBeUndefined()
+    expect(await db.entries.where('sessionId').equals(dummy).count()).toBe(0)
+    expect(await db.sets.where('sessionId').equals(dummy).count()).toBe(0)
+    expect(await db.sets.where('sessionId').equals(real).count()).toBe(kept)
+    expect((await loadWeekOverview(lead, db)).week?.days).toEqual({ d2: 'done' })
+    expect((await loadWeekOverview(partner, db)).week?.days).toEqual({})
+    // Day 1 can be done for real now.
+    await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+  })
+
+  it('deleting one from a week that has ended leaves its days skipped', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await doWorkout(db, [{ profileId: lead, dayId: 'd1', startWeight: 135 }], 1_000)
+    const week = (await loadWeekOverview(lead, db)).week!
+    await endWeek(week.id, db)
+    await deleteSession(session, db)
+    expect((await db.weeks.get(week.id))?.days.d1).toBe('skipped')
+  })
+
+  it("won't delete one that's still going", async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    await expect(deleteSession(session, db)).rejects.toThrow('still going')
+  })
+
+  it('a reopened workout carries on and finishes again correctly', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await doWorkout(db, [{ profileId: lead, dayId: 'd1', startWeight: 135 }], 1_000)
+    const logged = await db.sets.where('sessionId').equals(session).count()
+
+    await reopenSession(session, db)
+    expect((await activeSession(db))?.id).toBe(session)
+    expect((await entryOf(db, session, lead)).status).toBe('active')
+    expect((await loadWeekOverview(lead, db)).week?.days).toEqual({})
+    expect(await db.sets.where('sessionId').equals(session).count()).toBe(logged)
+
+    await finishSession(session, db, 9_000)
+    expect((await db.sessions.get(session))?.status).toBe('done')
+    expect((await entryOf(db, session, lead)).status).toBe('done')
+    expect((await loadWeekOverview(lead, db)).week?.days).toEqual({ d1: 'done' })
+  })
+
+  it("can't reopen one while another workout is going, or once the week has ended", async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const first = await doWorkout(db, [{ profileId: lead, dayId: 'd1', startWeight: 135 }], 1_000)
+    const going = await startSession([{ profileId: lead, dayId: 'd2' }], 'home', db, 2_000)
+    await expect(reopenSession(first, db)).rejects.toThrow('already going')
+    await discardSession(going, db)
+    await endWeek((await loadWeekOverview(lead, db)).week!.id, db)
+    await expect(reopenSession(first, db)).rejects.toThrow('week has ended')
+  })
+})
+
+describe('a failed set', () => {
+  it('logs short, counts as done, and the day still finishes', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    const entry = await entryOf(db, session, lead)
+    const bench = (await planFor(db, lead, entry.id)).slots[0]!
+    const triple = bench.sets.findIndex((s) => s.reps === 3 && !s.amrap)
+    const id = await logSet(setFromPlan(entry, bench, triple, bench.sets[triple]!, { weight: 190, reps: 2 }), undefined, db)
+    expect(await db.sets.get(id)).toMatchObject({ reps: 2, prescribedReps: 3 })
+    await finishSession(session, db)
+    expect((await loadWeekOverview(lead, db)).week?.days).toEqual({ d1: 'done' })
   })
 })

@@ -1,15 +1,17 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link, useParams } from 'react-router'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db, type EntryRow } from '../../db/db.ts'
 import { loadRatings, setRating } from '../../db/library.ts'
 import { loadProgram } from '../../db/profiles.ts'
-import { rateEntry } from '../../db/sessions.ts'
+import { deleteSession, rateEntry, reopenSession } from '../../db/sessions.ts'
 import { dayLabel } from '../../engine/program.ts'
 import { defaultTable, increaseFor } from '../../engine/progression.ts'
 import { prChecks, prKind, type PrKind } from '../../engine/session.ts'
 import type { Rating, Stars } from '../../engine/types.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
+import { ConfirmButton } from '../components/forms.tsx'
 import { StarPicker } from '../components/RatingSheet.tsx'
 import { formatDate } from '../format.ts'
 
@@ -177,6 +179,39 @@ export function SessionSummary() {
       <Link to="/" className="btn btn-big">
         Done
       </Link>
+
+      {session.status === 'done' && <FixWorkout sessionId={session.id} />}
     </>
+  )
+}
+
+/** For a workout finished too early, or a dummy run to clear out. */
+function FixWorkout({ sessionId }: { sessionId: string }) {
+  const navigate = useNavigate()
+  const [error, setError] = useState<string>()
+  const failed = (e: unknown) => setError((e as Error).message)
+  return (
+    <section className="card fix-workout">
+      <h2>Fix this workout</h2>
+      <div className="actions no-top">
+        <button
+          type="button"
+          className="btn btn-quiet"
+          onClick={() => reopenSession(sessionId).then(() => navigate('/session'), failed)}
+        >
+          Reopen
+        </button>
+        <ConfirmButton
+          label="Delete workout"
+          confirmLabel="Tap again to delete"
+          onConfirm={() => deleteSession(sessionId).then(() => navigate('/', { replace: true }), failed)}
+        />
+      </div>
+      {error && <p className="error">{error}</p>}
+      <p className="muted small">
+        Reopen picks it back up with everything kept, for a workout finished too early. Delete removes it and every set
+        logged in it, and its days go back to to-do. Neither changes a TM that Start Week has already set from it.
+      </p>
+    </section>
   )
 }

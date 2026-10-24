@@ -16,7 +16,8 @@ writing code.
 - Follow-ups from that session are built and pushed: day labels, foldable exercises, the workout rating, and the week-end backup prompt.
 - Phase 4 (accessory suggestions) is built and has had real use. A "focus" (extra accessory sets for chosen muscles) was added after it.
 - Phase 5 (program editor and custom programs) is built and was clicked through in the phone-size preview. It's waiting on the user restructuring something real and training a week on it.
-- Phase 5b (feedback from the garage) is planned in `docs/PHASES.md`. Its two bugs (tab bar drift, set editor overflow) shipped with Phase 5 and need checking on the phone. The rest waits for the user's go.
+- Phase 5b (feedback from the garage) is built and was clicked through in the phone-size preview. On the phone, the user still needs to check that the tab bar stays put after a workout resumes, and that the set editor fits.
+- Phase 6 (progress and metrics) is next. The Progress tab holds a list of finished workouts for now; the charts go above it.
 
 ## Hard rules
 

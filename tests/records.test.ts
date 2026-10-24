@@ -57,3 +57,18 @@ describe('PR checks', () => {
     })
   })
 })
+
+describe('failed sets', () => {
+  const history = [
+    { weight: 200, reps: 3, warmup: false },
+    { weight: 225, reps: 0, warmup: false },
+  ]
+
+  it('are never a PR', () => {
+    expect(checkPr({ weight: 230, reps: 0 }, history)).toMatchObject({ heaviest: false, repPr: false, e1rmPr: false })
+  })
+
+  it("don't stand in the way of a later one", () => {
+    expect(checkPr({ weight: 215, reps: 1 }, history).heaviest).toBe(true)
+  })
+})

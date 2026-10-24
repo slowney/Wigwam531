@@ -87,6 +87,11 @@ export function AccessoryPicker(props: {
       )}
       {props.footer}
 
+      {!q && (
+        <button type="button" className="btn btn-quiet add-new" onClick={() => props.onAdd('')}>
+          + New exercise
+        </button>
+      )}
       {q && !exact && (
         <button type="button" className="btn btn-quiet add-new" onClick={() => props.onAdd(q)}>
           + Add “{q}” as a new exercise

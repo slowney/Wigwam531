@@ -746,6 +746,12 @@ h2 {
   background: var(--surface-2);
 }
 
+/* An accessory's next set, ready to log out of order: the controls without
+   the highlight that marks the person's next set overall. */
+.set-ready {
+  border-color: var(--border);
+}
+
 .set-main {
   flex: 1;
   display: flex;
@@ -776,6 +782,31 @@ h2 {
   min-height: 48px;
   padding: 0;
   font-size: 18px;
+}
+
+/* A failed set: logged, but short of the target. */
+.set-short .set-num {
+  color: var(--accent);
+}
+
+.miss-btn {
+  min-height: 52px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  /* The current set's own background is the quiet button colour. */
+  background: var(--bg);
+  font-size: 15px;
+}
+
+/* More rep buttons than fit beside the set: they get a line of their own. */
+.set-wide {
+  flex-wrap: wrap;
+}
+
+.set-wide .quick-reps {
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  padding: 0 0 4px 32px;
 }
 
 .badge {
@@ -1387,4 +1418,25 @@ h2 {
   flex-wrap: wrap;
   gap: 8px;
   margin: 0 0 10px;
+}
+
+/* Finished workouts: the history list, and fixing one from its summary. */
+
+.workout-row {
+  padding: 8px 0;
+}
+
+.workout-person {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot-small {
+  width: 10px;
+  height: 10px;
+}
+
+.fix-workout {
+  margin-top: 24px;
 }

@@ -3,7 +3,7 @@ import type { AccessoryPick, PlannedSet, PlannedSlot } from '../engine/plan.ts'
 import type { Stars } from '../engine/types.ts'
 import { db as defaultDb, newId, type EntryRow, type SessionRow, type SetRow, type WigwamDb } from './db.ts'
 import { loadProgram } from './profiles.ts'
-import { completedAtFor, ensureFirstWeek, loadWeekOverview } from './weeks.ts'
+import { completedAtFor, currentWeek, ensureFirstWeek, loadWeekOverview } from './weeks.ts'
 
 // Everything about a workout in progress is written here the moment it
 // happens: the sets, today's swaps and accessories, whose tab is open, each
@@ -330,5 +330,75 @@ export async function discardSession(sessionId: string, db: WigwamDb = defaultDb
     }
     await db.entries.where('sessionId').equals(sessionId).delete()
     await db.sessions.delete(sessionId)
+  })
+}
+
+/**
+ * Removes a finished workout and every set logged in it: a dummy run, or
+ * one logged by mistake. Its days go back to to-do while their week is
+ * still going. In a week that has ended they count as skipped, since
+ * nothing is logged for them any more. A TM Start Week already moved
+ * because of it stays where it is.
+ */
+export async function deleteSession(sessionId: string, db: WigwamDb = defaultDb, now = Date.now()): Promise<void> {
+  await db.transaction('rw', [db.sessions, db.entries, db.sets, db.weeks, db.programs], async () => {
+    const session = await db.sessions.get(sessionId)
+    if (!session) return
+    if (session.status === 'active') throw new Error('This workout is still going. Finish or discard it instead.')
+    for (const entry of await db.entries.where('sessionId').equals(sessionId).toArray()) {
+      const week = entry.status === 'done' ? await db.weeks.get(entry.weekId) : undefined
+      if (!week) continue
+      const days = { ...week.days }
+      if (week.endedAt === undefined) {
+        delete days[entry.dayId]
+        const program = await loadProgram(entry.profileId, db)
+        await db.weeks.update(week.id, { days, completedAt: completedAtFor(week, days, program, now) })
+      } else {
+        await db.weeks.update(week.id, { days: { ...days, [entry.dayId]: 'skipped' } })
+      }
+    }
+    await db.sets.where('sessionId').equals(sessionId).delete()
+    await db.entries.where('sessionId').equals(sessionId).delete()
+    await db.sessions.delete(sessionId)
+  })
+}
+
+/**
+ * Puts a finished workout back in progress with everything logged kept,
+ * for one finished too early. Its days go back to to-do until it's
+ * finished again. Not once anyone in it has moved on to a later week, and
+ * not while another workout is going.
+ */
+export async function reopenSession(sessionId: string, db: WigwamDb = defaultDb, now = Date.now()): Promise<void> {
+  await db.transaction('rw', [db.sessions, db.entries, db.weeks, db.programs, db.profiles], async () => {
+    const session = await db.sessions.get(sessionId)
+    if (!session || session.status === 'active') return
+    if (await activeSession(db)) throw new Error('A workout is already going. Finish it first.')
+    const entries = await db.entries.where('sessionId').equals(sessionId).toArray()
+    for (const entry of entries) {
+      const name = (await db.profiles.get(entry.profileId))?.name ?? 'Someone'
+      const week = await currentWeek(entry.profileId, db)
+      if (week?.id !== entry.weekId || week.endedAt !== undefined) {
+        throw new Error(`${name}'s week has ended since, so this workout can't be reopened.`)
+      }
+      if (!(await loadProgram(entry.profileId, db))?.days.some((d) => d.id === entry.dayId)) {
+        throw new Error(`That day isn't in ${name}'s program any more.`)
+      }
+      // Logged nothing here, then did the day in another workout since.
+      if (entry.status === 'empty' && week.days[entry.dayId] === 'done') {
+        throw new Error(`${name} has done that day in another workout since.`)
+      }
+    }
+    for (const entry of entries) {
+      const week = entry.status === 'done' ? await db.weeks.get(entry.weekId) : undefined
+      if (week) {
+        const days = { ...week.days }
+        delete days[entry.dayId]
+        const program = await loadProgram(entry.profileId, db)
+        await db.weeks.update(week.id, { days, completedAt: completedAtFor(week, days, program, now) })
+      }
+      await db.entries.update(entry.id, { status: 'active' })
+    }
+    await db.sessions.update(sessionId, { status: 'active', endedAt: undefined })
   })
 }

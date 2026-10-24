@@ -32,9 +32,18 @@ export function WeekView() {
   const data = useLiveQuery(async () => {
     const profile = await db.profiles.get(id)
     if (!profile) return { profile }
+    const overview = await loadWeekOverview(id)
+    // Which workout did each day this week, so a done day can open it.
+    const doneIn: Record<string, string> = {}
+    if (overview.week) {
+      for (const entry of await db.entries.where('weekId').equals(overview.week.id).toArray()) {
+        if (entry.status === 'done') doneIn[entry.dayId] = entry.sessionId
+      }
+    }
     return {
       profile,
-      overview: await loadWeekOverview(id),
+      overview,
+      doneIn,
       tms: await loadTms(id),
       history: await db.sets.where('profileId').equals(id).toArray(),
       gym: (await db.gyms.get('home')) ?? HOME_GYM,
@@ -108,6 +117,11 @@ export function WeekView() {
               <button type="button" className="btn btn-quiet btn-small" onClick={() => void setStatus(day.id, 'pending')}>
                 Unskip
               </button>
+            )}
+            {status === 'done' && data.doneIn?.[day.id] && (
+              <Link to={`/sessions/${data.doneIn[day.id]}`} className="btn btn-quiet btn-small">
+                View workout
+              </Link>
             )}
           </section>
         )

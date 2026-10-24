@@ -2,6 +2,7 @@
 // here is ever saved: the plan is recalculated each time it's shown, which
 // is what lets an edit to the program or a TM land mid-week.
 import { slotTmId, type AccessorySlot, type MainSlot, type Program, type ProgramDay, type Tier } from './program.ts'
+import type { DoubleProgression } from './progression.ts'
 import {
   DELOAD_SETS,
   TM_TEST_SETS,
@@ -43,6 +44,8 @@ export interface PlannedSlot {
   missingTm: boolean
   warmups: PlannedSet[]
   sets: PlannedSet[]
+  /** Rep-range work: how today's weight came from last time's. Set by `planEntry`. */
+  carried?: DoubleProgression
 }
 
 export interface PlannedDay {

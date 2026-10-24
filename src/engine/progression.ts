@@ -102,24 +102,41 @@ export interface DoubleProgression {
   /** Undefined when there's no history: the lifter picks a starting weight. */
   weight?: number
   reason: 'start' | 'hold' | 'increase' | 'maxed'
+  /** The heaviest weight lifted last time, when there was a last time. */
+  last?: number
 }
 
 /**
- * Holds the working weight until every set reaches the top of the range,
- * then steps up. `next` is the gym-aware step (next dumbbell, next pin);
- * when there's nothing heavier, the weight holds and the reps keep climbing.
+ * What beats a rep range. `every` set at the working weight reaching the
+ * top suits the heavy row, where the range keeps a heavy barbell lift
+ * honest. `any` set suits accessories, which rarely get every set to the
+ * top before fatigue sets in.
+ */
+export type RangeRule = 'every' | 'any'
+
+/**
+ * Holds the working weight until the range is beaten, then steps up.
+ * `next` is the gym-aware step (next dumbbell, next pin); when there's
+ * nothing heavier, the weight holds and the reps keep climbing. A failed
+ * set (no reps) says nothing about the weight, so it's left out.
  */
 export function nextWorkingWeight(
   lastSession: ReadonlyArray<{ weight: number; reps: number }>,
   reps: [number, number],
   sets: number,
   next: (weight: number) => number | undefined,
+  rule: RangeRule = 'every',
 ): DoubleProgression {
-  if (lastSession.length === 0) return { reason: 'start' }
-  const top = Math.max(...lastSession.map((s) => s.weight))
-  const atTop = lastSession.filter((s) => s.weight >= top).slice(0, sets)
-  const earned = atTop.length >= sets && atTop.every((s) => s.reps >= reps[1])
-  if (!earned) return { weight: top, reason: 'hold' }
+  const lifted = lastSession.filter((s) => s.reps > 0)
+  const counted = lifted.length ? lifted : lastSession
+  if (counted.length === 0) return { reason: 'start' }
+  const top = Math.max(...counted.map((s) => s.weight))
+  const atTop = counted.filter((s) => s.weight >= top)
+  const earned =
+    rule === 'any'
+      ? atTop.some((s) => s.reps >= reps[1])
+      : atTop.length >= sets && atTop.slice(0, sets).every((s) => s.reps >= reps[1])
+  if (!earned) return { weight: top, reason: 'hold', last: top }
   const up = next(top)
-  return up === undefined ? { weight: top, reason: 'maxed' } : { weight: up, reason: 'increase' }
+  return up === undefined ? { weight: top, reason: 'maxed', last: top } : { weight: up, reason: 'increase', last: top }
 }

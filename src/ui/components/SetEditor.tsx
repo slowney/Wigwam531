@@ -124,10 +124,12 @@ export function RepPicker(props: {
   target: string
   low: number
   high?: number
+  /** The most reps offered. A missed set only needs up to the target. */
+  max?: number
   onPick: (reps: number) => void
   onClose: () => void
 }) {
-  const max = Math.max(20, (props.high ?? props.low) + 5)
+  const max = props.max ?? Math.max(20, (props.high ?? props.low) + 5)
   return (
     <Sheet title={props.title} onClose={props.onClose}>
       <p className="muted small no-margin">Target: {props.target}. Tap the reps you got.</p>

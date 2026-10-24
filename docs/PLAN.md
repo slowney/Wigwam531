@@ -202,8 +202,13 @@ weekly count. Main lifts count too; a T1 bench day is 9 chest sets. That's
 why chest and quads usually look covered, and suggestions lean toward back,
 arms, delts and hamstrings, the usual nSuns gaps.
 
-Each profile has a weekly target per muscle. They start at sensible
-defaults and can be edited.
+Each profile has a weekly target per muscle, editable per profile. The
+defaults (raised after the first garage week) are mostly 10–14 sets:
+lats and side delts 14; chest, rear delts, biceps, triceps, glutes and
+hamstrings 12; quads and abs 10; front delts 6; lower back, forearms and
+adductors 4; calves 3, since the garage has no good way to train them. A
+stock week leaves more to fill than three open slots a day hold, so
+something is always behind and a focus decides what comes first.
 
 ### Focus
 
@@ -270,13 +275,19 @@ the library.
 ### Accessory progression
 
 Accessories use double progression within the exercise's rep range. The
-weight prefills from last time. When every set reaches the top of the
-range, the next session suggests the next step up:
+weight prefills from last time. Once any set at that weight reaches the
+top of the range, the next time the exercise is picked it starts one step
+up, and the workout says so ("+5 from last time"):
 
 - barbell: +5 lb
 - dumbbell: the next pair (+5 lb)
 - cable: the next pin on the stack
 - kettlebell: the next setting
+
+One set is enough because accessories rarely get every set to the top
+before fatigue does. The heavy row keeps the stricter rule (every set at
+the top), since the range is what keeps a heavy barbell row honest. A
+failed set (no reps) doesn't count toward the working weight.
 
 ## Progress tracking
 
@@ -294,7 +305,8 @@ range, the next session suggests the next step up:
 - **Session:**
   - **Header:** a tab per person showing their progress and their own rest countdown. "Rotate" moves to the next lifter after each logged set.
   - **Rest:** visual only: 3:00 after 1–3 rep sets at 80% of TM or more, 2:00 after other main-lift sets, 1:30 after accessories.
-  - **Logging:** tap ✓ to log a set as prescribed, or use the stepper to change reps. AMRAP sets get a big rep picker.
+  - **Logging:** tap ✓ to log a set as prescribed, or "Missed" to pick the reps you got, down to 0. Rep ranges get a button per rep count. AMRAP sets get a big rep picker. Tapping the set itself opens the editor for weight, reps, RPE and a note.
+  - **Out of order:** the main lifts run in order, but each accessory's next set is always ready to log, since accessories get done whenever the bar is busy.
   - **Per set:** swap, notes and RPE.
   - **Accessories:** slots with the picker, plus Fill all.
   - **Exercises fold.** Tap a header to fold an exercise to one line. Finished ones fold themselves unless opened by hand, and the choice is saved with the workout.
@@ -310,7 +322,7 @@ range, the next session suggests the next step up:
   - **Followers** see the leader's program with their own changes on top: "Change for me" on any lift, "Use Lead's again", or unfollow to take a copy of their own.
   - **Whole program:** switch to a preset, one of My programs, a copy of someone's, someone to follow, or empty days to build from scratch. Save the current one to My programs. Followers come along when their leader switches; their per-lift changes don't.
 - **TM increases:** per profile and lift, how much the TM goes up for 0–1 / 2–3 / 4–5 / 6+ reps on the ★ set.
-- **Progress:** charts and the PR board, per profile.
+- **Progress:** charts and the PR board, per profile (Phase 6). For now, every finished workout, newest first, each opening its summary.
 - **Profile:** TMs, bodyweight, ratings, muscle targets, injuries, who they follow, and the advanced-metrics toggle.
 - **Settings:** gyms and equipment, the library (exercises, set schemes, My programs), rest timer and warm-up defaults, backup and restore. Exercises and schemes made in the app can be changed or deleted while nothing uses them; built-in ones can be looked at, and schemes copied.
 
@@ -394,7 +406,7 @@ volume are calculated when read instead of being stored.
 ### Data safety
 
 - **Saved immediately:** every logged set is written as soon as you log it. Killing the app, reloading or updating mid-workout resumes exactly where you were.
-- **Fixing mistakes:** undo the last set, or edit any past session.
+- **Fixing mistakes:** undo the last set, or edit any past session. A finished workout can be reopened (everything logged kept) or deleted (its sets go, and its days go back to to-do). Neither undoes a TM change Start Week has already made.
 - **Backup:** Export sends a JSON file through the share sheet to Files or iCloud Drive, and Import restores it.
   - **When a week finishes:** a backup is offered on that workout's summary, after End Week, and on Home. "Not now" holds it until the next week finishes.
   - **Overdue:** Home also reminds you if there has never been a backup or the last one is more than a week old, until one is saved.
