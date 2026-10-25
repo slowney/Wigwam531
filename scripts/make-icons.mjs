@@ -12,43 +12,42 @@ const BG = [0x12, 0x14, 0x17]
 const ACCENT = [0xf2, 0xa3, 0x3a]
 const TEXT = [0xe8, 0xe6, 0xe3]
 
-const DIGITS = {
-  5: ['11111', '10000', '11110', '00001', '00001', '10001', '01110'],
-  3: ['01110', '10001', '00001', '00110', '00001', '10001', '01110'],
-  1: ['00100', '01100', '00100', '00100', '00100', '00100', '01110'],
-}
+// The mark, in unit coordinates. Shared shapes with src/ui/Mark.tsx: keep
+// the two in step when either changes.
+const DOME = { cx: 0.5, base: 0.6, r: 0.31 }
+const BANDS = [0.41, 0.5]
+const DOOR = { half: 0.06, top: 0.51 }
+const BAR = { y0: 0.645, y1: 0.675, x0: 0.175, x1: 0.825 }
+// Plates: [x0, x1, y0, y1] for the left side; the right mirrors them.
+const PLATES = [
+  [0.115, 0.175, 0.51, 0.81],
+  [0.19, 0.235, 0.555, 0.765],
+]
+const GAP = 0.018
+const LIFT = 0.035
+
+const inRect = (x, y, [x0, x1, y0, y1], pad = 0) => x >= x0 - pad && x <= x1 + pad && y >= y0 - pad && y <= y1 + pad
+const mirror = ([x0, x1, y0, y1]) => [1 - x1, 1 - x0, y0, y1]
 
 // Colour at a point in unit coordinates, before scaling for safe zones.
-function paint(x, y) {
-  // The wigwam: a dome sitting on y = 0.58, with two lattice bands and an
-  // arched door cut out of it.
-  const cx = 0.5
-  const base = 0.58
-  const r = 0.31
+function paint(x, rawY) {
+  // The drawing sits a touch low in its box; lift it to the optical centre.
+  const y = rawY + LIFT
+  // A loaded barbell across the front of the wigwam. Plates get a thin gap
+  // of background around them, so they stand clear of the dome.
+  const plates = PLATES.flatMap((p) => [p, mirror(p)])
+  if (plates.some((p) => inRect(x, y, p))) return TEXT
+  if (plates.some((p) => inRect(x, y, p, GAP))) return BG
+  if (y >= BAR.y0 && y <= BAR.y1 && x >= BAR.x0 && x <= BAR.x1) return TEXT
+
+  // The wigwam: a dome on its base line, two lattice bands, an arched door.
+  const { cx, base, r } = DOME
   const inDome = y <= base && (x - cx) ** 2 + (y - base) ** 2 <= r * r
   if (inDome) {
-    const band = Math.abs(y - 0.39) < 0.011 || Math.abs(y - 0.48) < 0.011
-    const doorTop = 0.49
+    const band = BANDS.some((b) => Math.abs(y - b) < 0.011)
     const inDoor =
-      (Math.abs(x - cx) <= 0.06 && y >= doorTop) || (x - cx) ** 2 + (y - doorTop) ** 2 <= 0.06 ** 2
+      (Math.abs(x - cx) <= DOOR.half && y >= DOOR.top) || (x - cx) ** 2 + (y - DOOR.top) ** 2 <= DOOR.half ** 2
     return inDoor || band ? BG : ACCENT
-  }
-
-  // "531" in a 5x7 bitmap font underneath.
-  const cell = 0.03
-  const gap = 0.035
-  const digitW = 5 * cell
-  const top = 0.665
-  const left = 0.5 - (3 * digitW + 2 * gap) / 2
-  if (y >= top && y < top + 7 * cell) {
-    const row = Math.floor((y - top) / cell)
-    for (const [i, d] of ['5', '3', '1'].entries()) {
-      const x0 = left + i * (digitW + gap)
-      if (x >= x0 && x < x0 + digitW) {
-        const col = Math.floor((x - x0) / cell)
-        if (DIGITS[d][row]?.[col] === '1') return TEXT
-      }
-    }
   }
   return BG
 }

@@ -34,6 +34,7 @@ import { Sheet } from '../components/Sheet.tsx'
 import { SlotSheet } from '../components/SlotSheet.tsx'
 import { SwitchProgramSheet } from '../components/SwitchProgramSheet.tsx'
 import { accessoryText, schemeSummary } from '../format.ts'
+import { Icon } from '../icons.tsx'
 
 type Tms = Readonly<Record<string, number>>
 
@@ -79,7 +80,7 @@ function MoveButtons(props: { label: string; first: boolean; last: boolean; onMo
         disabled={props.first}
         onClick={() => props.onMove(-1)}
       >
-        ↑
+        <Icon name="up" />
       </button>
       <button
         type="button"
@@ -88,7 +89,7 @@ function MoveButtons(props: { label: string; first: boolean; last: boolean; onMo
         disabled={props.last}
         onClick={() => props.onMove(1)}
       >
-        ↓
+        <Icon name="down" />
       </button>
     </span>
   )

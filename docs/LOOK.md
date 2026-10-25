@@ -1,7 +1,13 @@
 # Making it look good: aesthetics plan
 
-**Status:** a plan for review. Nothing here is built yet; "Decisions" at the
-end lists what to settle first.
+**Status:** built as the bolder redesign, with amber kept, SF Pro Rounded for
+numbers, icons with labels in the tab bar, Dynamic Type, and a redrawn icon
+(the wigwam with a loaded barbell). Waiting on a look on the phone.
+
+**Going back:** the look before the redesign is tagged `pre-redesign`. To
+return to it, revert the redesign commit(s) made after that tag
+(`git revert <commit>`), then push. Nothing about data or behaviour changed,
+so reverting is safe at any time.
 
 The app works, but it looks like what it is: every screen built from the
 same dark card, with ad hoc sizes. The goal is a garage tool that looks

@@ -21,14 +21,16 @@ import { SessionSummary } from './screens/SessionSummary.tsx'
 import { Settings } from './screens/Settings.tsx'
 import { StartWeek } from './screens/StartWeek.tsx'
 import { StartWorkout } from './screens/StartWorkout.tsx'
+import { StyleGuide } from './screens/StyleGuide.tsx'
 import { WeekView } from './screens/WeekView.tsx'
+import { Icon, type IconName } from './icons.tsx'
 import { UpdateBanner } from './UpdateBanner.tsx'
 
-const TABS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/progress', label: 'Progress', end: false },
-  { to: '/profiles', label: 'Profiles', end: false },
-  { to: '/settings', label: 'Settings', end: false },
+const TABS: Array<{ to: string; label: string; icon: IconName; end: boolean }> = [
+  { to: '/', label: 'Home', icon: 'home', end: true },
+  { to: '/progress', label: 'Progress', icon: 'chart', end: false },
+  { to: '/profiles', label: 'Profiles', icon: 'people', end: false },
+  { to: '/settings', label: 'Settings', icon: 'settings', end: false },
 ]
 
 // Once per launch, not on every visit to Home.
@@ -96,13 +98,15 @@ export function App() {
             <Route path="/settings/exercises" element={<ExerciseLibrary />} />
             <Route path="/settings/schemes" element={<SchemeLibrary />} />
             <Route path="/settings/programs" element={<ProgramLibrary />} />
+            {import.meta.env.DEV && <Route path="/style" element={<StyleGuide />} />}
           </Routes>
         </div>
       </main>
       <nav className="tabbar">
         {TABS.map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end} className="tab">
-            {t.label}
+            <Icon name={t.icon} size="1.5rem" />
+            <span>{t.label}</span>
           </NavLink>
         ))}
       </nav>

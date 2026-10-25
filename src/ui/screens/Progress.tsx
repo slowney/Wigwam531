@@ -22,6 +22,7 @@ import { TargetBars, WeekColumns } from '../charts/VolumeCharts.tsx'
 import { Segmented } from '../components/forms.tsx'
 import { compared, formatSlots, MAX_COMPARED, parseSlots, toggleSlot } from '../compare.ts'
 import { formatDate } from '../format.ts'
+import { Tile, Tiles } from '../Tiles.tsx'
 import { COMPARE_COLORS, CompareView } from './ProgressCompare.tsx'
 
 const RANGES: ReadonlyArray<{ value: Range; label: string }> = [
@@ -185,8 +186,22 @@ function MainLifts(props: {
 }) {
   const lifts = tmLifts(props.program, props.tmHistory)
   if (lifts.length === 0) return null
+  const tops = lifts.flatMap((id) => {
+    const best = bests(props.sets, id).e1rm
+    return best ? [{ id, best }] : []
+  })
   return (
     <>
+      {tops.length > 0 && (
+        <>
+          <span className="label">Best e1RMs</span>
+          <Tiles>
+            {tops.map(({ id, best }) => (
+              <Tile key={id} value={Math.round(best.e1rm)} label={findExercise(id)?.short ?? nameOf(id)} />
+            ))}
+          </Tiles>
+        </>
+      )}
       {lifts.map((id) => {
         const series = e1rmSeries(props.sets, id, 'week')
         const steps = tmSteps(props.tmHistory, id)

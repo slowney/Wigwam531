@@ -1,20 +1,36 @@
 import { useLiveQuery } from 'dexie-react-hooks'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db } from '../../db/db.ts'
 import { activeSession } from '../../db/sessions.ts'
-import { loadWeekOverview, type WeekOverview } from '../../db/weeks.ts'
+import { loadWeekOverview, weekState, type WeekOverview } from '../../db/weeks.ts'
 import { dayLabel } from '../../engine/program.ts'
+import { statusOf } from '../../engine/week.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
+import { Icon } from '../icons.tsx'
+import { Mark } from '../Mark.tsx'
 
 function weekLine(o: WeekOverview | undefined): string {
   if (!o?.program) return 'No program'
   const n = o.week?.number ?? 1
   if (o.complete) return `Week ${n} done · ready for Start Week`
-  const type = o.week?.type === 'deload' ? ' (deload)' : o.week?.type === 'tmTest' ? ' (TM test)' : ''
-  const done = o.program.days.length - o.pending.length
-  const next = o.pending[0] ? dayLabel(o.pending[0], findExercise) : '—'
-  return `Week ${n}${type} · ${done} of ${o.program.days.length} done · next ${next}`
+  const type = o.week?.type === 'deload' ? ' · deload' : o.week?.type === 'tmTest' ? ' · TM test' : ''
+  return `Week ${n}${type}`
+}
+
+/** One dot per program day, in the person's colour: filled done, ringed to do, dashed skipped. */
+function WeekDots({ overview, color }: { overview: WeekOverview; color: string }) {
+  if (!overview.program) return null
+  const state = overview.week ? weekState(overview.week) : undefined
+  return (
+    <span className="week-dots" aria-hidden="true">
+      {overview.program.days.map((d) => {
+        const status = state ? statusOf(state, d.id) : 'pending'
+        return <span key={d.id} className={`week-dot week-dot-${status}`} style={{ '--person': color } as CSSProperties} />
+      })}
+    </span>
+  )
 }
 
 export function Home() {
@@ -32,9 +48,20 @@ export function Home() {
   const names = (ids: string[]) =>
     ids.map((id) => profiles.find((p) => p.id === id)?.name).filter(Boolean).join(', ')
 
+  // Who's up, and on which day: the people with days left this week.
+  const upNext = profiles.flatMap((p) => {
+    const day = overviews[p.id]?.pending[0]
+    return day && !overviews[p.id]?.complete ? [{ profile: p, day: dayLabel(day, findExercise) }] : []
+  })
+
   return (
     <>
-      <h1>Wigwam531</h1>
+      <h1 className="wordmark">
+        <Mark />
+        <span>
+          Wigwam<span className="wordmark-num">531</span>
+        </span>
+      </h1>
 
       {active && (
         <Link to="/session" className="card card-live">
@@ -65,9 +92,26 @@ export function Home() {
       ) : (
         <>
           {!active && (
-            <Link to="/workout" className="btn btn-big">
-              Start workout
-            </Link>
+            <section className="card today">
+              <h2 className="today-title">Today</h2>
+              {upNext.length === 0 ? (
+                <p className="muted small">Everyone's week is done. Start the next one below.</p>
+              ) : (
+                <ul className="today-list">
+                  {upNext.map(({ profile, day }) => (
+                    <li key={profile.id}>
+                      <span className="dot" style={{ background: profile.color }} />
+                      <strong>{profile.name}</strong>
+                      <span className="muted grow">{day}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link to="/workout" className="btn btn-big">
+                <Icon name="barbell" size="1.5rem" />
+                Start workout
+              </Link>
+            </section>
           )}
           {finished.length > 0 && (
             <Link to="/start-week" className="btn btn-big btn-quiet start-week">
@@ -78,11 +122,11 @@ export function Home() {
             {profiles.map((p) => (
               <li key={p.id}>
                 <Link to={`/profiles/${p.id}/week`} className="list-row">
-                  <span className="dot" style={{ background: p.color }} />
                   <span className="grow stack">
                     <strong>{p.name}</strong>
                     <span className="muted small">{weekLine(overviews[p.id])}</span>
                   </span>
+                  {overviews[p.id] && <WeekDots overview={overviews[p.id]!} color={p.color} />}
                   <span className="chev">›</span>
                 </Link>
               </li>

@@ -14,24 +14,28 @@ function BackupPrompt({ reason }: { reason: BackupReason }) {
   const saver = useBackupSaver()
   const [error, setError] = useState<string>()
   return (
-    <section className="card card-warn">
-      <p className="no-margin">{MESSAGE[reason]}</p>
-      <div className="actions">
+    <section className="backup-banner">
+      <p className="no-margin small grow">{MESSAGE[reason]}</p>
+      <div className="backup-actions">
         <button
           type="button"
-          className="btn"
+          className="btn btn-small"
           disabled={!saver.ready}
           onClick={() => saver.save().catch((e: unknown) => setError(`Couldn't save the backup: ${(e as Error).message}`))}
         >
-          Save a backup
+          Back up
         </button>
         {reason === 'weekDone' && (
-          <button type="button" className="btn btn-quiet" onClick={() => void setSetting('backupDismissedAt', Date.now())}>
+          <button
+            type="button"
+            className="btn btn-quiet btn-small"
+            onClick={() => void setSetting('backupDismissedAt', Date.now())}
+          >
             Not now
           </button>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error small no-margin">{error}</p>}
     </section>
   )
 }

@@ -80,6 +80,7 @@ import { RatingSheet } from '../components/RatingSheet.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { RepPicker, SetEditor, type SetValues } from '../components/SetEditor.tsx'
 import { formatDate, repRange } from '../format.ts'
+import { Icon } from '../icons.tsx'
 import { useNow, useWakeLock } from '../hooks.ts'
 
 interface Person {
@@ -449,14 +450,17 @@ export function Session() {
               role="tab"
               aria-selected={on}
               className={on ? 'ptab ptab-on' : 'ptab'}
-              style={on ? { borderColor: v.person.profile.color } : undefined}
+              style={{ '--person': v.person.profile.color } as CSSProperties}
               onClick={() => run(() => setActiveProfile(session.id, v.person.profile.id))}
             >
               <span className="ptab-name">
-                <span className="dot" style={{ background: v.person.profile.color }} />
-                {v.person.profile.name}
+                <span className="grow">{v.person.profile.name}</span>
+                {left !== undefined && <RestRing left={left} total={v.person.entry.restSeconds} />}
               </span>
-              <span className="small muted">
+              <span className="ptab-bar" aria-hidden="true">
+                <span style={{ width: `${v.progress.total ? (v.progress.done / v.progress.total) * 100 : 0}%` }} />
+              </span>
+              <span className="small muted num">
                 {v.progress.done}/{v.progress.total}
                 {left !== undefined && (left > 0 ? ` · ${mmss(left)}` : ' · ready')}
               </span>
@@ -636,6 +640,7 @@ function RestBar(props: {
   if (left === 0) {
     return (
       <button type="button" className="restbar restbar-ready" onClick={() => props.onChange(undefined, undefined)}>
+        <Icon name="check" size="1.5rem" />
         <strong className="grow">Rest's up. Go.</strong>
         <span className="small">Dismiss</span>
       </button>
@@ -644,8 +649,9 @@ function RestBar(props: {
   const pct = total ? Math.min(100, (left / total) * 100) : 0
   return (
     <div className="restbar" style={{ '--rest-left': `${pct}%` } as CSSProperties}>
-      <span className="grow">
-        <strong>Rest {mmss(left)}</strong> <span className="muted small">until {clock(restEndsAt)}</span>
+      <span className="grow stack">
+        <strong className="rest-time num">{mmss(left)}</strong>
+        <span className="muted small">Rest, until {clock(restEndsAt)}</span>
       </span>
       <button type="button" className="btn btn-quiet btn-small" onClick={() => props.onChange(restEndsAt - 30_000, total)}>
         −30
@@ -778,7 +784,7 @@ function SlotCard(props: {
       )}
       {!collapsed && conflict && (
         <p className="small warn-text no-margin slot-warn">
-          Goes against the {conflict.name.toLowerCase()} restriction.
+          <Icon name="warning" size="1.1em" /> Goes against the {conflict.name.toLowerCase()} restriction.
           {working.length === 0 && slot.role === 'main' ? ' Swap it for today?' : ''}
         </p>
       )}
@@ -897,8 +903,14 @@ function SetLine(props: {
   if (logged) {
     const short = !planned.amrap && logged.reps < planned.reps
     return (
-      <button type="button" className={short ? 'set set-done set-short' : 'set set-done'} onClick={props.onEdit}>
-        <span className="set-num">✓</span>
+      <button
+        type="button"
+        className={`set set-done${short ? ' set-short' : ''}${Date.now() - logged.at < 2500 ? ' set-fresh' : ''}`}
+        onClick={props.onEdit}
+      >
+        <span className="set-num set-check">
+          <Icon name="check" size="0.9em" />
+        </span>
         <span className="grow">
           <strong>
             {weightText(logged.weight, exercise)} × {logged.reps}
@@ -909,7 +921,11 @@ function SetLine(props: {
           {short && <span className="small warn-text"> of {targetText(planned, exercise)}</span>}
         </span>
         {flags}
-        {props.pr && <span className="badge badge-pr">{PR_LABEL[props.pr]}</span>}
+        {props.pr && (
+          <span className="badge badge-pr">
+            <Icon name="star" size="1em" /> {PR_LABEL[props.pr]}
+          </span>
+        )}
       </button>
     )
   }
@@ -1312,5 +1328,26 @@ function SaveGroupSheet(props: {
         </button>
       </div>
     </Sheet>
+  )
+}
+
+/** A person's rest as a ring that empties; full and green once it's up. */
+function RestRing({ left, total }: { left: number; total?: number }) {
+  const r = 7
+  const length = 2 * Math.PI * r
+  const share = left > 0 && total ? Math.min(1, left / total) : 0
+  return (
+    <svg viewBox="0 0 18 18" width="18" height="18" className={left > 0 ? 'rest-ring' : 'rest-ring rest-ring-ready'} aria-hidden="true">
+      <circle cx="9" cy="9" r={r} className="rest-ring-track" />
+      <circle
+        cx="9"
+        cy="9"
+        r={r}
+        className="rest-ring-left"
+        strokeDasharray={length}
+        strokeDashoffset={left > 0 ? length * (1 - share) : 0}
+        transform="rotate(-90 9 9)"
+      />
+    </svg>
   )
 }

@@ -14,6 +14,8 @@ import type { Rating, Stars } from '../../engine/types.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
 import { ConfirmButton } from '../components/forms.tsx'
 import { StarPicker } from '../components/RatingSheet.tsx'
+import { Icon } from '../icons.tsx'
+import { Tile, Tiles } from '../Tiles.tsx'
 import { formatDate, percentText } from '../format.ts'
 
 const PR_LABEL: Record<PrKind, string> = { e1rm: 'e1RM PR', reps: 'rep PR', heaviest: 'heaviest ever' }
@@ -176,7 +178,9 @@ export function SessionSummary() {
                   <ul className="pr-list">
                     {highlights.map(({ set, kind }) => (
                       <li key={set.id}>
-                        <span className="badge badge-pr">{PR_BADGE[kind]}</span> {findExercise(set.exerciseId)?.name}{' '}
+                        <span className="badge badge-pr">
+                          <Icon name="star" size="1em" /> {PR_BADGE[kind]}
+                        </span> {findExercise(set.exerciseId)?.name}{' '}
                         {set.weight} × {set.reps} ({PR_LABEL[kind]})
                       </li>
                     ))}
@@ -210,11 +214,16 @@ function WorkoutNumbers({ stats }: { stats: WorkoutStats }) {
   const vs = change(stats.tonnage, stats.lastTime)
   return (
     <div className="workout-numbers">
-      <p className="no-margin">
-        <strong>{pounds(stats.tonnage)} lb</strong> moved
-        {vs !== undefined ? <span className="muted"> ({percentText(vs)} on last time)</span> : null} · {stats.sets}{' '}
-        {stats.sets === 1 ? 'set' : 'sets'}, {stats.reps} reps
-      </p>
+      <Tiles>
+        <Tile
+          value={pounds(stats.tonnage)}
+          label="lb moved"
+          change={vs !== undefined ? `${percentText(vs)} on last time` : undefined}
+          up={vs !== undefined && vs >= 0}
+        />
+        <Tile value={stats.sets} label={stats.sets === 1 ? 'set' : 'sets'} />
+        <Tile value={stats.reps} label="reps" />
+      </Tiles>
       {stats.lifts.length > 0 && (
         <p className="no-margin small">
           {stats.lifts
