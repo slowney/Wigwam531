@@ -20,6 +20,10 @@ export function repRange(reps: readonly [number, number]): string {
 /** A scheme in a few words: "9 sets, 65–95% · ★ 95%", or "4 × 6–8". */
 export function schemeSummary(scheme: Scheme): string {
   if (scheme.kind === 'range') return `${scheme.sets} × ${repRange(scheme.reps)}`
+  if (scheme.waves?.length) {
+    const names = scheme.waveNames ?? scheme.waves.map((_, i) => `week ${i + 1}`)
+    return `${scheme.waves.length}-week wave: ${names.join(', ')}`
+  }
   const pcts = scheme.sets.map((s) => s.pct)
   const low = Math.min(...pcts)
   const high = Math.max(...pcts)

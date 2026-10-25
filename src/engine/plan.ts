@@ -7,6 +7,8 @@ import {
   DELOAD_SETS,
   TM_TEST_SETS,
   rangeSchemeId,
+  waveName,
+  waveSets,
   type PercentScheme,
   type PercentSet,
   type RangeScheme,
@@ -48,6 +50,8 @@ export interface PlannedSlot {
   sets: PlannedSet[]
   /** Rep-range work: how today's weight came from last time's. Set by `planEntry`. */
   carried?: DoubleProgression
+  /** A wave scheme's week, as in "3s week". */
+  wave?: string
 }
 
 export interface PlannedDay {
@@ -63,6 +67,8 @@ export interface PlanContext {
   tms: Readonly<Record<string, number>>
   /** Current double-progression weight, by exercise id. */
   workingWeights?: Readonly<Record<string, number>>
+  /** Where this week falls in a wave (see `waveIndex`). Schemes without waves ignore it. */
+  waveIndex?: number
   schemes: SchemeLookup
   rounding?: Rounding
   /** Bar weight for an exercise. Undefined for anything not on a bar. */
@@ -102,14 +108,28 @@ function warmup(weight: number, reps: number, pct?: number): PlannedSet {
   return { weight, reps, pct, amrap: false, progression: false, tmTest: false }
 }
 
-function percentSetsFor(scheme: PercentScheme, weekType: WeekType): PercentSet[] {
+function percentSetsFor(scheme: PercentScheme, weekType: WeekType, waveIndex: number): PercentSet[] {
   if (weekType === 'deload') return DELOAD_SETS
   if (weekType === 'tmTest') {
     // Only the slot that drives a TM tests it. Everything else rides along
     // as deload work, so a TM-test week is light across the board.
-    return scheme.sets.some((s) => s.progression) ? TM_TEST_SETS : DELOAD_SETS
+    return scheme.sets.some((s) => s.progression) || scheme.cycle ? TM_TEST_SETS : DELOAD_SETS
   }
-  return scheme.sets
+  return waveSets(scheme, waveIndex)
+}
+
+/**
+ * Where a week falls in a wave (0 for the first week): normal weeks since
+ * the last deload or TM test. Those weeks don't count, so every cycle
+ * after one starts again from its first week.
+ */
+export function waveIndex(weeks: ReadonlyArray<{ number: number; type: WeekType }>, number: number): number {
+  let count = 0
+  for (const w of [...weeks].filter((x) => x.number < number).sort((a, b) => b.number - a.number)) {
+    if (w.type !== 'normal') break
+    count++
+  }
+  return count
 }
 
 function rangeSets(scheme: RangeScheme, weight: number | undefined, weekType: WeekType): PlannedSet[] {
@@ -160,7 +180,7 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
 
   const rounding = ctx.rounding ?? DEFAULT_ROUNDING
   const bar = ctx.barFor?.(slot.exerciseId)
-  const sets = percentSetsFor(scheme, ctx.weekType).map((s) =>
+  const sets = percentSetsFor(scheme, ctx.weekType, ctx.waveIndex ?? 0).map((s) =>
     flagUnloadable(
       slot.exerciseId,
       {
@@ -177,7 +197,8 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
   )
   const first = sets[0]?.weight
   const warmups = slot.warmups && first !== undefined ? warmupSets(tm, first, bar, rounding) : []
-  return { ...base, tmExerciseId, tm, missingTm: false, warmups, sets }
+  const wave = ctx.weekType === 'normal' ? waveName(scheme, ctx.waveIndex ?? 0) : undefined
+  return { ...base, tmExerciseId, tm, missingTm: false, warmups, sets, ...(wave ? { wave } : {}) }
 }
 
 /** An accessory picked for today. */

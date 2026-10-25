@@ -5,7 +5,7 @@ import { db } from '../../db/db.ts'
 import { deleteScheme, saveScheme, schemeUsers } from '../../db/schemes.ts'
 import { rangeSchemeId, type PercentScheme, type PercentSet } from '../../engine/schemes.ts'
 import { percentSetText, schemeSummary } from '../format.ts'
-import { ConfirmButton, Stepper } from './forms.tsx'
+import { ConfirmButton, Segmented, Stepper } from './forms.tsx'
 import { Sheet } from './Sheet.tsx'
 
 const isPercent = (s: { kind: string }): s is PercentScheme => s.kind === 'percent'
@@ -119,7 +119,11 @@ export function SchemeEditor(props: {
 }) {
   const start = props.editing ?? props.from
   const [name, setName] = useState(props.editing?.name ?? (props.from ? `My ${props.from.name}` : ''))
-  const [rows, setRows] = useState<Row[]>(() => (start?.sets ?? STARTER).map(toRow))
+  // A wave has one list of sets per week; anything else is a wave of one.
+  const [weeks, setWeeks] = useState<Row[][]>(() => (start?.waves ?? [start?.sets ?? STARTER]).map((w) => w.map(toRow)))
+  const [tab, setTab] = useState(0)
+  const rows = weeks[tab]!
+  const setRows = (next: Row[]) => setWeeks(weeks.map((w, i) => (i === tab ? next : w)))
   const [error, setError] = useState<string>()
   const users = useLiveQuery(() => (props.editing ? schemeUsers(props.editing.id) : []), [props.editing?.id])
 
@@ -131,7 +135,13 @@ export function SchemeEditor(props: {
   async function save() {
     setError(undefined)
     try {
-      const scheme = { kind: 'percent' as const, name, sets: rows.map(fromRow) }
+      const sets = weeks.map((w) => w.map(fromRow))
+      const scheme = {
+        kind: 'percent' as const,
+        name,
+        sets: sets[0]!,
+        ...(start?.waves ? { waves: sets, waveNames: start.waveNames, cycle: start.cycle } : {}),
+      }
       props.onSaved(await saveScheme(props.editing ? { ...scheme, id: props.editing.id } : scheme))
     } catch (e) {
       setError((e as Error).message)
@@ -146,6 +156,16 @@ export function SchemeEditor(props: {
         </label>
         <input id="scheme-name" className="input" value={name} autoComplete="off" onChange={(e) => setName(e.target.value)} />
       </div>
+      {weeks.length > 1 && (
+        <div className="range-picker">
+          <Segmented
+            label="Wave week"
+            value={String(tab)}
+            onChange={(v) => setTab(Number(v))}
+            options={weeks.map((_, i) => ({ value: String(i), label: start?.waveNames?.[i] ?? `Week ${i + 1}` }))}
+          />
+        </div>
+      )}
       <div className="scheme-rows" role="table" aria-label="Sets">
         <div className="scheme-row scheme-head" role="row">
           <span>Set</span>
@@ -246,14 +266,22 @@ export function SchemeEditor(props: {
 export function SchemeView(props: { scheme: PercentScheme; onCopy: () => void; onClose: () => void }) {
   return (
     <Sheet title={props.scheme.name} onClose={props.onClose}>
-      <ol className="scheme-list">
-        {props.scheme.sets.map((s, i) => (
-          <li key={i}>
-            {percentSetText(s)}
-            {s.progression ? ' ★' : ''}
-          </li>
-        ))}
-      </ol>
+      {(props.scheme.waves ?? [props.scheme.sets]).map((sets, w) => (
+        <div key={w}>
+          {props.scheme.waves && <h3 className="picker-group">{props.scheme.waveNames?.[w] ?? `Week ${w + 1}`} week</h3>}
+          <ol className="scheme-list">
+            {sets.map((s, i) => (
+              <li key={i}>
+                {percentSetText(s)}
+                {s.progression ? ' ★' : ''}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+      {props.scheme.cycle && (
+        <p className="muted small">The TM moves once a cycle: +5 upper body, +10 lower, if every 1+ set made its reps.</p>
+      )}
       <p className="muted small">Built-in schemes stay as they are. Copy one to make your own version.</p>
       <div className="actions">
         <button type="button" className="btn grow" onClick={props.onCopy}>

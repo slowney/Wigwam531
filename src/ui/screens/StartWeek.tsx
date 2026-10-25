@@ -94,6 +94,12 @@ function why(p: TmProposal): string {
       return `${p.reps} at 100%: the TM is right`
     case 'tmTestFailed':
       return `${p.reps} at 100%: lowered`
+    case 'cycle':
+      return `5/3/1 cycle done, every 1+ set made: +${bump}`
+    case 'midCycle':
+      return 'Partway through the 5/3/1 cycle, so it holds'
+    case 'cycleMissed':
+      return 'A 1+ set fell short this cycle, so it holds'
   }
 }
 

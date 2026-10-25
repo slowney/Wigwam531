@@ -65,7 +65,9 @@ export function dayLabel(day: ProgramDay, lookup: ExerciseLookup): string {
     const exercise = lookup(slot.exerciseId)
     return exercise?.short ?? exercise?.name ?? slot.exerciseId
   })
-  return lifts.length ? `${day.name}: ${lifts.join('/')}` : day.name
+  // 5/3/1 days run the main lift twice (main work, then BBB or BBS): name it once.
+  const names = [...new Set(lifts)]
+  return names.length ? `${day.name}: ${names.join('/')}` : day.name
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { findExercise } from '../src/data/exercises.ts'
-import { NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
+import { FIVE_THREE_ONE_BBB, NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
 import { findScheme } from '../src/data/schemes.ts'
 import { dayLabel, progressedTms, resolveProgram, type Program, type ProgramOverrides } from '../src/engine/program.ts'
 import type { LoggedSet } from '../src/engine/types.ts'
@@ -130,5 +130,11 @@ describe('reading results back out of logged sets', () => {
   it('reads the 100% set of a TM test', () => {
     const sets = [set({ reps: 5, at: 1 }), set({ tmTest: true, weight: 225, reps: 4, at: 2 })]
     expect(tmTestReps(sets)).toEqual({ 'bench-press': 4 })
+  })
+})
+
+describe('5/3/1 day labels', () => {
+  it('name a lift done twice only once', () => {
+    expect(dayLabel(FIVE_THREE_ONE_BBB.days[0]!, findExercise)).toBe('Day 1: OHP')
   })
 })

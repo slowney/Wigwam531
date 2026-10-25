@@ -26,6 +26,12 @@ function progressionText(scheme: Scheme | undefined, tmName: string): string {
   if (scheme.kind === 'range') {
     return `Double progression: the weight goes up once every set reaches ${scheme.reps[1]} reps.`
   }
+  if (scheme.cycle) {
+    return `Moves the ${tmName} TM once a cycle: +5 (upper body) or +10 (lower) after the last wave week, if every 1+ set made its reps.`
+  }
+  if (scheme.waves?.length) {
+    return `Changes week to week with the wave, and follows the ${tmName} TM as that moves.`
+  }
   const star = scheme.sets.find((s) => s.progression)
   return star
     ? `The ★ set at ${star.pct}% moves the ${tmName} TM at Start Week.`

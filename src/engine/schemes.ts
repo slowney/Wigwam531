@@ -14,7 +14,34 @@ export interface PercentScheme {
   kind: 'percent'
   id: string
   name: string
+  /** The sets, or the first week's for a wave. */
   sets: PercentSet[]
+  /**
+   * 5/3/1-style: different sets each week of a cycle (5s, 3s, 5/3/1),
+   * picked by where the week falls in the wave. `sets` is the first week.
+   */
+  waves?: PercentSet[][]
+  /** "5s", "3s", "5/3/1": one per wave week. */
+  waveNames?: string[]
+  /**
+   * Classic 5/3/1 progression: the TM moves once a cycle, after the last
+   * wave week, by a fixed step, and only if every 1+ set made its reps.
+   * No ★ set drives it week to week.
+   */
+  cycle?: boolean
+}
+
+/** The sets for one week of a scheme: its wave week, for a wave. */
+export function waveSets(scheme: PercentScheme, waveIndex: number): PercentSet[] {
+  if (!scheme.waves?.length) return scheme.sets
+  return scheme.waves[waveIndex % scheme.waves.length]!
+}
+
+/** "3s week", for the wave week a week falls on. Undefined for a scheme without waves. */
+export function waveName(scheme: PercentScheme, waveIndex: number): string | undefined {
+  if (!scheme.waves?.length) return undefined
+  const i = waveIndex % scheme.waves.length
+  return `${scheme.waveNames?.[i] ?? `Week ${i + 1}`} week`
 }
 
 /** Double progression: a working weight held until every set hits the top of the range. */

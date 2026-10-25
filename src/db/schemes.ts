@@ -16,12 +16,14 @@ export function validateScheme(s: Scheme): void {
     }
     return
   }
-  if (s.sets.length === 0) throw new Error('Add at least one set.')
-  if (s.sets.some((x: PercentSet) => !(x.pct >= 1 && x.pct <= 150) || !(x.reps >= 1))) {
-    throw new Error('Each set needs 1–150% and at least one rep.')
+  for (const sets of s.waves ?? [s.sets]) {
+    if (sets.length === 0) throw new Error('Add at least one set.')
+    if (sets.some((x: PercentSet) => !(x.pct >= 1 && x.pct <= 150) || !(x.reps >= 1))) {
+      throw new Error('Each set needs 1–150% and at least one rep.')
+    }
+    // Progression reads one 1+ set per TM a week; two in a slot would compete.
+    if (sets.filter((x) => x.progression).length > 1) throw new Error('Only one set can drive the TM.')
   }
-  // Progression reads one 1+ set per TM a week; two in a slot would compete.
-  if (s.sets.filter((x) => x.progression).length > 1) throw new Error('Only one set can drive the TM.')
 }
 
 /** Saves a new scheme (no id) or replaces one. Edits change future plans only; history keeps what was prescribed. */

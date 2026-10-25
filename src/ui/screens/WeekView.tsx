@@ -6,7 +6,7 @@ import { findScheme } from '../../data/schemes.ts'
 import { db } from '../../db/db.ts'
 import { loadTms } from '../../db/profiles.ts'
 import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus, weekState } from '../../db/weeks.ts'
-import type { PlannedSlot } from '../../engine/plan.ts'
+import { waveIndex, type PlannedSlot } from '../../engine/plan.ts'
 import { dayLabel } from '../../engine/program.ts'
 import { planEntry } from '../../engine/session.ts'
 import { statusOf, type DayStatus } from '../../engine/week.ts'
@@ -18,13 +18,19 @@ const STATUS_LABEL: Record<DayStatus, string> = { pending: 'To do', done: 'Done'
 
 function setsText(slot: PlannedSlot): string {
   if (slot.missingTm) return 'No TM entered yet'
-  return slot.sets
-    .map((s) => {
-      const reps = s.repsMax !== undefined ? `${s.reps}-${s.repsMax}` : `${s.reps}${s.amrap ? '+' : ''}`
-      const text = `${s.weight ?? '?'}×${reps}`
-      return s.progression ? `[${text}]` : text
-    })
-    .join(' · ')
+  const texts = slot.sets.map((s) => {
+    const reps = s.repsMax !== undefined ? `${s.reps}-${s.repsMax}` : `${s.reps}${s.amrap ? '+' : ''}`
+    const text = `${s.weight ?? '?'}×${reps}`
+    return s.progression ? `[${text}]` : text
+  })
+  // Runs of the same set (BBB's 5 × 10, BBS's 10 × 5) read better counted.
+  const runs: Array<{ text: string; count: number }> = []
+  for (const text of texts) {
+    const last = runs.at(-1)
+    if (last?.text === text) last.count++
+    else runs.push({ text, count: 1 })
+  }
+  return runs.map((r) => (r.count > 1 ? `${r.text} (×${r.count})` : r.text)).join(' · ')
 }
 
 export function WeekView() {
@@ -45,6 +51,7 @@ export function WeekView() {
       overview,
       doneIn,
       tms: await loadTms(id),
+      weeks: await db.weeks.where('profileId').equals(id).toArray(),
       history: await db.sets.where('profileId').equals(id).toArray(),
       gym: (await db.gyms.get('home')) ?? HOME_GYM,
     }
@@ -87,6 +94,7 @@ export function WeekView() {
           swaps: {},
           accessories: [],
           weekType: week?.type ?? 'normal',
+          waveIndex: week ? waveIndex(data.weeks ?? [], week.number) : 0,
           tms: data.tms ?? {},
           history: data.history ?? [],
           sessionId: '',
@@ -103,7 +111,10 @@ export function WeekView() {
             {plan?.day.mains.map((slot) => (
               <div key={slot.slotId} className="day-slot">
                 <strong>{findExercise(slot.exerciseId)?.name ?? slot.exerciseId}</strong>{' '}
-                <span className="muted small">{slot.tier}</span>
+                <span className="muted small">
+                  {slot.tier}
+                  {slot.wave ? ` · ${slot.wave}` : ''}
+                </span>
                 <div className="small mono">{setsText(slot)}</div>
               </div>
             ))}

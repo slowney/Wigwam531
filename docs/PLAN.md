@@ -131,6 +131,16 @@ nothing changes until you tap to apply it.
 - When every day is done or skipped, the profile's card on the home screen offers **Start Week N+1**. "End week" is available at any time to skip whatever is left.
 - Group sessions usually line up. If a partner missed Day 2, they're offered Day 2 next and a note shows that they're on a different day. They can catch up on it while everyone else does Day 3, or pick Day 3 to stay with the group. Day 2 then stays open until they do it, or End Week skips it.
 
+### 5/3/1 waves
+
+A percent scheme can change by week of a cycle. The built-in 5/3/1
+scheme runs 5s, 3s and 5/3/1 weeks, each ending on a 1+ set; BBS adds
+10 × 5 at that week's first-set percentage, and BBB 5 × 10 at 50%. A
+person's place in the wave is their normal weeks since the last deload or
+TM test. A TM run by the 5/3/1 scheme moves once a cycle (+5 upper body,
++10 lower) if every 1+ set in the 5/3/1 week made its reps, and holds
+otherwise. Waves are ordinary schemes, so they mix with nSuns days.
+
 ### Deload and TM-test weeks
 
 Picked at Start Week instead of a normal week.
@@ -435,7 +445,6 @@ volume are calculated when read instead of being stored.
 - combined group view
 - Apple Health (not available to web apps)
 - kg
-- classic 5/3/1 three-week waves (the scheme model leaves room for them)
 
 ## Ideas for later
 

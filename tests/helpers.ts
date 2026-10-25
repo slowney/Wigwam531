@@ -7,7 +7,7 @@ import { findScheme } from '../src/data/schemes.ts'
 import { openDb, type WigwamDb } from '../src/db/db.ts'
 import { createProfile, loadProgram, loadTms } from '../src/db/profiles.ts'
 import { addAccessory, finishSession, logSet, setFromPlan, startSession } from '../src/db/sessions.ts'
-import type { PlannedSet, PlannedSlot } from '../src/engine/plan.ts'
+import { waveIndex, type PlannedSet, type PlannedSlot } from '../src/engine/plan.ts'
 import { planEntry } from '../src/engine/session.ts'
 
 export const freshDb = (): WigwamDb => openDb(`test-${crypto.randomUUID()}`)
@@ -98,6 +98,10 @@ export async function planFor(
     accessories: entry.accessories,
     skips: entry.skips,
     weekType: (await db.weeks.get(entry.weekId))!.type,
+    waveIndex: waveIndex(
+      await db.weeks.where('profileId').equals(profileId).toArray(),
+      (await db.weeks.get(entry.weekId))!.number,
+    ),
     tms: await loadTms(profileId, db),
     history: await db.sets.where('profileId').equals(profileId).toArray(),
     sessionId: entry.sessionId,

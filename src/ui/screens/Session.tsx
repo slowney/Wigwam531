@@ -41,7 +41,7 @@ import {
   updateAccessory,
   updateSet,
 } from '../../db/sessions.ts'
-import type { PlannedSet, PlannedSlot } from '../../engine/plan.ts'
+import { waveIndex, type PlannedSet, type PlannedSlot } from '../../engine/plan.ts'
 import { rankGroups } from '../../engine/groups.ts'
 import { dayLabel, type AccessoryGroup, type Program } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
@@ -89,6 +89,8 @@ interface Person {
   program?: Program
   tms: Record<string, number>
   week?: WeekRow
+  /** All their weeks, for where this one falls in a 5/3/1 wave. */
+  weeks: WeekRow[]
   history: SetRow[]
   ratings: Map<string, Rating>
   restrictions: RestrictionRow[]
@@ -134,6 +136,7 @@ async function loadSession(): Promise<{ session?: SessionRow; people: Person[]; 
       program: await loadProgram(profileId),
       tms: await loadTms(profileId),
       week: await db.weeks.get(entry.weekId),
+      weeks: await db.weeks.where('profileId').equals(profileId).toArray(),
       history: await db.sets.where('profileId').equals(profileId).toArray(),
       ratings: await loadRatings(profileId),
       restrictions: await loadRestrictions(profileId),
@@ -159,6 +162,7 @@ function viewOf(person: Person, gym: Gym, now: number): View {
       accessories: today ? person.entry.accessories : [],
       skips: today ? person.entry.skips : undefined,
       weekType: person.week?.type ?? 'normal',
+      waveIndex: person.week ? waveIndex(person.weeks, person.week.number) : 0,
       tms: person.tms,
       history: person.history,
       sessionId: person.entry.sessionId,
@@ -696,6 +700,7 @@ function SlotCard(props: {
     const borrowed = slot.tmExerciseId && slot.tmExerciseId !== slot.exerciseId ? `${exerciseOf(slot.tmExerciseId)?.name ?? ''} ` : ''
     meta = `${slot.tier} · ${borrowed}TM ${slot.tm}`
   }
+  if (slot.wave) meta += ` · ${slot.wave}`
   // Rep-range work says when it has moved up since last time, and why.
   const { carried } = slot
   if (carried?.reason === 'increase' && carried.weight !== undefined && carried.last !== undefined) {

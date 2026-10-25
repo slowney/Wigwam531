@@ -8,6 +8,8 @@ import type { Program } from '../engine/program.ts'
 export const PRESET_BLURBS: Record<string, string> = {
   'nsuns-4day': 'Bench, squat, OHP and deadlift days, each with its T2.',
   'nsuns-4day-row': 'The same four days, plus a heavy barbell row on Day 1.',
+  '531-bbb-4day': '5/3/1: OHP, deadlift, bench and squat days. 5s, 3s and 5/3/1 weeks, then 5 × 10 at 50% of the same lift.',
+  '531-bbs-4day': "5/3/1 with 10 × 5 at the first set's percentage after the main sets. More strength, less volume than BBB.",
 }
 
 /** Someone running their own program: a leader to follow, or a program to copy. */

@@ -180,6 +180,8 @@ export interface EntryPlanInput {
   /** Sets left out today, by slot id: set indexes. */
   skips?: Readonly<Record<string, readonly number[]>>
   weekType: WeekType
+  /** Where this week falls in a wave (see `waveIndex`). */
+  waveIndex?: number
   tms: Readonly<Record<string, number>>
   /** This person's logged sets, for carried-over weights. */
   history: ReadonlyArray<HistorySet>
@@ -223,6 +225,7 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
 
   const ctx: PlanContext = {
     weekType: input.weekType,
+    waveIndex: input.waveIndex,
     tms: input.tms,
     workingWeights,
     schemes: input.schemes,

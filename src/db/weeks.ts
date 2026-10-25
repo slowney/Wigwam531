@@ -2,9 +2,11 @@ import Dexie from 'dexie'
 import { findExercise } from '../data/exercises.ts'
 import { findScheme } from '../data/schemes.ts'
 import { weekRecap, type WeekRecap } from '../engine/metrics.ts'
-import type { WeekType } from '../engine/plan.ts'
+import { waveIndex, type WeekType } from '../engine/plan.ts'
 import { requiredTms, type Program, type ProgramDay } from '../engine/program.ts'
 import {
+  cycleResults,
+  cycleStep,
   defaultTable,
   proposeTmChanges,
   suggestWeekType,
@@ -141,7 +143,10 @@ export async function loadWeekReview(profileId: string, db: WigwamDb = defaultDb
   }
   const sets = await db.sets.where('profileId').equals(profileId).toArray()
   const thisWeek = sets.filter((s) => s.weekId === week.id)
+  const weeks = await db.weeks.where('profileId').equals(profileId).toArray()
   const proposals = proposeTmChanges({
+    cycles: cycleResults(program, findScheme, waveIndex(weeks, week.number), thisWeek),
+    cycleStep: (id) => cycleStep(findExercise(id)?.region ?? 'upper'),
     weekType: week.type,
     tms,
     results: week.type === 'tmTest' ? tmTestReps(thisWeek) : progressionReps(thisWeek),
@@ -149,7 +154,6 @@ export async function loadWeekReview(profileId: string, db: WigwamDb = defaultDb
     previous: progressionReps(sets.filter((s) => s.weekId !== week.id)),
     tables: (id) => profile?.progressionTables?.[id] ?? defaultTable(findExercise(id)?.region ?? 'upper'),
   })
-  const weeks = await db.weeks.where('profileId').equals(profileId).toArray()
   const stalled = proposals.filter((p) => p.reason === 'stall').length
   const before = weeks.find((w) => w.number === week.number - 1)
   const prs = prChecks(sets)

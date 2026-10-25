@@ -1,4 +1,6 @@
 import type { WeekType } from './plan.ts'
+import { slotTmId, type Program } from './program.ts'
+import type { SchemeLookup } from './schemes.ts'
 import { TM_TEST_PASS_REPS } from './schemes.ts'
 import type { Exercise } from './types.ts'
 import { DEFAULT_ROUNDING, percentOf, type Rounding } from './weights.ts'
@@ -39,6 +41,12 @@ export function increaseFor(reps: number, table: ProgressionTable): number {
 
 export type TmReason =
   | 'progression'
+  /** A 5/3/1 cycle finished with every 1+ set made: the fixed step. */
+  | 'cycle'
+  /** Partway through a 5/3/1 cycle: TMs move at its end. */
+  | 'midCycle'
+  /** A 5/3/1 cycle finished, but a 1+ set fell short: the TM holds. */
+  | 'cycleMissed'
   | 'stall'
   | 'skipped'
   | 'deload'
@@ -67,6 +75,19 @@ export interface ProposalInput {
   previous: Readonly<Record<string, number | undefined>>
   tables: (exerciseId: string) => ProgressionTable
   rounding?: Rounding
+  /**
+   * TMs run by a 5/3/1 cycle instead of a weekly ★ set: whether the ending
+   * week was the cycle's last, and whether every 1+ set that week made its
+   * reps (undefined when none were done).
+   */
+  cycles?: Readonly<Record<string, { last: boolean; made?: boolean }>>
+  /** The step a cycle-run TM takes (see `cycleStep`). */
+  cycleStep?: (exerciseId: string) => number
+}
+
+/** Classic 5/3/1: +5 lb a cycle on upper-body lifts, +10 on lower. */
+export function cycleStep(region: Exercise['region']): number {
+  return region === 'lower' ? 10 : 5
 }
 
 /** 0-1 reps on the 1+ set, two times running, is a stall. */
@@ -79,6 +100,13 @@ export function proposeTmChanges(input: ProposalInput): TmProposal[] {
     const lowered = percentOf(current, 90, rounding)
 
     if (input.weekType === 'deload') return { exerciseId, current, proposed: current, reason: 'deload' }
+    const cycle = input.cycles?.[exerciseId]
+    if (cycle && input.weekType === 'normal') {
+      if (!cycle.last) return { exerciseId, current, proposed: current, reason: 'midCycle' }
+      if (cycle.made === undefined) return { exerciseId, current, proposed: current, reason: 'skipped' }
+      if (!cycle.made) return { exerciseId, current, proposed: current, reason: 'cycleMissed' }
+      return { exerciseId, current, proposed: current + input.cycleStep!(exerciseId), reason: 'cycle' }
+    }
     if (reps === undefined) return { exerciseId, current, proposed: current, reason: 'skipped' }
 
     if (input.weekType === 'tmTest') {
@@ -179,4 +207,42 @@ export function suggestWeekType(
     type: last === 'deload' ? 'tmTest' : 'deload',
     reason: since ? `${normal} normal weeks since the last ${since}.` : `${normal} normal weeks so far, with no deload yet.`,
   }
+}
+
+/**
+ * For each TM a 5/3/1 cycle runs: whether this week was its cycle's last
+ * wave week, and whether every 1+ set on it this week made its reps. A TM
+ * that a weekly ★ set also drives stays on the weekly rule.
+ */
+export function cycleResults(
+  program: Program,
+  schemes: SchemeLookup,
+  waveIndex: number,
+  weekSets: ReadonlyArray<{
+    exerciseId: string
+    tmExerciseId?: string
+    amrap: boolean
+    warmup: boolean
+    reps: number
+    prescribedReps: number
+  }>,
+): Record<string, { last: boolean; made?: boolean }> {
+  const weekly = new Set<string>()
+  const cycles = new Map<string, number>()
+  for (const slot of program.days.flatMap((d) => d.mains)) {
+    const scheme = schemes(slot.schemeId)
+    if (scheme?.kind !== 'percent') continue
+    if (scheme.sets.some((s) => s.progression)) weekly.add(slotTmId(slot))
+    if (scheme.cycle) cycles.set(slotTmId(slot), scheme.waves?.length ?? 1)
+  }
+  const out: Record<string, { last: boolean; made?: boolean }> = {}
+  for (const [id, length] of cycles) {
+    if (weekly.has(id)) continue
+    const tops = weekSets.filter((s) => !s.warmup && s.amrap && (s.tmExerciseId ?? s.exerciseId) === id)
+    out[id] = {
+      last: waveIndex % length === length - 1,
+      made: tops.length ? tops.every((s) => s.reps >= s.prescribedReps) : undefined,
+    }
+  }
+  return out
 }

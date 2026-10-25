@@ -18,7 +18,7 @@ writing code.
 - Phase 5 (program editor and custom programs) is built and was clicked through in the phone-size preview. It's waiting on the user restructuring something real and training a week on it.
 - Phase 5b (feedback from the garage) is built and was clicked through in the phone-size preview. On the phone, the user still needs to check that the tab bar stays put after a workout resumes, and that the set editor fits.
 - Phase 6 (progress and metrics) is built and was checked in the phone-size preview against six months of demo data. It's waiting on the user looking at their real data on the phone, plus the trimmed space under the tab bar.
-- Phase 7 (skipping sets, accessory groups, deload and TM-test suggestions, workout and weekly numbers, comparing on exercise pages) is built and was checked in the preview. It's waiting on real use. Phase 8 (5/3/1 waves with BBB and BBS) is next to plan; partners on their own phones is planned in `docs/SYNC.md`.
+- Phase 7 (skipping sets, accessory groups, deload and TM-test suggestions, workout and weekly numbers, comparing on exercise pages) is built and was checked in the preview. It's waiting on real use. Phase 8 (5/3/1 waves with BBB and BBS) is built and tested, waiting on a real cycle; partners on their own phones is planned in `docs/SYNC.md`.
 - **Demo data:** in the dev build only, Progress has "Load demo data" (`src/db/demo.ts`), six months of made-up training for a Demo profile. It's imported only behind `import.meta.env.DEV`, so it never ships.
 
 ## Hard rules

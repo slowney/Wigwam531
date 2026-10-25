@@ -49,4 +49,26 @@ export const NSUNS_4DAY_ROW: Program = {
   ),
 }
 
-export const PRESETS: Program[] = [NSUNS_4DAY, NSUNS_4DAY_ROW]
+/**
+ * 5/3/1, four days (OHP, deadlift, bench, squat): the 5s/3s/5/3/1 wave on
+ * each day's lift, then supplemental work on the same lift.
+ */
+function fiveThreeOne(id: string, name: string, supplemental: string): Program {
+  const lifts = ['overhead-press', 'deadlift', 'bench-press', 'squat']
+  return {
+    id,
+    name,
+    days: lifts.map((exerciseId, i) => {
+      const dayId = `d${i + 1}`
+      return day(dayId, `Day ${i + 1}`, [
+        main(`${dayId}-t1`, exerciseId, 'T1', '531-main'),
+        { ...main(`${dayId}-t2`, exerciseId, 'T2', supplemental), warmups: false },
+      ])
+    }),
+  }
+}
+
+export const FIVE_THREE_ONE_BBB = fiveThreeOne('531-bbb-4day', '5/3/1 BBB 4-day', '531-bbb')
+export const FIVE_THREE_ONE_BBS = fiveThreeOne('531-bbs-4day', '5/3/1 BBS 4-day', '531-bbs')
+
+export const PRESETS: Program[] = [NSUNS_4DAY, NSUNS_4DAY_ROW, FIVE_THREE_ONE_BBB, FIVE_THREE_ONE_BBS]

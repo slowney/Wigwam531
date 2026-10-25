@@ -237,11 +237,24 @@ From the list after Phase 6. Built:
 - Tests show skipped sets leave the count and the next set, and a logged set can't be skipped; groups save to the leader's day, rank by rating and fit, and add to followers' workouts; the deload and TM-test rules; and the workout and week numbers.
 - You use a group and a skipped set in a real workout.
 
+## Phase 8: 5/3/1 waves, BBB and BBS
+
+- **Wave schemes:** a percent scheme can hold a set list per week of a cycle. Built in: 5/3/1 (5s week 65/75/85%, 3s week 70/80/90%, 5/3/1 week 75/85/95%, each ending on a 1+ set), BBS (10 × 5 at that week's first-set percentage) and BBB (5 × 10 at 50% of the same lift, every week).
+- **Where a week falls in the wave:** each person's normal weeks since their last deload or TM test. Those weeks don't advance it, so each cycle after one starts again at the 5s week. Deloads and TM tests stay on the every-six-weeks suggestion from Phase 7, which matches 5/3/1 Forever's "7th week".
+- **Classic progression:** a TM run by the 5/3/1 scheme moves once a cycle, +5 upper body or +10 lower, after the 5/3/1 week, and only if every 1+ set that week made its reps. Otherwise it holds, and Start Week says why. A TM that a weekly ★ set also drives stays on the nSuns rule.
+- **Mixable:** waves are ordinary schemes, so they can go on any day of any program alongside nSuns lifts.
+- **Presets:** 5/3/1 BBB 4-day and 5/3/1 BBS 4-day (OHP, deadlift, bench and squat days, supplemental on the same lift).
+- **Showing it:** the workout, week view and lift sheet show the wave week ("3s week"); the scheme editor has a tab per wave week; day labels name a lift once ("Day 1: OHP"); the week view counts runs of identical sets ("65×5 (×10)").
+
+**Done when:**
+
+- Tests show the waves' weights for each week, BBB and BBS, TM-test weeks testing a cycle-run TM, and a full three-week cycle that holds TMs for two weeks and then steps them up.
+- You run a cycle of one of them for real.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)
 - combined group view (sets ordered by weight, who's up next)
 - partners logging on their own phones (needs a sync backend): planned in [SYNC.md](SYNC.md), to go over before scheduling
 - typing in past TMs so the charts don't start empty
-- classic 5/3/1 three-week waves
 - kg
