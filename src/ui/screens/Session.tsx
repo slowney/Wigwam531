@@ -43,7 +43,15 @@ import {
 } from '../../db/sessions.ts'
 import { waveIndex, type PlannedSet, type PlannedSlot } from '../../engine/plan.ts'
 import { rankGroups } from '../../engine/groups.ts'
-import { dayLabel, type AccessoryGroup, type Program } from '../../engine/program.ts'
+import {
+  DAY_FOCUS_LABELS,
+  dayFocus,
+  dayLabel,
+  focusMuscles,
+  type AccessoryGroup,
+  type DayFocus,
+  type Program,
+} from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
 import {
   dayProgress,
@@ -111,6 +119,8 @@ export interface View {
   prs: Map<string, PrCheck>
   /** Open accessory slots on today's program day. */
   flexSlots: number
+  /** Today's accessory focus (see DayFocus). */
+  day: DayFocus
   /** Muscles projected to finish the week short. */
   gaps: Gap[]
   projected: MuscleCounts
@@ -203,6 +213,8 @@ function viewOf(person: Person, gym: Gym, now: number): View {
   for (const s of person.history) {
     if (!s.warmup && s.at > (lastDone.get(s.exerciseId) ?? 0)) lastDone.set(s.exerciseId, s.at)
   }
+  // Today's accessory lean, from the program day as written (a swap doesn't change it).
+  const day: DayFocus = programDay ? dayFocus(programDay, findExercise) : 'full'
   const nextDay = otherPending[0]
   const hardOnBack = nextDay?.mains.some((m) => findExercise(m.exerciseId)?.lowerBack === 'high')
 
@@ -215,7 +227,8 @@ function viewOf(person: Person, gym: Gym, now: number): View {
     progress: dayProgress(slots, logged),
     prs: prChecks(person.history),
     flexSlots: programDay?.accessories.filter((a) => a.kind === 'flex').length ?? 0,
-    gaps: behind(projected, person.targets, focus),
+    gaps: behind(projected, person.targets, focus, focusMuscles(day)),
+    day,
     projected,
     focus,
     restrictions: activeRestrictions(person.restrictions, now),
@@ -234,6 +247,7 @@ export function suggestBase(view: View, gym: Gym): Omit<SuggestInput, 'only' | '
     gaps: view.gaps,
     exclude: new Set(view.slots.map((s) => s.exerciseId)),
     lastDone: view.lastDone,
+    day: view.day,
   }
 }
 
@@ -497,7 +511,10 @@ export function Session() {
       {active.slots.filter((s) => s.role === 'main').map(renderSlot)}
 
       <div className="acc-head">
-        <h2 className="grow no-margin">Accessories</h2>
+        <h2 className="grow no-margin">
+          Accessories
+          {active.day !== 'full' && <span className="muted small"> · {DAY_FOCUS_LABELS[active.day]} day</span>}
+        </h2>
         {emptySlots > 0 && (
           <button type="button" className="btn btn-small" onClick={() => run(() => fillAll(active))}>
             Fill all
@@ -1261,7 +1278,7 @@ function GroupChoices({ view, onApply }: { view: View; onApply: (group: Accessor
   // Nothing to offer once a group's been added, or everything in it is here anyway.
   const groups = (day?.groups ?? []).filter((g) => !used.has(g.id) && g.items.some((i) => !have.has(i.exerciseId)))
   if (groups.length === 0) return null
-  const ranked = rankGroups(groups, view.person.workouts, view.gaps, findExercise)
+  const ranked = rankGroups(groups, view.person.workouts, view.gaps, findExercise, focusMuscles(view.day))
   return (
     <div className="group-choices">
       <span className="label">Groups for this day</span>

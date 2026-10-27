@@ -7,6 +7,7 @@ import {
   slotTmId,
   type AccessoryGroup,
   type AccessorySlot,
+  type DayFocus,
   type MainSlot,
   type Program,
   type ProgramDay,
@@ -292,6 +293,15 @@ export function addGroup(program: Program, dayId: string, group: Omit<AccessoryG
   if (!name) throw new Error('Give the group a name.')
   if (group.items.length === 0) throw new Error('A group needs at least one accessory.')
   return mapDay(program, dayId, (d) => ({ ...d, groups: [...(d.groups ?? []), { ...group, name, id: newId() }] }))
+}
+
+/** A day's accessory focus; undefined goes back to working it out from the main lifts. */
+export function setDayFocus(program: Program, dayId: string, focus: DayFocus | undefined): Program {
+  return mapDay(program, dayId, (d) => {
+    const rest = { ...d }
+    delete rest.focus
+    return focus ? { ...rest, focus } : rest
+  })
 }
 
 export function removeGroup(program: Program, groupId: string): Program {

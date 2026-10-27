@@ -1,5 +1,5 @@
 import type { SchemeLookup } from './schemes.ts'
-import type { ExerciseLookup } from './types.ts'
+import type { ExerciseLookup, Muscle } from './types.ts'
 
 export type Tier = 'T1' | 'T2' | 'T3'
 
@@ -32,12 +32,53 @@ export interface AccessoryGroup {
   items: Array<{ exerciseId: string; sets: number; reps: [number, number] }>
 }
 
+/**
+ * What a day's accessories lean toward. Upper: everything above the waist.
+ * Lower: legs and abs. Posterior: the hinge muscles plus pulling, to even
+ * out push-heavy upper days. Full: no lean.
+ */
+export type DayFocus = 'upper' | 'lower' | 'posterior' | 'full'
+
 export interface ProgramDay {
   id: string
   name: string
   mains: MainSlot[]
   accessories: AccessorySlot[]
   groups?: AccessoryGroup[]
+  /** Set by hand; otherwise worked out from the day's first main lift (see dayFocus). */
+  focus?: DayFocus
+}
+
+export const DAY_FOCUS_MUSCLES: Record<Exclude<DayFocus, 'full'>, readonly Muscle[]> = {
+  upper: ['chest', 'frontDelts', 'sideDelts', 'rearDelts', 'lats', 'upperBack', 'biceps', 'triceps', 'forearms'],
+  lower: ['quads', 'glutes', 'hamstrings', 'adductors', 'calves', 'abs'],
+  posterior: ['hamstrings', 'glutes', 'lowerBack', 'lats', 'upperBack', 'rearDelts', 'biceps'],
+}
+
+/**
+ * A day's accessory focus: the one set by hand, or its first main lift's.
+ * A squat or lunge makes a Lower day, a deadlift or other hinge a Posterior
+ * day, an upper-body lift an Upper day. No main lift, no lean.
+ */
+export function dayFocus(day: ProgramDay, lookup: ExerciseLookup): DayFocus {
+  if (day.focus) return day.focus
+  const first = day.mains[0] && lookup(day.mains[0].exerciseId)
+  if (!first) return 'full'
+  if (first.pattern === 'hinge') return 'posterior'
+  if (first.region === 'upper') return 'upper'
+  return first.region === 'lower' ? 'lower' : 'full'
+}
+
+export const DAY_FOCUS_LABELS: Record<DayFocus, string> = {
+  upper: 'Upper',
+  lower: 'Lower',
+  posterior: 'Posterior',
+  full: 'Full body',
+}
+
+/** The muscles a focus leans toward. Undefined for Full: every muscle fits. */
+export function focusMuscles(focus: DayFocus): ReadonlySet<Muscle> | undefined {
+  return focus === 'full' ? undefined : new Set(DAY_FOCUS_MUSCLES[focus])
 }
 
 export interface Program {

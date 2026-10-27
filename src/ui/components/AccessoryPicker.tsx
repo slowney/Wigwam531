@@ -67,7 +67,7 @@ export function AccessoryPicker(props: {
                 type="button"
                 role="radio"
                 aria-checked={focus === g.muscle}
-                className={`chip${focus === g.muscle ? ' chip-on' : ''}${g.focused ? ' chip-focus' : ''}`}
+                className={`chip${focus === g.muscle ? ' chip-on' : ''}${g.focused ? ' chip-focus' : ''}${g.fitsDay ? '' : ' chip-offday'}`}
                 onClick={() => setFocus(focus === g.muscle ? undefined : g.muscle)}
               >
                 {gapText(g)}

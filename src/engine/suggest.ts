@@ -1,5 +1,6 @@
 // Accessory suggestions: which muscles are behind for the week, which
 // exercises would help, in what order, and how "Fill all" spends the slots.
+import { focusMuscles, type DayFocus } from './program.ts'
 import { withExercise, type MuscleCounts } from './volume.ts'
 import {
   MUSCLES,
@@ -22,8 +23,10 @@ export interface Gap {
   target: number
   gap: number
   kind: 'target' | 'focus'
-  /** Part of an active focus, so it sorts ahead of everything else. */
+  /** Part of an active focus, so it sorts ahead of everything else the day's lean allows. */
   focused: boolean
+  /** One of the muscles today's accessory focus leans toward (always, on a Full day). */
+  fitsDay: boolean
 }
 
 export interface FocusState {
@@ -44,8 +47,11 @@ export function focusExtras(focuses: ReadonlyArray<Focus>, now: number): Partial
 }
 
 /**
- * Muscles projected to finish the week short, focused ones first, then
- * biggest shortfall first.
+ * Muscles projected to finish the week short: today's muscles first (see
+ * DayFocus), then focused ones, then biggest shortfall first. A focus
+ * muscle still leads, but on a day it fits: chest work lands on upper
+ * days, not squat day.
+ *
  *
  * A focused muscle is short if it's under its normal target or if its
  * accessory sets are under the focus's extra sets, whichever gap is bigger.
@@ -53,22 +59,32 @@ export function focusExtras(focuses: ReadonlyArray<Focus>, now: number): Partial
  * chest or glutes far more than their targets, so a higher target alone
  * would never surface them.
  */
-export function behind(projected: MuscleCounts, targets: MuscleTargets, focus?: FocusState): Gap[] {
+export function behind(
+  projected: MuscleCounts,
+  targets: MuscleTargets,
+  focus?: FocusState,
+  /** Today's muscles; undefined for a Full day. */
+  day?: ReadonlySet<Muscle>,
+): Gap[] {
   return MUSCLES.flatMap((muscle): Gap[] => {
     const have = projected[muscle] ?? 0
     const extra = focus?.extras[muscle] ?? 0
     const focused = extra > 0
-    let gap: Gap = { muscle, have, target: targets[muscle], gap: targets[muscle] - have, kind: 'target', focused }
+    const fitsDay = !day || day.has(muscle)
+    let gap: Gap = { muscle, have, target: targets[muscle], gap: targets[muscle] - have, kind: 'target', focused, fitsDay }
     if (focused) {
       const accessory = focus!.accessory[muscle] ?? 0
       if (extra - accessory > gap.gap) {
-        gap = { muscle, have: accessory, target: extra, gap: extra - accessory, kind: 'focus', focused }
+        gap = { muscle, have: accessory, target: extra, gap: extra - accessory, kind: 'focus', focused, fitsDay }
       }
     }
     return gap.gap > 0 ? [gap] : []
   }).sort(
     (a, b) =>
-      Number(b.focused) - Number(a.focused) || b.gap - a.gap || MUSCLES.indexOf(a.muscle) - MUSCLES.indexOf(b.muscle),
+      Number(b.fitsDay) - Number(a.fitsDay) ||
+      Number(b.focused) - Number(a.focused) ||
+      b.gap - a.gap ||
+      MUSCLES.indexOf(a.muscle) - MUSCLES.indexOf(b.muscle),
   )
 }
 
@@ -100,6 +116,8 @@ export interface SuggestInput {
   /** Narrow to one behind muscle. */
   only?: Muscle
   sort: 'rating' | 'fit'
+  /** Today's accessory focus. Exercises for its muscles rank first. */
+  day?: DayFocus
 }
 
 export interface Suggestion {
@@ -110,6 +128,10 @@ export interface Suggestion {
   hits: Gap[]
   coverage: number
   lastDone?: number
+  /** Works one of today's muscles as a primary mover. */
+  fitsDay: boolean
+  /** Loads the lower back on a Posterior day, which the deadlift has already done. */
+  backHeavy: boolean
 }
 
 /** Could this person do this exercise here and now, rating and restrictions aside from gaps? */
@@ -131,6 +153,7 @@ export function coverage(e: Exercise, gaps: ReadonlyArray<Gap>): number {
 
 function toSuggestion(e: Exercise, gaps: ReadonlyArray<Gap>, input: SuggestInput): Suggestion {
   const rating = input.ratings.get(e.id)
+  const day = input.day ? focusMuscles(input.day) : undefined
   return {
     exercise: e,
     stars: rating?.stars ?? UNRATED_STARS,
@@ -138,12 +161,20 @@ function toSuggestion(e: Exercise, gaps: ReadonlyArray<Gap>, input: SuggestInput
     hits: gaps.filter((g) => (e.muscles[g.muscle] ?? 0) > 0),
     coverage: coverage(e, gaps),
     lastDone: input.lastDone.get(e.id),
+    fitsDay: !day || MUSCLES.some((m) => day.has(m) && e.muscles[m] === 1),
+    backHeavy: input.day === 'posterior' && e.lowerBack !== undefined,
   }
+}
+
+/** Today's muscles first; on a Posterior day, ones that spare the lower back before ones that don't. */
+function byDay(a: Suggestion, b: Suggestion): number {
+  return Number(b.fitsDay) - Number(a.fitsDay) || Number(a.backHeavy) - Number(b.backHeavy)
 }
 
 /** Rating first; then whichever covers more; then whichever was done longest ago. */
 function byRating(a: Suggestion, b: Suggestion): number {
   return (
+    byDay(a, b) ||
     b.stars - a.stars ||
     b.coverage - a.coverage ||
     (a.lastDone ?? 0) - (b.lastDone ?? 0) ||
@@ -154,7 +185,7 @@ function byRating(a: Suggestion, b: Suggestion): number {
 /** Coverage scaled by rating: a 5★ counts 5/3 as much as an unrated one, a 1★ a third. */
 function byFit(a: Suggestion, b: Suggestion): number {
   const score = (s: Suggestion) => (s.coverage * s.stars) / UNRATED_STARS
-  return score(b) - score(a) || byRating(a, b)
+  return byDay(a, b) || score(b) - score(a) || byRating(a, b)
 }
 
 /** Exercises with a behind muscle as a primary mover, best first. */
@@ -192,6 +223,7 @@ export function fillSlots(
     focus?: FocusState
     /** Primary muscles of accessories already picked today. */
     usedToday?: ReadonlyArray<Muscle>
+    day?: DayFocus
   },
   slots: number,
 ): Exercise[] {
@@ -201,8 +233,11 @@ export function fillSlots(
   const used = new Set(input.usedToday)
   const picked: Exercise[] = []
   for (let i = 0; i < slots; i++) {
-    const gaps = behind(projected, input.targets, focus)
-    const order = [...gaps.filter((g) => !used.has(g.muscle)), ...gaps.filter((g) => used.has(g.muscle))]
+    const gaps = behind(projected, input.targets, focus, input.day ? focusMuscles(input.day) : undefined)
+    // Today's muscles take every slot while any are behind, each getting one
+    // before any gets a second; only then do other muscles get a turn.
+    const rank = (g: Gap) => (g.fitsDay ? 0 : 2) + (used.has(g.muscle) ? 1 : 0)
+    const order = [...gaps].sort((a, b) => rank(a) - rank(b))
     // A gap with nothing usable for it (all hidden, say) passes to the next.
     let best: { suggestion: Suggestion; muscle: Muscle } | undefined
     for (const gap of order) {

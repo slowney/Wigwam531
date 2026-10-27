@@ -233,6 +233,23 @@ glutes, shoulders, back, core) or pick muscles yourself.
 - **How long:** a focus runs until removed, or for 4, 8 or 12 weeks. Overlapping focuses take the larger extra.
 - **Default:** none, so suggestions follow the weekly targets as before.
 
+### Day focus
+
+5/3/1 days have a lean, and accessories should follow it. Squat and sumo
+days are lower-body days; deadlift and front squat days are posterior days,
+whose back and pulling work evens out the push-heavy upper days.
+
+- **Four focuses:**
+  - **Upper:** chest, all three delts, lats, upper back, biceps, triceps, forearms.
+  - **Lower:** quads, glutes, hamstrings, adductors, calves, abs.
+  - **Posterior:** hamstrings, glutes, lower back, lats, upper back, rear delts, biceps.
+  - **Full:** no lean.
+- **Automatic:** from the day's first main lift. A hinge makes a Posterior day, any other lower-body lift a Lower day, an upper-body lift an Upper day. The program editor can set it by hand per day ("Auto (Lower)" until you do). Followers use the leader's.
+- **Ordering, not hiding:** behind muscles that fit today come first in the chips, the list and Fill all; the rest are dimmed but still there. Fill all gives every behind muscle of today's one slot before any other muscle gets one.
+- **Sparing the lower back:** on a Posterior day, exercises that load the lower back sort after ones that don't. The deadlift has already done that work.
+- **With a focus:** a focused muscle still leads, but only on a day it fits: chest work lands on upper days, not squat day.
+- **Groups:** an accessory group whose exercises fit today ranks up to a star higher.
+
 ### Ratings
 
 Each person rates exercises from **1 to 5 stars**, or **Hide** them.

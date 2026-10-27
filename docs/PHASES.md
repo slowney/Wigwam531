@@ -251,6 +251,16 @@ From the list after Phase 6. Built:
 - Tests show the waves' weights for each week, BBB and BBS, TM-test weeks testing a cycle-run TM, and a full three-week cycle that holds TMs for two weeks and then steps them up.
 - You run a cycle of one of them for real.
 
+## Day focus (after Phase 8)
+
+- **What:** accessory suggestions follow each day's upper/lower lean: Upper, Lower, Posterior (hinge muscles plus back and pulling) or Full. The day's first main lift decides it unless the program editor sets one.
+- **Effect:** today's muscles lead the chips, the list, Fill all and group ranking; other muscles stay, dimmed. Posterior days put exercises that spare the lower back first.
+
+**Done when:**
+
+- Tests cover the automatic focus, the ordering, Fill all staying on today's muscles, lower-back-sparing on Posterior days, and setting a focus by hand.
+- A real week's accessories feel like they match each day.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)

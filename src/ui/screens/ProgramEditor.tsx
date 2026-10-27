@@ -7,7 +7,17 @@ import { db, newId, type ProfileRow } from '../../db/db.ts'
 import { loadRatings } from '../../db/library.ts'
 import { loadProgram, loadTms } from '../../db/profiles.ts'
 import { editProgram, overrideSlot, saveTemplate, unfollow } from '../../db/programs.ts'
-import { slotTmId, type MainSlot, type Program, type ProgramDay, type ProgramOverrides, type Tier } from '../../engine/program.ts'
+import {
+  DAY_FOCUS_LABELS,
+  dayFocus,
+  slotTmId,
+  type DayFocus,
+  type MainSlot,
+  type Program,
+  type ProgramDay,
+  type ProgramOverrides,
+  type Tier,
+} from '../../engine/program.ts'
 import {
   addDay,
   addMainSlot,
@@ -25,11 +35,12 @@ import {
   removeMainSlot,
   renameDay,
   renameProgram,
+  setDayFocus,
   setFlexSlots,
   updateMainSlot,
 } from '../../engine/programEdit.ts'
 import { ExercisePicker } from '../components/ExercisePicker.tsx'
-import { BackLink, ConfirmButton, Stepper } from '../components/forms.tsx'
+import { BackLink, ConfirmButton, Segmented, Stepper } from '../components/forms.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { SlotSheet } from '../components/SlotSheet.tsx'
 import { SwitchProgramSheet } from '../components/SwitchProgramSheet.tsx'
@@ -47,6 +58,14 @@ type SheetState =
   | { kind: 'save' }
 
 const nameOf = (id: string) => findExercise(id)?.name ?? id
+
+// What each accessory focus does to suggestions, in a line.
+const FOCUS_HELP: Record<DayFocus, string> = {
+  upper: 'Suggestions lean to chest, shoulders, back and arms.',
+  lower: 'Suggestions lean to legs and abs.',
+  posterior: 'Suggestions lean to hamstrings, glutes and back/pull work, sparing the lower back the deadlift already worked.',
+  full: 'Suggestions follow whatever is furthest behind for the week.',
+}
 const TIER_BY_POSITION: Tier[] = ['T1', 'T2', 'T3']
 
 function names(list: string[]): string {
@@ -430,6 +449,21 @@ function DayCard(props: {
       )}
 
       <span className="label section-label">Accessories</span>
+      <div className="field">
+        <Segmented
+          label={`${day.name} accessory focus`}
+          value={day.focus ?? 'auto'}
+          onChange={(value) => onEdit((p) => setDayFocus(p, day.id, value === 'auto' ? undefined : value))}
+          options={[
+            { value: 'auto', label: `Auto (${DAY_FOCUS_LABELS[dayFocus({ ...day, focus: undefined }, findExercise)]})` },
+            { value: 'upper', label: 'Upper' },
+            { value: 'lower', label: 'Lower' },
+            { value: 'posterior', label: 'Post.' },
+            { value: 'full', label: 'Full' },
+          ]}
+        />
+        <p className="muted small no-margin">{FOCUS_HELP[dayFocus(day, findExercise)]}</p>
+      </div>
       {pinned.length > 0 && (
         <ul className="list">
           {pinned.map((a) => (
@@ -556,7 +590,9 @@ function FollowedProgram(
               </li>
             ))}
           </ul>
-          <p className="muted small no-margin accessories-line">Accessories: {accessoryText(day, findExercise)}</p>
+          <p className="muted small no-margin accessories-line">
+            Accessories: {accessoryText(day, findExercise)} · {DAY_FOCUS_LABELS[dayFocus(day, findExercise)]} focus
+          </p>
           {day.groups && day.groups.length > 0 && (
             <p className="muted small no-margin">Groups: {day.groups.map((g) => g.name).join(' · ')}</p>
           )}
