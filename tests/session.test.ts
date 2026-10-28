@@ -239,6 +239,24 @@ describe('PRs', () => {
     expect(prKind(checks.get('d'))).toBe('heaviest')
   })
 
+  it('only go to sets that did more than prescribed', () => {
+    const rx = (s: ReturnType<typeof set>, reps: number, extra: object = {}) => ({ ...s, prescribedReps: reps, ...extra })
+    const checks = prChecks([
+      rx(set('a', 'w1', 1, 170, 3), 3),
+      rx(set('b', 'w1', 2, 190, 2), 1, { amrap: true }),
+      // Week 2, TM up: every set is heavier, and the backoff estimates high.
+      rx(set('c', 'w2', 3, 195, 3), 3),
+      rx(set('d', 'w2', 4, 200, 1), 1, { amrap: true }),
+      rx(set('e', 'w2', 5, 200, 3), 1, { amrap: true }),
+      rx(set('f', 'w2', 6, 50, 12), 8, { prescribedRepsMax: 12 }),
+      rx(set('g', 'w3', 7, 50, 13), 8, { prescribedRepsMax: 12 }),
+    ])
+    expect(prKind(checks.get('c'))).toBeUndefined() // heaviest and an e1RM best, but as prescribed
+    expect(prKind(checks.get('d'))).toBeUndefined() // 1+ set, just the 1
+    expect(prKind(checks.get('e'))).toBe('e1rm')
+    expect(prKind(checks.get('g'))).toBe('reps') // past the top of its range
+  })
+
   it('never badge anything in the first session for an exercise', () => {
     // An nSuns pyramid: every set heavier than the one before.
     const pyramid = [170, 190, 215].map((w, i) => set(`p${i}`, 'first', i, w, 3))

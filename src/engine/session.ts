@@ -135,6 +135,22 @@ interface HistorySet {
   reps: number
   warmup: boolean
   at: number
+  prescribedReps?: number
+  prescribedRepsMax?: number
+  amrap?: boolean
+}
+
+/**
+ * Did the lifter do more than the plan asked? nSuns sets records by design:
+ * the TM climbs every week, so its top sets are always the heaviest yet, and
+ * a 90% x 3 backoff estimates higher than the 95% x 1 before it. Only reps
+ * past the prescription (past the minimum on a + set, past the top of a
+ * range) are the lifter's doing. A set with no prescription stored counts.
+ */
+export function beatPrescription(s: Pick<HistorySet, 'reps' | 'prescribedReps' | 'prescribedRepsMax' | 'amrap'>): boolean {
+  if (s.prescribedReps === undefined) return true
+  const top = s.amrap ? s.prescribedReps : (s.prescribedRepsMax ?? s.prescribedReps)
+  return s.reps > top
 }
 
 /** Working sets from the most recent earlier session that did this exercise. */
@@ -248,7 +264,9 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
 /**
  * Every working set checked against earlier sessions, by exercise. Sets in
  * the same session aren't compared with each other: an nSuns pyramid climbs
- * toward its 1+ set, so the second set would always "beat" the first.
+ * toward its 1+ set, so the second set would always "beat" the first. A set
+ * that only did what it was told is never a PR (see beatPrescription), but
+ * it still counts as the record later sets have to beat.
  */
 export function prChecks(history: ReadonlyArray<HistorySet>): Map<string, PrCheck> {
   const push = <T>(map: Map<string, T[]>, key: string, value: T) => {
@@ -264,7 +282,11 @@ export function prChecks(history: ReadonlyArray<HistorySet>): Map<string, PrChec
   const before = new Map<string, HistorySet[]>()
   const out = new Map<string, PrCheck>()
   for (const sets of ordered) {
-    for (const s of sets) if (!s.warmup) out.set(s.id, checkPr(s, before.get(s.exerciseId) ?? []))
+    for (const s of sets) {
+      if (s.warmup) continue
+      const check = checkPr(s, before.get(s.exerciseId) ?? [])
+      out.set(s.id, beatPrescription(s) ? check : { ...check, heaviest: false, repPr: false, e1rmPr: false })
+    }
     for (const s of sets) push(before, s.exerciseId, s)
   }
   return out
