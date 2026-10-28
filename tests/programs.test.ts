@@ -56,7 +56,7 @@ describe('editing a program mid-week', () => {
     const entry = (await db.entries.where('sessionId').equals(session).first())!
     const { slots } = await planFor(db, lead, entry.id)
     expect(slots.map((s) => s.exerciseId)).toEqual(['overhead-press', 'close-grip-bench-press', 'pendlay-row'])
-    expect(slots[1]!.sets[0]!.weight).toBe(90) // 40% of the bench TM, as the incline was
+    expect(slots[1]!.sets[0]!.weight).toBe(135) // 60% of the bench TM, as the incline was
 
     expect(await db.sets.toArray()).toEqual(historyBefore)
     const week = (await loadWeekOverview(lead, db)).week!
@@ -344,6 +344,10 @@ describe('custom schemes', () => {
     await expect(
       saveScheme({ ...pyramid, sets: [...pyramid.sets, { pct: 95, reps: 1, progression: true }] }, db),
     ).rejects.toThrow('Only one set')
+    await expect(saveScheme({ ...pyramid, sets: [{ pct: 70, reps: 8, repsMax: 6 }] }, db)).rejects.toThrow('low end first')
+    // A rep range and a ramp survive the trip, as in a copy of the T2s.
+    const t2 = await saveScheme({ ...pyramid, name: 'My T2', sets: [{ pct: 70, reps: 6, repsMax: 8 }], ramp: [{ pct: 50, reps: 5 }] }, db)
+    expect(findScheme(t2)).toMatchObject({ sets: [{ repsMax: 8 }], ramp: [{ pct: 50 }] })
     const id = await saveScheme(pyramid, db)
     expect(id).toMatch(/^custom-scheme-heavy-triple-/)
     expect(findScheme(id)).toMatchObject({ name: 'Heavy triple', kind: 'percent' })

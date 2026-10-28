@@ -1,4 +1,4 @@
-import { parseRangeSchemeId, type PercentSet, type Scheme, type SchemeLookup } from '../engine/schemes.ts'
+import { parseRangeSchemeId, type PercentScheme, type PercentSet, type Scheme, type SchemeLookup } from '../engine/schemes.ts'
 
 // nSuns 5/3/1 LP, 4-day. Percentages are of the slot's TM; the 95% 1+ set
 // is the one that decides next week's TM.
@@ -23,12 +23,22 @@ const T1_DEADLIFT = [
 ]
 
 /** Every nSuns T2 has the same shape: two ramp sets, then six at one weight. */
-function t2(start: number, firstReps: number): PercentSet[] {
+function t2Classic(start: number, firstReps: number): PercentSet[] {
   return [
     set(start, firstReps),
     set(start + 10, 5),
     ...[3, 5, 7, 4, 6, 8].map((reps) => set(start + 20, reps)),
   ]
+}
+
+// The app's own T2: eight sets after nine heavy T1 sets was a lot, and the
+// 3s and 4s did little. Same top weight as nSuns, three sets of 6-8 at it,
+// and the two climbing sets become a warm-up ramp.
+function t2(start: number): Pick<PercentScheme, 'sets' | 'ramp'> {
+  return {
+    sets: [0, 1, 2].map(() => ({ pct: start + 20, reps: 6, repsMax: 8 })),
+    ramp: [set(start, 5), set(start + 10, 3)],
+  }
 }
 
 // 5/3/1 (Wendler): a three-week wave of 5s, 3s and 5/3/1, each week ending
@@ -49,10 +59,14 @@ export const SCHEMES: Scheme[] = [
   { kind: 'percent', id: 'nsuns-t1-squat', name: 'nSuns T1 squat', sets: T1_SQUAT_OHP },
   { kind: 'percent', id: 'nsuns-t1-ohp', name: 'nSuns T1 OHP', sets: T1_SQUAT_OHP },
   { kind: 'percent', id: 'nsuns-t1-deadlift', name: 'nSuns T1 deadlift', sets: T1_DEADLIFT },
-  { kind: 'percent', id: 'nsuns-t2-ohp', name: 'nSuns T2 OHP', sets: t2(50, 6) },
-  { kind: 'percent', id: 'nsuns-t2-sumo', name: 'nSuns T2 sumo', sets: t2(50, 5) },
-  { kind: 'percent', id: 'nsuns-t2-incline', name: 'nSuns T2 incline', sets: t2(40, 6) },
-  { kind: 'percent', id: 'nsuns-t2-front-squat', name: 'nSuns T2 front squat', sets: t2(35, 5) },
+  { kind: 'percent', id: 'nsuns-t2-ohp', name: 'T2 OHP (3 × 6–8)', ...t2(50) },
+  { kind: 'percent', id: 'nsuns-t2-sumo', name: 'T2 sumo (3 × 6–8)', ...t2(50) },
+  { kind: 'percent', id: 'nsuns-t2-incline', name: 'T2 incline (3 × 6–8)', ...t2(40) },
+  { kind: 'percent', id: 'nsuns-t2-front-squat', name: 'T2 front squat (3 × 6–8)', ...t2(35) },
+  { kind: 'percent', id: 'nsuns-t2-ohp-classic', name: 'nSuns T2 OHP (classic)', sets: t2Classic(50, 6) },
+  { kind: 'percent', id: 'nsuns-t2-sumo-classic', name: 'nSuns T2 sumo (classic)', sets: t2Classic(50, 5) },
+  { kind: 'percent', id: 'nsuns-t2-incline-classic', name: 'nSuns T2 incline (classic)', sets: t2Classic(40, 6) },
+  { kind: 'percent', id: 'nsuns-t2-front-squat-classic', name: 'nSuns T2 front squat (classic)', sets: t2Classic(35, 5) },
   { kind: 'range', id: 'range-4x6-8', name: '4 x 6-8', sets: 4, reps: [6, 8] },
   {
     kind: 'percent',

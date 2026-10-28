@@ -261,6 +261,14 @@ From the list after Phase 6. Built:
 - Tests cover the automatic focus, the ordering, Fill all staying on today's muscles, lower-back-sparing on Posterior days, and setting a focus by hand.
 - A real week's accessories feel like they match each day.
 
+## T2s and PRs (after day focus)
+
+- **T2s:** the built-in T2s become a warm-up ramp plus three sets of 6–8 at nSuns's top percentage, still off the TM. The eight-set originals stay as "classic". Percent sets can carry a rep range, and percent schemes a ramp.
+- **PRs:** a set only earns a badge if it beat its prescription.
+- **TMs from 1RMs:** setup defaults to 1RMs; editing a TM can take a 1RM too.
+
+**Done when:** a week of T2s feels right, and PR badges show up on sets that earned them.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)

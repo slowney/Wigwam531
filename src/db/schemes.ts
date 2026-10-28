@@ -21,6 +21,9 @@ export function validateScheme(s: Scheme): void {
     if (sets.some((x: PercentSet) => !(x.pct >= 1 && x.pct <= 150) || !(x.reps >= 1))) {
       throw new Error('Each set needs 1–150% and at least one rep.')
     }
+    if (sets.some((x) => x.repsMax !== undefined && !(x.repsMax >= x.reps))) {
+      throw new Error('A rep range goes low end first, like 6-8.')
+    }
     // Progression reads one 1+ set per TM a week; two in a slot would compete.
     if (sets.filter((x) => x.progression).length > 1) throw new Error('Only one set can drive the TM.')
   }

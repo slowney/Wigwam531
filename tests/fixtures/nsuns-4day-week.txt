@@ -7,7 +7,8 @@ DAY 1
     warm-up: 45x10, 90x5, 115x5, 135x3
     sets:    170x5, 190x3, [215x1+], 205x3, 190x5, 180x3, 170x5, 160x3, 145x5+
   Overhead press - T2 - TM 135
-    sets:    70x6, 80x5, 95x3, 95x5, 95x7, 95x4, 95x6, 95x8
+    warm-up: 70x5, 80x3
+    sets:    95x6-8, 95x6-8, 95x6-8
   Accessories: 3 open slots
 
 DAY 2
@@ -15,7 +16,8 @@ DAY 2
     warm-up: 45x10, 110x5, 140x5, 165x3
     sets:    205x5, 235x3, [260x1+], 250x3, 235x3, 220x3, 205x5, 195x5, 180x5+
   Sumo deadlift - T2 - Deadlift TM 315
-    sets:    160x5, 190x5, 220x3, 220x5, 220x7, 220x4, 220x6, 220x8
+    warm-up: 160x5, 190x3
+    sets:    220x6-8, 220x6-8, 220x6-8
   Accessories: 3 open slots
 
 DAY 3
@@ -23,7 +25,8 @@ DAY 3
     warm-up: 45x10, 55x5, 70x5, 80x3
     sets:    100x5, 115x3, [130x1+], 120x3, 115x3, 110x3, 100x5, 95x5, 90x5+
   Incline bench press - T2 - Bench press TM 225
-    sets:    90x6, 115x5, 135x3, 135x5, 135x7, 135x4, 135x6, 135x8
+    warm-up: 90x5, 115x3
+    sets:    135x6-8, 135x6-8, 135x6-8
   Accessories: 3 open slots
 
 DAY 4
@@ -31,5 +34,6 @@ DAY 4
     warm-up: 45x10, 125x5, 160x5, 190x3
     sets:    235x5, 270x3, [300x1+], 285x3, 270x3, 250x3, 235x3, 220x3, 205x3+
   Front squat - T2 - Squat TM 275
-    sets:    95x5, 125x5, 150x3, 150x5, 150x7, 150x4, 150x6, 150x8
+    warm-up: 95x5, 125x3
+    sets:    150x6-8, 150x6-8, 150x6-8
   Accessories: 3 open slots

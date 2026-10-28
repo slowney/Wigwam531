@@ -2,6 +2,8 @@ export interface PercentSet {
   /** Whole-number percent of the slot's TM. */
   pct: number
   reps: number
+  /** Top of a rep range ("6–8"): the weight still comes from the TM, the reps are the lifter's call within it. */
+  repsMax?: number
   amrap?: boolean
   /** The 1+ set whose reps decide next week's TM. */
   progression?: boolean
@@ -16,6 +18,13 @@ export interface PercentScheme {
   name: string
   /** The sets, or the first week's for a wave. */
   sets: PercentSet[]
+  /**
+   * Lighter sets to climb to the first working set, logged as warm-ups.
+   * Each is dropped if it lands at the bar or within 10 lb of the working
+   * weight, so a light lift gets one and a heavy lift two. Normal weeks
+   * only, and a slot's own full warm-up replaces it.
+   */
+  ramp?: PercentSet[]
   /**
    * 5/3/1-style: different sets each week of a cycle (5s, 3s, 5/3/1),
    * picked by where the week falls in the wave. `sets` is the first week.

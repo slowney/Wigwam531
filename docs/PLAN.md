@@ -78,7 +78,7 @@ program edits never rewrite history.
 
 ### nSuns 4-day preset
 
-| Day | T1 (9 sets) | T2 (8 sets) |
+| Day | T1 (9 sets) | T2 (3 sets) |
 |---|---|---|
 | 1 | Bench | OHP |
 | 2 | Squat | Sumo deadlift (uses the deadlift TM) |
@@ -93,19 +93,23 @@ progression):
 | T1 bench | 75×5, 85×3, **95×1+ ★**, 90×3, 85×5, 80×3, 75×5, 70×3, 65×5+ |
 | T1 squat / OHP | 75×5, 85×3, **95×1+ ★**, 90×3, 85×3, 80×3, 75×5, 70×5, 65×5+ |
 | T1 deadlift | 75×5, 85×3, **95×1+ ★**, 90×3, 85×3, 80×3, 75×3, 70×3, 65×3+ |
-| T2 OHP | 50×6, 60×5, 70×3, 70×5, 70×7, 70×4, 70×6, 70×8 |
-| T2 sumo | 50×5, 60×5, 70×3, 70×5, 70×7, 70×4, 70×6, 70×8 |
-| T2 incline | 40×6, 50×5, 60×3, 60×5, 60×7, 60×4, 60×6, 60×8 |
-| T2 front squat | 35×5, 45×5, 55×3, 55×5, 55×7, 55×4, 55×6, 55×8 |
+| T2 OHP / sumo | ramp 50×5, 60×3, then 70×6–8 ×3 |
+| T2 incline | ramp 40×5, 50×3, then 60×6–8 ×3 |
+| T2 front squat | ramp 35×5, 45×3, then 55×6–8 ×3 |
 
-These come from the published nSuns spreadsheet as best I know it. **Check
-them against your nSuns app before Phase 1 is signed off.** The Phase 1
-tests pin every weight of a full week, and that fixture becomes the
-correctness check, the same way the 2023 sheet is for the fantasy bot.
+The T1s come from the nSuns spreadsheet and were checked against the nSuns
+app; the Phase 1 tests pin every weight of a full week. The T2s are the
+app's own (October 2026): eight sets after nine heavy ones was a lot, and the
+3s and 4s were junk volume. They keep nSuns's top weight, do three sets of
+6–8 there, and turn the two climbing sets into a warm-up ramp (dropped if
+within 10 lb of the working weight). The weight still comes from the TM, so
+it rises with the T1. The original eight-set T2s are still built in as
+"nSuns T2 … (classic)".
 
-A TM starts at 90% of a 1RM, or you can type it in directly. The easiest
-start is to copy your current TMs from the nSuns app. Weights round to the
-nearest 5 lb.
+A TM is 90% of a 1RM. Setup asks for 1RMs by default, because typing a 1RM
+into a TM box was the easy mistake; TMs from the nSuns app can be entered as
+they are instead. Editing a TM later offers the same choice. Weights round to
+the nearest 5 lb.
 
 ### Progression
 
@@ -320,7 +324,7 @@ failed set (no reps) doesn't count toward the working weight.
 
 - **Main lifts:** e1RM per week (best set, Epley formula, 10 reps or fewer; weekly so a lift done heavy one day and as a T2 another doesn't zigzag), the TM as a step line, PR markers, and a range picker (3M / 6M / 1Y / all).
 - **Any exercise:** top set, e1RM, weekly tonnage, a history list, and a rep-max table (best weight at 1–10 reps).
-- **PRs:** a badge appears as you log a rep PR at a given weight, a new e1RM PR, or your heaviest weight yet. Sets are compared against earlier sessions only; an nSuns pyramid climbs within a session, so comparing against today's earlier sets would badge nearly everything. Each profile has a PR board.
+- **PRs:** a badge appears as you log a rep PR at a given weight, a new e1RM PR, or your heaviest weight yet, but only on a set that beat its prescription (past the minimum on a + set, past the top of a range). The program sets records by itself otherwise: a rising TM makes the top sets the heaviest yet every week, and a 90%×3 backoff estimates above the 95%×1 before it. Sets are compared against earlier sessions only; an nSuns pyramid climbs within a session. Each profile has a PR board.
 - **Muscle volume:** sets per muscle this week against target, plus the last 8 weeks.
 - **Bodyweight:** a log and a chart.
 - **Advanced (toggle per profile):** each lift ÷ bodyweight, SBD total, and DOTS (needs sex and bodyweight).

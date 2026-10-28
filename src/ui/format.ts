@@ -29,12 +29,13 @@ export function schemeSummary(scheme: Scheme): string {
   const high = Math.max(...pcts)
   const star = scheme.sets.find((s) => s.progression)
   const count = `${scheme.sets.length} ${scheme.sets.length === 1 ? 'set' : 'sets'}`
-  return `${count}, ${low === high ? low : `${low}–${high}`}%${star ? ` · ★ ${star.pct}%` : ''}`
+  const ramp = scheme.ramp?.length ? ' after a ramp' : ''
+  return `${count}, ${low === high ? low : `${low}–${high}`}%${ramp}${star ? ` · ★ ${star.pct}%` : ''}`
 }
 
 /** One percent set: "95% × 1+". */
 export function percentSetText(set: PercentSet): string {
-  return `${set.pct}% × ${set.reps}${set.amrap ? '+' : ''}`
+  return `${set.pct}% × ${set.reps}${set.repsMax !== undefined ? `–${set.repsMax}` : ''}${set.amrap ? '+' : ''}`
 }
 
 /** "Face pull + 2 open slots": a day's accessories as planned. */

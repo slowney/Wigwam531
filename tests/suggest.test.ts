@@ -57,6 +57,7 @@ const preset = (id: string): Restriction => ({ id, ...RESTRICTION_PRESETS.find((
 
 describe('what a stock nSuns week leaves behind', () => {
   it('is back, rear delts, biceps, abs, side delts, hamstrings and calves, never pressing or legs', () => {
+    // Upper back trails too since T2s went to three sets: only the deadlifts' half sets reach it.
     expect(stockGaps.map((g) => g.muscle)).toEqual([
       'lats',
       'rearDelts',
@@ -65,6 +66,7 @@ describe('what a stock nSuns week leaves behind', () => {
       'sideDelts',
       'hamstrings',
       'calves',
+      'upperBack',
     ])
     for (const covered of ['chest', 'quads', 'glutes', 'frontDelts', 'triceps'] as Muscle[]) {
       expect(stockGaps.map((g) => g.muscle)).not.toContain(covered)
@@ -73,7 +75,7 @@ describe('what a stock nSuns week leaves behind', () => {
 
   it('adds up to more than three slots a day can fill, so something is always behind', () => {
     const total = stockGaps.reduce((sum, g) => sum + g.gap, 0)
-    expect(total).toBe(56) // 12 accessories at 3 sets is 36
+    expect(total).toBe(66) // 12 accessories at 3 sets is 36
   })
 })
 
@@ -272,7 +274,7 @@ describe('a focus', () => {
 
   it('keeps the bigger gap when the muscle is behind anyway, and still puts it first', () => {
     const [first] = behind(stockWeek, DEFAULT_TARGETS, { extras: { hamstrings: 3 }, accessory: {} })
-    expect(first).toMatchObject({ muscle: 'hamstrings', kind: 'target', gap: 3.5, focused: true })
+    expect(first).toMatchObject({ muscle: 'hamstrings', kind: 'target', gap: 6, focused: true })
   })
 
   it('takes the larger extra where focuses overlap, and drops ones that have run out', () => {
@@ -327,8 +329,8 @@ describe("the week's projected volume", () => {
       otherPendingDays: rest,
       lookup: findExercise,
     })
-    // 3 bench sets logged, 6 still to go, and 8 incline sets on Day 3.
-    expect(week.chest).toBe(17)
+    // 3 bench sets logged, 6 still to go, and 3 incline sets on Day 3.
+    expect(week.chest).toBe(12)
     expect(week).toEqual(stockWeek)
   })
 
@@ -341,7 +343,7 @@ describe("the week's projected volume", () => {
       otherPendingDays: days.slice(0, 3),
       lookup: findExercise,
     })
-    expect(withoutDay4.quads).toBe(stockWeek.quads! - 8 - 4.5) // front squat, half the deadlift
+    expect(withoutDay4.quads).toBe(stockWeek.quads! - 3 - 4.5) // front squat, half the deadlift
   })
 
   it("doesn't count a planned day's pinned accessory twice once it's logged", () => {

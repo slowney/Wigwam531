@@ -344,7 +344,7 @@ describe('skipping a set today', () => {
     const before = await planFor(db, lead, entry.id)
     const ohp = before.slots[1]!
     await skipSet(entry.id, ohp.slotId, 2, true, db)
-    await skipSet(entry.id, ohp.slotId, 5, true, db)
+    await skipSet(entry.id, ohp.slotId, 1, true, db)
     const after = await planFor(db, lead, (await entryOf(db, session, lead)).id)
     expect(after.slots[1]!.sets.filter((s) => s.skipped)).toHaveLength(2)
     expect(dayProgress(after.slots, []).total).toBe(dayProgress(before.slots, []).total - 2)
@@ -354,7 +354,7 @@ describe('skipping a set today', () => {
     await logSet(setFromPlan(fresh, bench, 0, bench.sets[0]!, { weight: 170, reps: 5 }), undefined, db)
     await expect(skipSet(entry.id, bench.slotId, 0, true, db)).rejects.toThrow('already logged')
     await skipSet(entry.id, ohp.slotId, 2, false, db)
-    expect((await entryOf(db, session, lead)).skips).toEqual({ [ohp.slotId]: [5] })
+    expect((await entryOf(db, session, lead)).skips).toEqual({ [ohp.slotId]: [1] })
   })
 
   it('moves the next set past it', () => {

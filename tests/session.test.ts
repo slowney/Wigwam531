@@ -89,9 +89,9 @@ describe('progress through a day', () => {
     const logged = [
       { slotId: 'd1-t1', index: 0, warmup: true },
       { slotId: 'd1-t1', index: 0, warmup: false },
-      { slotId: 'd1-t2', index: 7, warmup: false },
+      { slotId: 'd1-t2', index: 2, warmup: false },
     ]
-    expect(dayProgress(slots, logged)).toEqual({ done: 2, total: 17 })
+    expect(dayProgress(slots, logged)).toEqual({ done: 2, total: 12 })
   })
 
   it('is finished when every planned set is logged', () => {

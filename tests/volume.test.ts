@@ -25,9 +25,9 @@ describe('muscle volume', () => {
 
   it('projects a stock nSuns week: pressing and legs covered, pulling empty', () => {
     const week = plannedVolume(planWeek(NSUNS_4DAY, ctx), findExercise)
-    expect(week.chest).toBe(17) // 9 bench + 8 incline
-    expect(week.frontDelts).toBe(25.5) // 9 + 8 OHP, plus half of 9 bench and 8 incline
-    expect(week.hamstrings).toBe(8.5) // half of 9 deadlift and 8 sumo
+    expect(week.chest).toBe(12) // 9 bench + 3 incline
+    expect(week.frontDelts).toBe(18) // 9 + 3 OHP, plus half of 9 bench and 3 incline
+    expect(week.hamstrings).toBe(6) // half of 9 deadlift and 3 sumo
     expect(week.biceps).toBeUndefined()
     expect(week.lats).toBeUndefined()
     expect(week.rearDelts).toBeUndefined()

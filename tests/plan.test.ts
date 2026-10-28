@@ -9,7 +9,8 @@ import type { MainSlot } from '../src/engine/program.ts'
 import { weekReport } from '../src/engine/render.ts'
 import { gymChecks } from '../src/engine/weights.ts'
 
-// Made-up TMs. The real check is comparing the fixture against the nSuns app.
+// Made-up TMs. The real check is comparing the fixture against the nSuns app:
+// the T1 lines match it set for set. The T2s are the app's own 3 x 6-8.
 const TMS = { 'bench-press': 225, squat: 275, 'overhead-press': 135, deadlift: 315 }
 
 function ctx(overrides: Partial<PlanContext> = {}): PlanContext {
@@ -50,7 +51,21 @@ describe('nSuns 4-day week', () => {
     expect(sumo.tm).toBe(315)
     const incline = planSlot(slotById('d3-t2'), ctx())
     expect(incline.tmExerciseId).toBe('bench-press')
-    expect(weights(incline)?.[0]).toBe(90) // 40% of 225
+    expect(weights(incline)?.[0]).toBe(135) // 60% of 225
+    expect(incline.warmups.map((s) => s.weight)).toEqual([90, 115]) // 40% and 50%
+  })
+
+  it('runs T2s as three sets of 6-8 at the old nSuns top weight', () => {
+    const ohp = planSlot(slotById('d1-t2'), ctx())
+    expect(ohp.sets.map((s) => [s.weight, s.reps, s.repsMax, s.amrap])).toEqual([
+      [95, 6, 8, false],
+      [95, 6, 8, false],
+      [95, 6, 8, false],
+    ])
+    // The classic shape is still there to pick.
+    const classic = planSlot({ ...slotById('d1-t2'), schemeId: 'nsuns-t2-ohp-classic' }, ctx())
+    expect(weights(classic)).toEqual([70, 80, 95, 95, 95, 95, 95, 95])
+    expect(classic.warmups).toEqual([])
   })
 
   it('updates the moment a TM changes, because nothing is stored', () => {
@@ -146,10 +161,29 @@ describe('warm-ups', () => {
     expect(warmupSets(55, 45, 45)).toEqual([])
   })
 
-  it('only warms up slots that ask for it (T1s by default)', () => {
+  it("gives T1s the full warm-up and T2s their scheme's short ramp", () => {
     const days = planWeek(NSUNS_4DAY, ctx())
     for (const slot of days.flatMap((d) => d.mains)) {
-      expect(slot.warmups.length > 0).toBe(slot.tier === 'T1')
+      if (slot.tier === 'T1') expect(slot.warmups[0]).toMatchObject({ weight: 45, reps: 10 })
+      else expect(slot.warmups.length).toBeGreaterThanOrEqual(1)
+      if (slot.tier === 'T2') expect(slot.warmups.length).toBeLessThanOrEqual(2)
     }
+  })
+
+  it("drops ramp sets at the bar or close to the working weight", () => {
+    // Squat TM 135: 35% is 45 (the bar), 45% is 60, working weight 55% is 75.
+    const front = planSlot(slotById('d4-t2'), ctx({ tms: { squat: 135 } }))
+    expect(weights(front)?.[0]).toBe(75)
+    expect(front.warmups.map((s) => [s.weight, s.reps])).toEqual([[60, 3]])
+  })
+
+  it('leaves the ramp out of deload and TM-test weeks', () => {
+    expect(planSlot(slotById('d1-t2'), ctx({ weekType: 'deload' })).warmups).toEqual([])
+    expect(planSlot(slotById('d1-t2'), ctx({ weekType: 'tmTest' })).warmups).toEqual([])
+  })
+
+  it('swaps the ramp for the full warm-up when the slot asks for one', () => {
+    const ohp = planSlot({ ...slotById('d1-t2'), warmups: true }, ctx())
+    expect(ohp.warmups.map((s) => s.weight)).toEqual([45, 55, 70, 80])
   })
 })

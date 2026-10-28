@@ -86,19 +86,29 @@ export function SchemePicker(props: { current: string; onPick: (schemeId: string
 
 interface Row {
   pct: string
+  /** "5", or a range: "6-8". */
   reps: string
   amrap: boolean
   progression: boolean
 }
 
-const toRow = (s: PercentSet): Row => ({ pct: String(s.pct), reps: String(s.reps), amrap: Boolean(s.amrap), progression: Boolean(s.progression) })
-
-const fromRow = (r: Row): PercentSet => ({
-  pct: Number(r.pct),
-  reps: Number(r.reps),
-  ...(r.amrap ? { amrap: true } : {}),
-  ...(r.progression ? { progression: true } : {}),
+const toRow = (s: PercentSet): Row => ({
+  pct: String(s.pct),
+  reps: s.repsMax !== undefined ? `${s.reps}-${s.repsMax}` : String(s.reps),
+  amrap: Boolean(s.amrap),
+  progression: Boolean(s.progression),
 })
+
+const fromRow = (r: Row): PercentSet => {
+  const [low, high] = r.reps.split('-')
+  return {
+    pct: Number(r.pct),
+    reps: Number(low),
+    ...(high ? { repsMax: Number(high) } : {}),
+    ...(r.amrap ? { amrap: true } : {}),
+    ...(r.progression ? { progression: true } : {}),
+  }
+}
 
 const STARTER: PercentSet[] = [
   { pct: 70, reps: 5 },
@@ -140,6 +150,8 @@ export function SchemeEditor(props: {
         kind: 'percent' as const,
         name,
         sets: sets[0]!,
+        // The ramp isn't editable here; a copy keeps the original's.
+        ...(start?.ramp ? { ramp: start.ramp } : {}),
         ...(start?.waves ? { waves: sets, waveNames: start.waveNames, cycle: start.cycle } : {}),
       }
       props.onSaved(await saveScheme(props.editing ? { ...scheme, id: props.editing.id } : scheme))
@@ -187,10 +199,20 @@ export function SchemeEditor(props: {
             />
             <input
               className="input input-tiny"
-              inputMode="numeric"
-              aria-label={`Set ${i + 1} reps`}
+              // Not the number pad: a range needs its dash.
+              inputMode="text"
+              autoComplete="off"
+              aria-label={`Set ${i + 1} reps, or a range like 6-8`}
               value={r.reps}
-              onChange={(e) => change(i, { reps: e.target.value.replace(/[^0-9]/g, '') })}
+              onChange={(e) =>
+                change(i, {
+                  reps: e.target.value
+                    .replace(/[–—]/g, '-')
+                    .replace(/[^0-9-]/g, '')
+                    .replace(/^-+/, '')
+                    .replace(/-(?=.*-)/g, ''),
+                })
+              }
             />
             <button
               type="button"
@@ -233,9 +255,12 @@ export function SchemeEditor(props: {
         + Add a set
       </button>
       <p className="muted small">
-        1+ leaves the reps open: as many as you can get. ★ marks the set whose reps move the TM at Start Week. Only one
-        set can have it.
+        Reps can be a range, like 6-8: the weight stays put and the reps are your call. 1+ leaves the reps open: as
+        many as you can get. ★ marks the set whose reps move the TM at Start Week. Only one set can have it.
       </p>
+      {start?.ramp?.length ? (
+        <p className="muted small">Keeps {start.name}'s warm-up ramp: {start.ramp.map(percentSetText).join(', ')}.</p>
+      ) : null}
       {error && <p className="error">{error}</p>}
       <div className="actions">
         <button type="button" className="btn grow" onClick={() => void save()}>
@@ -266,6 +291,12 @@ export function SchemeEditor(props: {
 export function SchemeView(props: { scheme: PercentScheme; onCopy: () => void; onClose: () => void }) {
   return (
     <Sheet title={props.scheme.name} onClose={props.onClose}>
+      {props.scheme.ramp?.length ? (
+        <p className="muted small">
+          Warm-up ramp: {props.scheme.ramp.map(percentSetText).join(', ')}. Any that land within 10 lb of the working
+          weight are dropped.
+        </p>
+      ) : null}
       {(props.scheme.waves ?? [props.scheme.sets]).map((sets, w) => (
         <div key={w}>
           {props.scheme.waves && <h3 className="picker-group">{props.scheme.waveNames?.[w] ?? `Week ${w + 1}`} week</h3>}

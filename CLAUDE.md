@@ -64,7 +64,7 @@ lifting numbers as fixtures; use made-up ones otherwise.
   - If `preview_start` can't find that config (a session that began in another folder), run Vite in the background and open the URL with `preview_start`'s `url` instead.
   - The pane has no share sheet. "Save a backup" falls back to a download there, so test restore by handing the file input a `File` through `DataTransfer`.
 - You can't test on the iPhone. That covers installing, launching offline, screen wake lock, sound, and the share sheet. When a change needs the phone, say so explicitly; don't claim it works.
-- The planning engine has been checked against the user's nSuns app, set by set. `tests/fixtures/nsuns-4day-week.txt` is now its correctness check, so treat a fixture mismatch as an engine bug, not a fixture to regenerate.
+- The planning engine has been checked against the user's nSuns app, set by set. `tests/fixtures/nsuns-4day-week.txt` is now its correctness check, so treat a fixture mismatch as an engine bug, not a fixture to regenerate. The exception is a deliberate program change: the T2 lines were regenerated when the user moved the T2s to a ramp plus 3 × 6–8 (T1 lines unchanged).
 
 ## Conventions
 

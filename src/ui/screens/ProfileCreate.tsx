@@ -69,7 +69,8 @@ function CreateForm(props: {
   // Partners usually follow; the first profile starts its own program.
   const [choice, setChoice] = useState(leaders[0] ? `follow:${leaders[0].id}` : 'preset:nsuns-4day-row')
   const [days, setDays] = useState(4)
-  const [mode, setMode] = useState<'tm' | 'oneRepMax'>('tm')
+  // Most people know their maxes, not a TM: entering a 1RM as a TM was the setup mistake.
+  const [mode, setMode] = useState<'tm' | 'oneRepMax'>('oneRepMax')
   const [inputs, setInputs] = useState<Record<string, string>>({})
   const [ratingPreset, setRatingPreset] = useState<RatingPresetId>(profiles.length === 0 ? 'dumbbell-first' : 'blank')
   const [error, setError] = useState<string>()
@@ -147,8 +148,8 @@ function CreateForm(props: {
             value={mode}
             onChange={setMode}
             options={[
+              { value: 'oneRepMax', label: 'My 1RMs' },
               { value: 'tm', label: 'TMs' },
-              { value: 'oneRepMax', label: '1RMs' },
             ]}
           />
           {leader && leaderTms && Object.keys(leaderTms).length > 0 && (
@@ -176,8 +177,10 @@ function CreateForm(props: {
             )
           })}
           <p className="muted small">
-            {mode === 'tm' ? 'Copy these straight from the nSuns app.' : 'Each TM is set at 90% of the 1RM.'} Anything left
-            blank can be added later.
+            {mode === 'tm'
+              ? 'Training maxes from the nSuns app or a spreadsheet, used as they are.'
+              : 'The heaviest single you can do, or a recent best. Each TM is set at 90% of it.'}{' '}
+            Anything left blank can be added later.
           </p>
         </section>
       )}

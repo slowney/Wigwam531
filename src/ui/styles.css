@@ -2169,6 +2169,13 @@ h2 {
 }
 
 /* A behind muscle that isn't today's focus: still there, just quieter. */
+.tm-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding-block: var(--s2);
+}
+
 .chip-offday {
   opacity: 0.55;
 }

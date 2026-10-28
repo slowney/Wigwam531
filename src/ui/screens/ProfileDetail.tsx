@@ -21,7 +21,8 @@ import {
   setTm,
 } from '../../db/profiles.ts'
 import { progressedTms, requiredTms } from '../../engine/program.ts'
-import { BackLink, ConfirmButton, parseLb } from '../components/forms.tsx'
+import { tmFromOneRepMax } from '../../engine/weights.ts'
+import { BackLink, ConfirmButton, parseLb, Segmented } from '../components/forms.tsx'
 import { formatDate } from '../format.ts'
 
 export function ProfileDetail() {
@@ -137,12 +138,14 @@ export function ProfileDetail() {
 function TmRow(props: { profileId: string; exerciseId: string; value: number | undefined }) {
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState('')
+  const [mode, setMode] = useState<'tm' | 'oneRepMax'>('tm')
   const name = findExercise(props.exerciseId)?.name ?? props.exerciseId
+  const entered = parseLb(text)
+  const tm = entered !== undefined && mode === 'oneRepMax' ? tmFromOneRepMax(entered) : entered
 
   async function save() {
-    const lb = parseLb(text)
-    if (lb === undefined) return
-    await setTm(props.profileId, props.exerciseId, lb)
+    if (tm === undefined) return
+    await setTm(props.profileId, props.exerciseId, tm)
     setEditing(false)
   }
 
@@ -156,6 +159,8 @@ function TmRow(props: { profileId: string; exerciseId: string; value: number | u
           className="btn btn-quiet btn-small"
           onClick={() => {
             setText(props.value ? String(props.value) : '')
+            // A TM to adjust starts as a TM; a lift with none yet starts from a 1RM, like setup.
+            setMode(props.value ? 'tm' : 'oneRepMax')
             setEditing(true)
           }}
         >
@@ -165,22 +170,42 @@ function TmRow(props: { profileId: string; exerciseId: string; value: number | u
     )
   }
   return (
-    <div className="row">
-      <span className="grow">{name}</span>
-      <input
-        className="input input-number"
-        inputMode="decimal"
-        autoFocus
-        value={text}
-        aria-label={`${name} TM`}
-        onChange={(e) => setText(e.target.value.replace(/[^0-9.]/g, ''))}
+    <div className="tm-edit">
+      <div className="row">
+        <span className="grow">{name}</span>
+        <input
+          className="input input-number"
+          inputMode="decimal"
+          autoFocus
+          value={text}
+          aria-label={mode === 'tm' ? `${name} TM` : `${name} 1RM`}
+          onChange={(e) => setText(e.target.value.replace(/[^0-9.]/g, ''))}
+        />
+      </div>
+      <Segmented
+        label={`${name}: enter as`}
+        value={mode}
+        onChange={(m) => {
+          setMode(m)
+          // The number typed meant the other thing; don't carry it over.
+          setText('')
+        }}
+        options={[
+          { value: 'tm', label: 'TM' },
+          { value: 'oneRepMax', label: '1RM' },
+        ]}
       />
-      <button type="button" className="btn btn-small" disabled={parseLb(text) === undefined} onClick={() => void save()}>
-        Save
-      </button>
-      <button type="button" className="btn btn-quiet btn-small" onClick={() => setEditing(false)}>
-        Cancel
-      </button>
+      {mode === 'oneRepMax' && (
+        <p className="muted small no-margin">{tm !== undefined ? `TM ${tm}: 90% of ${entered}.` : 'The TM is set at 90% of it.'}</p>
+      )}
+      <div className="actions">
+        <button type="button" className="btn btn-small grow" disabled={tm === undefined} onClick={() => void save()}>
+          Save{tm !== undefined && mode === 'oneRepMax' ? ` TM ${tm}` : ''}
+        </button>
+        <button type="button" className="btn btn-quiet btn-small" onClick={() => setEditing(false)}>
+          Cancel
+        </button>
+      </div>
     </div>
   )
 }

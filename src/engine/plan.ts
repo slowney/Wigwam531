@@ -94,7 +94,29 @@ export function warmupSets(
 ): PlannedSet[] {
   const out: PlannedSet[] = []
   if (bar !== undefined && firstWorking > bar) out.push(warmup(bar, 10))
-  for (const w of WARMUPS) {
+  return climb(out, WARMUPS, tm, firstWorking, bar, rounding)
+}
+
+/** A scheme's own ramp (see PercentScheme.ramp): no empty-bar set, just its steps. */
+export function rampSets(
+  ramp: ReadonlyArray<PercentSet>,
+  tm: number,
+  firstWorking: number,
+  bar: number | undefined,
+  rounding: Rounding = DEFAULT_ROUNDING,
+): PlannedSet[] {
+  return climb([], ramp, tm, firstWorking, bar, rounding)
+}
+
+function climb(
+  out: PlannedSet[],
+  steps: ReadonlyArray<{ pct: number; reps: number }>,
+  tm: number,
+  firstWorking: number,
+  bar: number | undefined,
+  rounding: Rounding,
+): PlannedSet[] {
+  for (const w of steps) {
     const weight = percentOf(tm, w.pct, rounding)
     if (weight <= (bar ?? 0)) continue
     if (weight > firstWorking - WARMUP_GAP) continue
@@ -187,6 +209,7 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
         // Light percentages of a light TM can land under the empty bar.
         weight: Math.max(percentOf(tm, s.pct, rounding), bar ?? 0),
         reps: s.reps,
+        ...(s.repsMax !== undefined ? { repsMax: s.repsMax } : {}),
         pct: s.pct,
         amrap: s.amrap ?? false,
         progression: s.progression ?? false,
@@ -196,7 +219,16 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
     ),
   )
   const first = sets[0]?.weight
-  const warmups = slot.warmups && first !== undefined ? warmupSets(tm, first, bar, rounding) : []
+  // Deload and TM-test sets are light already; a ramp would be dropped or pointless.
+  const ramp = ctx.weekType === 'normal' ? scheme.ramp : undefined
+  const warmups =
+    first === undefined
+      ? []
+      : slot.warmups
+        ? warmupSets(tm, first, bar, rounding)
+        : ramp?.length
+          ? rampSets(ramp, tm, first, bar, rounding)
+          : []
   const wave = ctx.weekType === 'normal' ? waveName(scheme, ctx.waveIndex ?? 0) : undefined
   return { ...base, tmExerciseId, tm, missingTm: false, warmups, sets, ...(wave ? { wave } : {}) }
 }
