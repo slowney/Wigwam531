@@ -135,6 +135,6 @@ describe('reading results back out of logged sets', () => {
 
 describe('5/3/1 day labels', () => {
   it('name a lift done twice only once', () => {
-    expect(dayLabel(FIVE_THREE_ONE_BBB.days[0]!, findExercise)).toBe('Day 1: OHP')
+    expect(dayLabel(FIVE_THREE_ONE_BBB.days[0]!, findExercise)).toBe('Day 1: Bench')
   })
 })

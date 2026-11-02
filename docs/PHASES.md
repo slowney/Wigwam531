@@ -243,7 +243,7 @@ From the list after Phase 6. Built:
 - **Where a week falls in the wave:** each person's normal weeks since their last deload or TM test. Those weeks don't advance it, so each cycle after one starts again at the 5s week. Deloads and TM tests stay on the every-six-weeks suggestion from Phase 7, which matches 5/3/1 Forever's "7th week".
 - **Classic progression:** a TM run by the 5/3/1 scheme moves once a cycle, +5 upper body or +10 lower, after the 5/3/1 week, and only if every 1+ set that week made its reps. Otherwise it holds, and Start Week says why. A TM that a weekly ★ set also drives stays on the nSuns rule.
 - **Mixable:** waves are ordinary schemes, so they can go on any day of any program alongside nSuns lifts.
-- **Presets:** 5/3/1 BBB 4-day and 5/3/1 BBS 4-day (OHP, deadlift, bench and squat days, supplemental on the same lift).
+- **Presets:** 5/3/1 BBB 4-day and 5/3/1 BBS 4-day (bench, squat, OHP and deadlift days, supplemental on the same lift; OHP came first until November 2026).
 - **Showing it:** the workout, week view and lift sheet show the wave week ("3s week"); the scheme editor has a tab per wave week; day labels name a lift once ("Day 1: OHP"); the week view counts runs of identical sets ("65×5 (×10)").
 
 **Done when:**

@@ -50,16 +50,23 @@ export const NSUNS_4DAY_ROW: Program = {
 }
 
 /**
- * 5/3/1, four days (OHP, deadlift, bench, squat): the 5s/3s/5/3/1 wave on
- * each day's lift, then supplemental work on the same lift.
+ * 5/3/1, four days (bench, squat, OHP, deadlift): the 5s/3s/5/3/1 wave on
+ * each day's lift, then supplemental work on the same lift. Upper and lower
+ * days alternate, and squat and deadlift sit at opposite ends of the week.
  */
 function fiveThreeOne(id: string, name: string, supplemental: string): Program {
-  const lifts = ['overhead-press', 'deadlift', 'bench-press', 'squat']
+  // Day ids stay with their lift from when OHP came first, so an id never
+  // names a different lift: order and "Day N" are all that moved.
+  const lifts = [
+    { dayId: 'd3', exerciseId: 'bench-press' },
+    { dayId: 'd4', exerciseId: 'squat' },
+    { dayId: 'd1', exerciseId: 'overhead-press' },
+    { dayId: 'd2', exerciseId: 'deadlift' },
+  ]
   return {
     id,
     name,
-    days: lifts.map((exerciseId, i) => {
-      const dayId = `d${i + 1}`
+    days: lifts.map(({ dayId, exerciseId }, i) => {
       return day(dayId, `Day ${i + 1}`, [
         main(`${dayId}-t1`, exerciseId, 'T1', '531-main'),
         { ...main(`${dayId}-t2`, exerciseId, 'T2', supplemental), warmups: false, alternates: SUPPLEMENTAL_ALTERNATES[exerciseId] },

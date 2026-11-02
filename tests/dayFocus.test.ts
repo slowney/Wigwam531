@@ -41,7 +41,7 @@ const primaries = (id: string) =>
 describe('day focus', () => {
   it('comes from the first main lift: squat lower, deadlift posterior, presses upper', () => {
     expect(NSUNS_4DAY.days.map((d) => dayFocus(d, findExercise))).toEqual(['upper', 'lower', 'upper', 'posterior'])
-    expect(FIVE_THREE_ONE_BBB.days.map((d) => dayFocus(d, findExercise))).toEqual(['upper', 'posterior', 'upper', 'lower'])
+    expect(FIVE_THREE_ONE_BBB.days.map((d) => dayFocus(d, findExercise))).toEqual(['upper', 'lower', 'upper', 'posterior'])
     expect(dayFocus({ id: 'x', name: 'Day 5', mains: [], accessories: [] }, findExercise)).toBe('full')
   })
 

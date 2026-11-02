@@ -20,6 +20,19 @@ const ctx = (overrides: Partial<PlanContext> = {}): PlanContext => ({
 const bbbDay = (program: Program, id: string) => program.days.find((d) => d.id === id)!
 const ohpBbb = bbbDay(FIVE_THREE_ONE_BBB, 'd1').mains[1]!
 
+describe('the 5/3/1 presets', () => {
+  it('run bench, squat, OHP, deadlift, each day keeping the id it had for its lift', () => {
+    for (const program of [FIVE_THREE_ONE_BBB, FIVE_THREE_ONE_BBS]) {
+      expect(program.days.map((d) => [d.id, d.name, d.mains[0]!.exerciseId])).toEqual([
+        ['d3', 'Day 1', 'bench-press'],
+        ['d4', 'Day 2', 'squat'],
+        ['d1', 'Day 3', 'overhead-press'],
+        ['d2', 'Day 4', 'deadlift'],
+      ])
+    }
+  })
+})
+
 describe('BBB variations', () => {
   it('come with every BBB and BBS supplemental slot, all doable in the garage', () => {
     for (const program of [FIVE_THREE_ONE_BBB, FIVE_THREE_ONE_BBS]) {
