@@ -145,6 +145,27 @@ TM test. A TM run by the 5/3/1 scheme moves once a cycle (+5 upper body,
 +10 lower) if every 1+ set in the 5/3/1 week made its reps, and holds
 otherwise. Waves are ordinary schemes, so they mix with nSuns days.
 
+**BBB variations.** Wendler's BBB runs the 5 x 10 on the same lift, but lets
+it be swapped for a similar one. Each BBB/BBS supplemental slot comes with
+**alternates** from his list, limited to what the garage has:
+- OHP: standing DB press, seated DB press, incline, DB incline.
+- Bench: DB bench, DB incline, incline, close-grip, floor press.
+- Squat: front squat, heels-elevated squat.
+- Deadlift: trap bar, deficit, stiff-leg.
+
+Any main slot can list alternates in the program editor; Swap offers them
+first. A swapped-in lift without its own TM keeps the slot's sets x reps
+(5 x 10) at a weight you pick, per hand for dumbbells, which then carries
+over by double progression. That's Wendler's "don't program dumbbell work,
+pick heavier or lighter dumbbells". When the 55s are beaten on every set,
+the slot says so and offers the barbell lift back. Make permanent keeps the
+replaced lift as an alternate.
+
+**BBB build-up**, his advice for anyone new to BBB: 5 x 10 at 30% for a
+cycle, 45% for a cycle, then 60% for good. A cycle is three normal weeks
+that lift actually ran the scheme; deloads, TM tests and weeks on a swap
+don't count.
+
 ### Deload and TM-test weeks
 
 Picked at Start Week instead of a normal week.

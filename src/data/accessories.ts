@@ -33,6 +33,9 @@ const CHEST: Exercise[] = [
     pattern: 'verticalPush', muscles: { chest: 1, triceps: 1, frontDelts: 0.5 }, reps: STANDARD }),
   a({ id: 'close-grip-bench-press', name: 'Close-grip bench press', load: 'barbell', equipment: ['barbell', 'bench', 'rack'],
     pattern: 'horizontalPush', muscles: { triceps: 1, chest: 0.5, frontDelts: 0.5 }, reps: HEAVY }),
+  // BBB variations (Wendler's list), so the 5 x 10 has somewhere to go.
+  a({ id: 'floor-press', name: 'Floor press', load: 'barbell', equipment: ['barbell', 'rack'],
+    pattern: 'horizontalPush', muscles: { chest: 1, triceps: 1, frontDelts: 0.5 }, reps: HEAVY }),
 ]
 
 const SHOULDERS: Exercise[] = [
@@ -42,6 +45,8 @@ const SHOULDERS: Exercise[] = [
     pattern: 'isolation', muscles: { sideDelts: 1 }, reps: LIGHT }),
   a({ id: 'db-shoulder-press', name: 'Seated DB shoulder press', load: 'dumbbell', equipment: ['dumbbells', 'inclineBench'],
     pattern: 'verticalPush', muscles: { frontDelts: 1, sideDelts: 0.5, triceps: 0.5 }, reps: STANDARD, tags: ['overhead'] }),
+  a({ id: 'db-overhead-press', name: 'Standing DB press', load: 'dumbbell', equipment: ['dumbbells'],
+    pattern: 'verticalPush', muscles: { frontDelts: 1, sideDelts: 0.5, triceps: 0.5, abs: 0.5 }, reps: STANDARD, tags: ['overhead'] }),
   a({ id: 'arnold-press', name: 'Arnold press', load: 'dumbbell', equipment: ['dumbbells', 'inclineBench'],
     pattern: 'verticalPush', muscles: { frontDelts: 1, sideDelts: 0.5, triceps: 0.5 }, reps: STANDARD, tags: ['overhead'] }),
   // Pressed at an angle, not overhead: the usual shoulder-friendly stand-in.
@@ -161,6 +166,13 @@ const LEGS: Exercise[] = [
   a({ id: 'trap-bar-deadlift', name: 'Trap bar deadlift', load: 'trapBar', equipment: ['trapBar'], region: 'lower',
     pattern: 'hinge', muscles: { quads: 1, glutes: 1, hamstrings: 0.5, lowerBack: 0.5, upperBack: 0.5, forearms: 0.5 },
     reps: HEAVY, lowerBack: 'moderate' }),
+  a({ id: 'heels-elevated-squat', name: 'Heels-elevated squat', load: 'barbell', equipment: ['barbell', 'rack'],
+    region: 'lower', pattern: 'squat', muscles: { quads: 1, glutes: 0.5 }, reps: HEAVY, lowerBack: 'moderate' }),
+  a({ id: 'deficit-deadlift', name: 'Deficit deadlift', load: 'barbell', equipment: ['barbell'], region: 'lower',
+    pattern: 'hinge', muscles: { glutes: 1, hamstrings: 1, quads: 0.5, lowerBack: 0.5, upperBack: 0.5, forearms: 0.5 },
+    reps: [3, 6], lowerBack: 'high' }),
+  a({ id: 'stiff-leg-deadlift', name: 'Stiff-leg deadlift', load: 'barbell', equipment: ['barbell'], region: 'lower',
+    pattern: 'hinge', muscles: { hamstrings: 1, glutes: 1, lowerBack: 0.5 }, reps: HEAVY, lowerBack: 'high' }),
   a({ id: 'cossack-squat', name: 'Cossack squat', load: 'kettlebell', equipment: ['kettlebell'], region: 'lower',
     pattern: 'lunge', muscles: { adductors: 1, quads: 0.5, glutes: 0.5 }, reps: STANDARD }),
 

@@ -121,12 +121,12 @@ describe('accessory slots', () => {
 
 describe('making a swap permanent', () => {
   it("runs a lift with no TM of its own at its usual rep range", () => {
-    const slot = permanentSwap(NSUNS_4DAY, 'd2-t1', 'front-squat', () => false, findExercise)
+    const slot = permanentSwap(NSUNS_4DAY, 'd2-t1', 'front-squat', () => false, findExercise, findScheme)
     expect(slot).toMatchObject({ id: 'd2-t1', exerciseId: 'front-squat', schemeId: 'range-3x5-8', warmups: false })
   })
 
   it('writes "its own TM" out, so it survives a backup', () => {
-    const slot = permanentSwap(NSUNS_4DAY, 'd2-t2', 'trap-bar-deadlift', () => true, findExercise)
+    const slot = permanentSwap(NSUNS_4DAY, 'd2-t2', 'trap-bar-deadlift', () => true, findExercise, findScheme)
     expect(slot).toMatchObject({ exerciseId: 'trap-bar-deadlift', tmExerciseId: 'trap-bar-deadlift', schemeId: 'nsuns-t2-sumo' })
     expect(JSON.parse(JSON.stringify(slot)).tmExerciseId).toBe('trap-bar-deadlift')
   })

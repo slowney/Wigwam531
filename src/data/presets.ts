@@ -62,10 +62,19 @@ function fiveThreeOne(id: string, name: string, supplemental: string): Program {
       const dayId = `d${i + 1}`
       return day(dayId, `Day ${i + 1}`, [
         main(`${dayId}-t1`, exerciseId, 'T1', '531-main'),
-        { ...main(`${dayId}-t2`, exerciseId, 'T2', supplemental), warmups: false },
+        { ...main(`${dayId}-t2`, exerciseId, 'T2', supplemental), warmups: false, alternates: SUPPLEMENTAL_ALTERNATES[exerciseId] },
       ])
     }),
   }
+}
+
+// Wendler's substitutes for the supplemental lift, as far as the garage
+// allows. Dumbbell ones run the same sets and reps at a weight you pick.
+const SUPPLEMENTAL_ALTERNATES: Record<string, string[]> = {
+  'overhead-press': ['db-overhead-press', 'db-shoulder-press', 'incline-bench-press', 'db-incline-press'],
+  'bench-press': ['db-bench-press', 'db-incline-press', 'incline-bench-press', 'close-grip-bench-press', 'floor-press'],
+  squat: ['front-squat', 'heels-elevated-squat'],
+  deadlift: ['trap-bar-deadlift', 'deficit-deadlift', 'stiff-leg-deadlift'],
 }
 
 export const FIVE_THREE_ONE_BBB = fiveThreeOne('531-bbb-4day', '5/3/1 BBB 4-day', '531-bbb')

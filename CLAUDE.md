@@ -20,6 +20,7 @@ writing code.
 - Phase 6 (progress and metrics) is built and was checked in the phone-size preview against six months of demo data. It's waiting on the user looking at their real data on the phone, plus the trimmed space under the tab bar.
 - Phase 7 (skipping sets, accessory groups, deload and TM-test suggestions, workout and weekly numbers, comparing on exercise pages) is built and was checked in the preview. It's waiting on real use. Phase 8 (5/3/1 waves with BBB and BBS) is built and tested, waiting on a real cycle; partners on their own phones is planned in `docs/SYNC.md`.
 - Day focus (accessories follow each day's Upper/Lower/Posterior lean) is built and checked in the preview, waiting on a real week.
+- T2s are a ramp plus 3 × 6–8, PRs need a beaten prescription, and BBB has alternates and a build-up scheme. All checked in the preview, waiting on real use.
 - **Demo data:** in the dev build only, Progress has "Load demo data" (`src/db/demo.ts`), six months of made-up training for a Demo profile. It's imported only behind `import.meta.env.DEV`, so it never ships.
 
 ## Hard rules

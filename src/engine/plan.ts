@@ -6,6 +6,7 @@ import type { DoubleProgression } from './progression.ts'
 import {
   DELOAD_SETS,
   TM_TEST_SETS,
+  buildName,
   rangeSchemeId,
   waveName,
   waveSets,
@@ -69,6 +70,8 @@ export interface PlanContext {
   workingWeights?: Readonly<Record<string, number>>
   /** Where this week falls in a wave (see `waveIndex`). Schemes without waves ignore it. */
   waveIndex?: number
+  /** Earlier normal weeks each lift has run each scheme, keyed by `weeksRunKey` (see `weeksRun`). */
+  weeksRun?: Readonly<Record<string, number>>
   schemes: SchemeLookup
   rounding?: Rounding
   /** Bar weight for an exercise. Undefined for anything not on a bar. */
@@ -130,14 +133,16 @@ function warmup(weight: number, reps: number, pct?: number): PlannedSet {
   return { weight, reps, pct, amrap: false, progression: false, tmTest: false }
 }
 
-function percentSetsFor(scheme: PercentScheme, weekType: WeekType, waveIndex: number): PercentSet[] {
+export const weeksRunKey = (schemeId: string, exerciseId: string) => `${schemeId}:${exerciseId}`
+
+function percentSetsFor(scheme: PercentScheme, weekType: WeekType, waveIndex: number, weeksRun: number): PercentSet[] {
   if (weekType === 'deload') return DELOAD_SETS
   if (weekType === 'tmTest') {
     // Only the slot that drives a TM tests it. Everything else rides along
     // as deload work, so a TM-test week is light across the board.
     return scheme.sets.some((s) => s.progression) || scheme.cycle ? TM_TEST_SETS : DELOAD_SETS
   }
-  return waveSets(scheme, waveIndex)
+  return waveSets(scheme, waveIndex, weeksRun)
 }
 
 /**
@@ -162,7 +167,8 @@ function rangeSets(scheme: RangeScheme, weight: number | undefined, weekType: We
   return Array.from({ length: count }, () => ({
     weight,
     reps: low,
-    repsMax: deload ? undefined : high,
+    // "5 x 10" is a range of one; showing it as 10-10 would only confuse.
+    repsMax: deload || high === low ? undefined : high,
     amrap: false,
     progression: false,
     tmTest: false,
@@ -202,7 +208,8 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
 
   const rounding = ctx.rounding ?? DEFAULT_ROUNDING
   const bar = ctx.barFor?.(slot.exerciseId)
-  const sets = percentSetsFor(scheme, ctx.weekType, ctx.waveIndex ?? 0).map((s) =>
+  const weeksRun = ctx.weeksRun?.[weeksRunKey(scheme.id, slot.exerciseId)] ?? 0
+  const sets = percentSetsFor(scheme, ctx.weekType, ctx.waveIndex ?? 0, weeksRun).map((s) =>
     flagUnloadable(
       slot.exerciseId,
       {
@@ -229,7 +236,8 @@ export function planSlot(slot: MainSlot, ctx: PlanContext): PlannedSlot {
         : ramp?.length
           ? rampSets(ramp, tm, first, bar, rounding)
           : []
-  const wave = ctx.weekType === 'normal' ? waveName(scheme, ctx.waveIndex ?? 0) : undefined
+  const wave =
+    ctx.weekType === 'normal' ? (waveName(scheme, ctx.waveIndex ?? 0) ?? buildName(scheme, weeksRun)) : undefined
   return { ...base, tmExerciseId, tm, missingTm: false, warmups, sets, ...(wave ? { wave } : {}) }
 }
 

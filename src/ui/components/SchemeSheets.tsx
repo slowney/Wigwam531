@@ -130,7 +130,11 @@ export function SchemeEditor(props: {
   const start = props.editing ?? props.from
   const [name, setName] = useState(props.editing?.name ?? (props.from ? `My ${props.from.name}` : ''))
   // A wave has one list of sets per week; anything else is a wave of one.
-  const [weeks, setWeeks] = useState<Row[][]>(() => (start?.waves ?? [start?.sets ?? STARTER]).map((w) => w.map(toRow)))
+  // A build-up is edited the same way, one tab per step.
+  const [weeks, setWeeks] = useState<Row[][]>(() =>
+    (start?.waves ?? start?.build ?? [start?.sets ?? STARTER]).map((w) => w.map(toRow)),
+  )
+  const tabName = (i: number) => (start?.build ? `Cycle ${i + 1}` : (start?.waveNames?.[i] ?? `Week ${i + 1}`))
   const [tab, setTab] = useState(0)
   const rows = weeks[tab]!
   const setRows = (next: Row[]) => setWeeks(weeks.map((w, i) => (i === tab ? next : w)))
@@ -153,6 +157,7 @@ export function SchemeEditor(props: {
         // The ramp isn't editable here; a copy keeps the original's.
         ...(start?.ramp ? { ramp: start.ramp } : {}),
         ...(start?.waves ? { waves: sets, waveNames: start.waveNames, cycle: start.cycle } : {}),
+        ...(start?.build ? { build: sets } : {}),
       }
       props.onSaved(await saveScheme(props.editing ? { ...scheme, id: props.editing.id } : scheme))
     } catch (e) {
@@ -171,10 +176,10 @@ export function SchemeEditor(props: {
       {weeks.length > 1 && (
         <div className="range-picker">
           <Segmented
-            label="Wave week"
+            label={start?.build ? 'Build-up cycle' : 'Wave week'}
             value={String(tab)}
             onChange={(v) => setTab(Number(v))}
-            options={weeks.map((_, i) => ({ value: String(i), label: start?.waveNames?.[i] ?? `Week ${i + 1}` }))}
+            options={weeks.map((_, i) => ({ value: String(i), label: tabName(i) }))}
           />
         </div>
       )}
@@ -297,9 +302,15 @@ export function SchemeView(props: { scheme: PercentScheme; onCopy: () => void; o
           weight are dropped.
         </p>
       ) : null}
-      {(props.scheme.waves ?? [props.scheme.sets]).map((sets, w) => (
+      {(props.scheme.waves ?? props.scheme.build ?? [props.scheme.sets]).map((sets, w) => (
         <div key={w}>
           {props.scheme.waves && <h3 className="picker-group">{props.scheme.waveNames?.[w] ?? `Week ${w + 1}`} week</h3>}
+          {props.scheme.build && (
+            <h3 className="picker-group">
+              Cycle {w + 1}
+              {w === props.scheme.build.length - 1 ? ' on' : ''}
+            </h3>
+          )}
           <ol className="scheme-list">
             {sets.map((s, i) => (
               <li key={i}>

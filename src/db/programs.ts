@@ -1,4 +1,5 @@
 import { findExercise } from '../data/exercises.ts'
+import { findScheme } from '../data/schemes.ts'
 import {
   resolveProgram,
   slotTmId,
@@ -232,13 +233,14 @@ export async function makeSwapPermanent(entryId: string, slotId: string, db: Wig
     const program = await loadProgram(entry.profileId, db)
     if (!row || !program) return
     const tms = await loadTms(entry.profileId, db)
-    const slot: MainSlot = permanentSwap(program, slotId, exerciseId, (id) => tms[id] !== undefined, findExercise)
+    const slot: MainSlot = permanentSwap(program, slotId, exerciseId, (id) => tms[id] !== undefined, findExercise, findScheme)
     const fields: SlotFields = {
       exerciseId: slot.exerciseId,
       tier: slot.tier,
       schemeId: slot.schemeId,
       tmExerciseId: slot.tmExerciseId,
       warmups: slot.warmups,
+      alternates: slot.alternates,
     }
     if (row.followsProfileId) await putOverrides(row, setOverride(row.overrides, slotId, fields), db, now)
     else if (row.program) await putOwnProgram(row, updateMainSlot(row.program, slotId, fields), db, now)

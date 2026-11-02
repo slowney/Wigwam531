@@ -269,6 +269,14 @@ From the list after Phase 6. Built:
 
 **Done when:** a week of T2s feels right, and PR badges show up on sets that earned them.
 
+## BBB variations
+
+- **Alternates** on main slots, offered first by Swap; BBB/BBS presets come with Wendler's list (plus heels-elevated squat, no box squat).
+- **Swaps keep the slot's shape** (5 x 10, 3 x 6-8) at a picked weight when the new lift has no TM; dumbbells per hand. A note offers the barbell back once the heaviest dumbbells are beaten.
+- **BBB build-up:** 30%, 45%, then 60% of TM, a cycle each. Logged sets now carry their scheme id so it can count.
+
+**Done when:** a BBB cycle runs with a dumbbell week or two mixed in.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)

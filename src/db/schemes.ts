@@ -16,7 +16,7 @@ export function validateScheme(s: Scheme): void {
     }
     return
   }
-  for (const sets of s.waves ?? [s.sets]) {
+  for (const sets of s.waves ?? s.build ?? [s.sets]) {
     if (sets.length === 0) throw new Error('Add at least one set.')
     if (sets.some((x: PercentSet) => !(x.pct >= 1 && x.pct <= 150) || !(x.reps >= 1))) {
       throw new Error('Each set needs 1–150% and at least one rep.')

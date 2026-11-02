@@ -77,6 +77,7 @@ describe('logging', () => {
     const setId = await logSet(setFromPlan(entry, bench, 0, bench.sets[0]!, { weight: 170, reps: 5 }), 120, db, 1000)
     expect(await db.sets.get(setId)).toMatchObject({
       exerciseId: 'bench-press',
+      schemeId: 'nsuns-t1-bench', // what a build-up counts its weeks by
       prescribedWeight: 170,
       pct: 75,
       tm: 225,

@@ -8,7 +8,7 @@ import { loadTms } from '../../db/profiles.ts'
 import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus, weekState } from '../../db/weeks.ts'
 import { waveIndex, type PlannedSlot } from '../../engine/plan.ts'
 import { dayLabel } from '../../engine/program.ts'
-import { planEntry } from '../../engine/session.ts'
+import { normalWeekIds, planEntry } from '../../engine/session.ts'
 import { statusOf, type DayStatus } from '../../engine/week.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
 import { BackLink, ConfirmButton } from '../components/forms.tsx'
@@ -95,6 +95,8 @@ export function WeekView() {
           accessories: [],
           weekType: week?.type ?? 'normal',
           waveIndex: week ? waveIndex(data.weeks ?? [], week.number) : 0,
+          normalWeeks: normalWeekIds(data.weeks ?? []),
+          weekId: week?.id,
           tms: data.tms ?? {},
           history: data.history ?? [],
           sessionId: '',

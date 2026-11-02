@@ -15,6 +15,11 @@ export interface MainSlot {
    */
   tmExerciseId?: string
   warmups: boolean
+  /**
+   * Lifts this slot can swap to, offered first by the Swap button: the
+   * dumbbell version of a BBB press for when the bar isn't wanted, say.
+   */
+  alternates?: string[]
 }
 
 export type AccessorySlot =

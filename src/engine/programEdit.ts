@@ -194,10 +194,14 @@ export function permanentSwap(
   exerciseId: string,
   hasTm: (exerciseId: string) => boolean,
   lookup: ExerciseLookup,
+  schemes: SchemeLookup,
 ): MainSlot {
   const day = dayOfSlot(program, slotId)
-  const swapped = applySwaps(day, { [slotId]: exerciseId }, hasTm, lookup).mains.find((m) => m.id === slotId)!
-  return { ...swapped, tmExerciseId: swapped.tmExerciseId ?? swapped.exerciseId }
+  const before = day.mains.find((m) => m.id === slotId)!
+  const swapped = applySwaps(day, { [slotId]: exerciseId }, hasTm, lookup, schemes).mains.find((m) => m.id === slotId)!
+  // The lift it replaced becomes an alternate, one tap away for the weeks it's wanted back.
+  const alternates = [before.exerciseId, ...(before.alternates ?? []).filter((id) => id !== exerciseId && id !== before.exerciseId)]
+  return { ...swapped, tmExerciseId: swapped.tmExerciseId ?? swapped.exerciseId, alternates }
 }
 
 /** A follower's change to one slot, layered over whatever they'd already changed. */
@@ -282,6 +286,7 @@ export function overrideDiff(leader: MainSlot, mine: SlotFields): Partial<SlotFi
   if (mine.tier !== leader.tier) diff.tier = mine.tier
   if (mine.schemeId !== leader.schemeId) diff.schemeId = mine.schemeId
   if (mine.warmups !== leader.warmups) diff.warmups = mine.warmups
+  if ((mine.alternates ?? []).join() !== (leader.alternates ?? []).join()) diff.alternates = mine.alternates ?? []
   const tm = mine.tmExerciseId ?? mine.exerciseId
   if (diff.exerciseId || tm !== slotTmId(leader)) diff.tmExerciseId = tm
   return diff

@@ -3,6 +3,7 @@
 import {
   planAccessory,
   planDay,
+  weeksRunKey,
   type AccessoryPick,
   type PlanContext,
   type PlannedDay,
@@ -12,7 +13,7 @@ import {
 import type { Program, ProgramDay } from './program.ts'
 import { nextWorkingWeight, type DoubleProgression, type RangeRule } from './progression.ts'
 import { checkPr, type PrCheck } from './records.ts'
-import { rangeSchemeId, type SchemeLookup } from './schemes.ts'
+import { rangeSchemeId, schemeShape, type SchemeLookup } from './schemes.ts'
 import type { ExerciseLookup, Gym } from './types.ts'
 import { gymChecks, nextLoad } from './weights.ts'
 
@@ -21,15 +22,18 @@ export type Swaps = Readonly<Record<string, string>>
 
 /**
  * A swapped-in lift with a TM of its own keeps the slot's scheme, and its 1+
- * set then moves its own TM. One without a TM runs its usual rep range at a
- * weight the lifter picks. Either way the original lift logs nothing, so its
- * TM holds this week.
+ * set then moves its own TM. One without a TM keeps the slot's sets x reps
+ * if it has one shape (see schemeShape), otherwise runs its usual rep
+ * range, at a weight the lifter picks that then carries over by double
+ * progression. Either way the original lift logs nothing, so its TM holds
+ * this week.
  */
 export function applySwaps(
   day: ProgramDay,
   swaps: Swaps,
   hasTm: (exerciseId: string) => boolean,
   lookup: ExerciseLookup,
+  schemes: SchemeLookup,
 ): ProgramDay {
   return {
     ...day,
@@ -38,12 +42,15 @@ export function applySwaps(
       if (!exerciseId || exerciseId === slot.exerciseId) return slot
       if (hasTm(exerciseId)) return { ...slot, exerciseId, tmExerciseId: undefined }
       const exercise = lookup(exerciseId)
+      const scheme = schemes(slot.schemeId)
+      const shape = (scheme && schemeShape(scheme)) ?? { sets: exercise?.sets ?? 3, reps: exercise?.reps ?? [8, 12] }
       return {
         id: slot.id,
         exerciseId,
         tier: slot.tier,
-        schemeId: rangeSchemeId(exercise?.sets ?? 3, exercise?.reps ?? [8, 12]),
+        schemeId: rangeSchemeId(shape.sets, shape.reps),
         warmups: false,
+        ...(slot.alternates ? { alternates: slot.alternates } : {}),
       }
     }),
   }
@@ -131,6 +138,9 @@ interface HistorySet {
   id: string
   exerciseId: string
   sessionId: string
+  weekId?: string
+  /** The scheme the set was planned from. Logged since the BBB build-up; older sets don't have it. */
+  schemeId?: string
   weight: number
   reps: number
   warmup: boolean
@@ -176,6 +186,32 @@ export function lastNotes<S extends HistorySet & { note?: string }>(
   return notes.length ? { at: sets[0]!.at, notes } : undefined
 }
 
+/** The ids of a person's normal weeks: the ones a build-up counts. */
+export function normalWeekIds(weeks: ReadonlyArray<{ id: string; type: WeekType }>): Set<string> {
+  return new Set(weeks.filter((w) => w.type === 'normal').map((w) => w.id))
+}
+
+/**
+ * How many earlier normal weeks each lift ran each scheme, keyed by
+ * `weeksRunKey`. A BBB build-up steps on this. Weeks on a swap or a
+ * different scheme don't count, so a build-up picks up where it left off.
+ */
+export function weeksRun(
+  history: ReadonlyArray<HistorySet>,
+  normalWeeks: ReadonlySet<string>,
+  currentWeekId?: string,
+): Record<string, number> {
+  const weeks = new Map<string, Set<string>>()
+  for (const s of history) {
+    if (s.warmup || !s.schemeId || !s.weekId || s.weekId === currentWeekId || !normalWeeks.has(s.weekId)) continue
+    const key = weeksRunKey(s.schemeId, s.exerciseId)
+    const seen = weeks.get(key)
+    if (seen) seen.add(s.weekId)
+    else weeks.set(key, new Set([s.weekId]))
+  }
+  return Object.fromEntries([...weeks].map(([key, set]) => [key, set.size]))
+}
+
 /** Today's double-progression weight for a rep-range slot, from the last session that did it. */
 export function workingWeight(
   history: ReadonlyArray<HistorySet>,
@@ -198,6 +234,10 @@ export interface EntryPlanInput {
   weekType: WeekType
   /** Where this week falls in a wave (see `waveIndex`). */
   waveIndex?: number
+  /** This person's normal weeks, by id, for counting a build-up's progress (see `weeksRun`). */
+  normalWeeks?: ReadonlySet<string>
+  /** Today's week, which doesn't count toward its own build-up step. */
+  weekId?: string
   tms: Readonly<Record<string, number>>
   /** This person's logged sets, for carried-over weights. */
   history: ReadonlyArray<HistorySet>
@@ -212,7 +252,7 @@ export interface EntryPlanInput {
 export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: PlannedSlot[] } | undefined {
   const programDay = input.program.days.find((d) => d.id === input.dayId)
   if (!programDay) return undefined
-  const day = applySwaps(programDay, input.swaps, (id) => input.tms[id] !== undefined, input.lookup)
+  const day = applySwaps(programDay, input.swaps, (id) => input.tms[id] !== undefined, input.lookup, input.schemes)
 
   // Rep-range main lifts (the heavy row) need every set at the top of the
   // range to move up; accessories need one.
@@ -242,6 +282,7 @@ export function planEntry(input: EntryPlanInput): { day: PlannedDay; slots: Plan
   const ctx: PlanContext = {
     weekType: input.weekType,
     waveIndex: input.waveIndex,
+    weeksRun: input.normalWeeks ? weeksRun(input.history, input.normalWeeks, input.weekId) : {},
     tms: input.tms,
     workingWeights,
     schemes: input.schemes,

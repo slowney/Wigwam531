@@ -91,6 +91,7 @@ export function setFromPlan(
     role: slot.role,
     exerciseId: slot.exerciseId,
     warmup,
+    schemeId: slot.schemeId,
     prescribedWeight: planned.weight,
     prescribedReps: planned.reps,
     prescribedRepsMax: planned.repsMax,

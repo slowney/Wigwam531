@@ -50,15 +50,18 @@ import {
   focusMuscles,
   type AccessoryGroup,
   type DayFocus,
+  type MainSlot,
   type Program,
 } from '../../engine/program.ts'
 import type { PrCheck } from '../../engine/records.ts'
+import { schemeShape } from '../../engine/schemes.ts'
 import {
   dayProgress,
   lastNotes,
   lastSessionSets,
   nextLifter,
   nextSet,
+  normalWeekIds,
   planEntry,
   prChecks,
   prKind,
@@ -174,6 +177,8 @@ function viewOf(person: Person, gym: Gym, now: number): View {
       skips: today ? person.entry.skips : undefined,
       weekType: person.week?.type ?? 'normal',
       waveIndex: person.week ? waveIndex(person.weeks, person.week.number) : 0,
+      normalWeeks: normalWeekIds(person.weeks),
+      weekId: person.entry.weekId,
       tms: person.tms,
       history: person.history,
       sessionId: person.entry.sessionId,
@@ -424,6 +429,7 @@ export function Session() {
           })
         }
         onUnswap={() => run(() => swapExercise(active!.person.entry.id, slot.slotId, undefined))}
+        onSwapTo={(exerciseId) => run(() => swapExercise(active!.person.entry.id, slot.slotId, exerciseId))}
         onPermanent={() => run(() => makeSwapPermanent(active!.person.entry.id, slot.slotId))}
         onRemove={() => run(() => removeAccessory(active!.person.entry.id, slot.slotId))}
         onToggle={(collapsed) => run(() => setCollapsed(active!.person.entry.id, slot.slotId, collapsed))}
@@ -683,6 +689,20 @@ function RestBar(props: {
   )
 }
 
+/** How an alternate would run in this slot: the same sets off its own TM, or the slot's shape at a picked weight. */
+function swapDetail(view: View, slotId: string, exerciseId: string): string | undefined {
+  const scheme = findScheme(programSlotOf(view, slotId)?.schemeId ?? '')
+  if (!scheme) return undefined
+  if (view.person.tms[exerciseId] !== undefined && scheme.kind === 'percent') return `Same sets, off its own TM`
+  const shape = schemeShape(scheme)
+  return shape ? `${shape.sets} × ${repRange(shape.reps)}, weight you pick` : undefined
+}
+
+/** A main slot as the program has it today (a follower's overrides applied), before any swap. */
+function programSlotOf(view: View, slotId: string): MainSlot | undefined {
+  return view.person.program?.days.find((d) => d.id === view.person.entry.dayId)?.mains.find((m) => m.id === slotId)
+}
+
 function SlotCard(props: {
   view: View
   slot: PlannedSlot
@@ -695,6 +715,7 @@ function SlotCard(props: {
   onSheet: (sheet: SheetState) => void
   onWarmups: (done: boolean) => void
   onUnswap: () => void
+  onSwapTo: (exerciseId: string) => void
   onPermanent: () => void
   onRemove: () => void
   onToggle: (collapsed: boolean) => void
@@ -708,9 +729,8 @@ function SlotCard(props: {
   const progress = dayProgress([slot], view.logged)
   const finished = progress.total > 0 && progress.done >= progress.total
   const collapsed = slotCollapsed(view.person.entry.collapsed?.[slot.slotId], progress)
-  const programmed = view.person.program?.days
-    .find((d) => d.id === view.person.entry.dayId)
-    ?.mains.find((m) => m.id === slot.slotId)?.exerciseId
+  const programSlot = programSlotOf(view, slot.slotId)
+  const programmed = programSlot?.exerciseId
   const swappedFrom = slot.role === 'main' && programmed && programmed !== slot.exerciseId ? programmed : undefined
   const lastWeight = working.length ? working[working.length - 1]!.weight : undefined
 
@@ -735,6 +755,11 @@ function SlotCard(props: {
     .map((s) => `${weightText(s.weight, exercise)}×${s.reps}`)
     .join(' · ')
   const conflict = exercise ? view.restrictions.find((r) => restricts(r, exercise)) : undefined
+  // Dumbbell work tops out at the heaviest pair. Once every set beats the
+  // range there, the bar is the way to keep progressing: back to the
+  // programmed lift if this is a swap, or to the slot's first barbell alternate.
+  const outgrown = slot.role === 'main' && exercise?.load === 'dumbbell' && slot.carried?.reason === 'maxed'
+  const barbellBack = swappedFrom ?? programSlot?.alternates?.find((id) => exerciseOf(id)?.load !== 'dumbbell')
   const lastNote = lastNotes(view.person.history, slot.exerciseId, view.person.entry.sessionId)
 
   return (
@@ -794,6 +819,22 @@ function SlotCard(props: {
         </button>
       )}
 
+      {!collapsed && outgrown && working.length === 0 && (
+        <div className="slot-warn">
+          <p className="small warn-text no-margin">
+            {slot.carried?.weight}s are the heaviest dumbbells, and every set beat the range there last time.
+          </p>
+          {barbellBack && (
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              onClick={() => (swappedFrom ? props.onUnswap() : props.onSwapTo(barbellBack))}
+            >
+              Swap to {exerciseOf(barbellBack)?.name ?? barbellBack}
+            </button>
+          )}
+        </div>
+      )}
       {!collapsed && lastNote && (
         <p className="small muted no-margin slot-note">
           ✎ Last time, {formatDate(lastNote.at)}: {lastNote.notes.join(' · ')}
@@ -1143,6 +1184,11 @@ function SessionSheet(props: {
         title={`Swap ${exercise?.name ?? ''} for today`}
         hidden={hidden}
         exclude={inPlan}
+        first={{
+          label: 'Alternates',
+          ids: programSlotOf(view, slot.slotId)?.alternates ?? [],
+          detail: (id) => swapDetail(view, slot.slotId, id),
+        }}
         onClose={props.onClose}
         onPick={(exerciseId) => {
           props.onClose()

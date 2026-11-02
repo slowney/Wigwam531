@@ -54,6 +54,8 @@ const WAVE_BBS = [65, 70, 75].map((pct) => Array.from({ length: 10 }, () => set(
 
 const WAVE_NAMES = ['5s', '3s', '5/3/1']
 
+const BBB_BUILD = [30, 45, 60].map((pct) => Array.from({ length: 5 }, () => set(pct, 10)))
+
 export const SCHEMES: Scheme[] = [
   { kind: 'percent', id: 'nsuns-t1-bench', name: 'nSuns T1 bench', sets: T1_BENCH },
   { kind: 'percent', id: 'nsuns-t1-squat', name: 'nSuns T1 squat', sets: T1_SQUAT_OHP },
@@ -80,6 +82,16 @@ export const SCHEMES: Scheme[] = [
   { kind: 'percent', id: '531-bbs', name: '5/3/1 BBS (10 × 5)', sets: WAVE_BBS[0]!, waves: WAVE_BBS, waveNames: WAVE_NAMES },
   // Boring But Big: 5 × 10 at 50% of the same lift's TM, every week.
   { kind: 'percent', id: '531-bbb', name: '5/3/1 BBB (5 × 10)', sets: Array.from({ length: 5 }, () => set(50, 10)) },
+  // Wendler's advice for anyone new to BBB: 30% the first cycle (the
+  // soreness from 5 x 10 squats and deadlifts is the problem), 45% the
+  // second, then 60% for good, rising with the TM from there.
+  {
+    kind: 'percent',
+    id: '531-bbb-build',
+    name: '5/3/1 BBB build-up (5 × 10)',
+    sets: BBB_BUILD[0]!,
+    build: BBB_BUILD,
+  },
 ]
 
 const byId = new Map(SCHEMES.map((s) => [s.id, s]))

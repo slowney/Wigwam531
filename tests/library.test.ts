@@ -18,9 +18,9 @@ const LOAD_NEEDS: Record<LoadType, Equipment | undefined> = {
 }
 
 describe('exercise library', () => {
-  it('has the 92 accessories we agreed on, on top of the main lifts', () => {
-    expect(ACCESSORIES).toHaveLength(92)
-    expect(EXERCISES).toHaveLength(92 + MAIN_LIFTS.length)
+  it('has the 97 accessories we agreed on, on top of the main lifts', () => {
+    expect(ACCESSORIES).toHaveLength(97) // 92, plus five BBB variations
+    expect(EXERCISES).toHaveLength(97 + MAIN_LIFTS.length)
   })
 
   it('never reuses an id', () => {

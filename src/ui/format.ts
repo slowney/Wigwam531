@@ -24,6 +24,9 @@ export function schemeSummary(scheme: Scheme): string {
     const names = scheme.waveNames ?? scheme.waves.map((_, i) => `week ${i + 1}`)
     return `${scheme.waves.length}-week wave: ${names.join(', ')}`
   }
+  if (scheme.build?.length) {
+    return `${scheme.sets.length} sets, ${scheme.build.map((sets) => `${sets[0]?.pct ?? 0}%`).join(' → ')}, a cycle each`
+  }
   const pcts = scheme.sets.map((s) => s.pct)
   const low = Math.min(...pcts)
   const high = Math.max(...pcts)

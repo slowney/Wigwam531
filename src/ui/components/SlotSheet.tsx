@@ -32,6 +32,10 @@ function progressionText(scheme: Scheme | undefined, tmName: string): string {
   if (scheme.waves?.length) {
     return `Changes week to week with the wave, and follows the ${tmName} TM as that moves.`
   }
+  if (scheme.build?.length) {
+    const steps = scheme.build.map((sets) => `${sets[0]?.pct ?? 0}%`).join(', then ')
+    return `Steps up a cycle (3 normal weeks) at a time: ${steps} of the ${tmName} TM, following the TM as it moves.`
+  }
   const star = scheme.sets.find((s) => s.progression)
   return star
     ? `The ★ set at ${star.pct}% moves the ${tmName} TM at Start Week.`
@@ -55,7 +59,7 @@ export function SlotSheet(props: {
   reset?: { label: string; onReset: () => Promise<void> | void }
 }) {
   const [fields, setFields] = useState(props.initial)
-  const [picking, setPicking] = useState<'exercise' | 'scheme' | 'sets'>()
+  const [picking, setPicking] = useState<'exercise' | 'scheme' | 'sets' | 'alternate'>()
   const custom = useCustomSchemeIds()
   const [error, setError] = useState<string>()
   // Saving can be refused (a lift already logged today, say); the sheet stays open to say why.
@@ -78,6 +82,20 @@ export function SlotSheet(props: {
         onClose={() => setPicking(undefined)}
         onPick={(id) => {
           setFields(changeExercise(fields, id, hasTm, findScheme))
+          setPicking(undefined)
+        }}
+      />
+    )
+  }
+  if (picking === 'alternate') {
+    return (
+      <ExercisePicker
+        title="Add an alternate"
+        hidden={props.hidden}
+        exclude={new Set([fields.exerciseId, ...(fields.alternates ?? [])])}
+        onClose={() => setPicking(undefined)}
+        onPick={(id) => {
+          setFields({ ...fields, alternates: [...(fields.alternates ?? []), id] })
           setPicking(undefined)
         }}
       />
@@ -175,6 +193,32 @@ export function SlotSheet(props: {
           )}
         </div>
       )}
+
+      <div className="field">
+        <span className="label">Alternates</span>
+        {(fields.alternates ?? []).length > 0 && (
+          <div className="chips">
+            {(fields.alternates ?? []).map((id) => (
+              <button
+                key={id}
+                type="button"
+                className="chip"
+                aria-label={`Remove ${nameOf(id)} from the alternates`}
+                onClick={() => setFields({ ...fields, alternates: fields.alternates?.filter((a) => a !== id) })}
+              >
+                {nameOf(id)} ×
+              </button>
+            ))}
+          </div>
+        )}
+        <button type="button" className="btn btn-quiet btn-small edit-sets" onClick={() => setPicking('alternate')}>
+          + Add an alternate
+        </button>
+        <p className="muted small no-margin">
+          Offered first when you swap this lift. One without a TM keeps these sets and reps at a weight you pick, then
+          goes up as you beat it.
+        </p>
+      </div>
 
       <label className="toggle">
         <input

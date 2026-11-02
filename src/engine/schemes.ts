@@ -38,12 +38,35 @@ export interface PercentScheme {
    * No ★ set drives it week to week.
    */
   cycle?: boolean
+  /**
+   * Wendler's BBB build-up: lighter sets the first cycles, stepping up a
+   * cycle (BUILD_WEEKS normal weeks of it) at a time and staying on the
+   * last. `sets` is the first step.
+   */
+  build?: PercentSet[][]
 }
 
-/** The sets for one week of a scheme: its wave week, for a wave. */
-export function waveSets(scheme: PercentScheme, waveIndex: number): PercentSet[] {
+/** Normal weeks on each build-up step: one 5/3/1 cycle. */
+export const BUILD_WEEKS = 3
+
+/** Which build-up step a lift is on, from the normal weeks it has run the scheme. */
+export function buildStep(scheme: PercentScheme, weeksRun: number): number {
+  if (!scheme.build?.length) return 0
+  return Math.min(Math.floor(weeksRun / BUILD_WEEKS), scheme.build.length - 1)
+}
+
+/** The sets for one week of a scheme: its wave week for a wave, its step for a build-up. */
+export function waveSets(scheme: PercentScheme, waveIndex: number, weeksRun = 0): PercentSet[] {
+  if (scheme.build?.length) return scheme.build[buildStep(scheme, weeksRun)]!
   if (!scheme.waves?.length) return scheme.sets
   return scheme.waves[waveIndex % scheme.waves.length]!
+}
+
+/** "Build-up 1 of 3" until the last step, which is where the scheme then stays. */
+export function buildName(scheme: PercentScheme, weeksRun: number): string | undefined {
+  if (!scheme.build?.length) return undefined
+  const step = buildStep(scheme, weeksRun)
+  return step < scheme.build.length - 1 ? `Build-up ${step + 1} of ${scheme.build.length}` : undefined
 }
 
 /** "3s week", for the wave week a week falls on. Undefined for a scheme without waves. */
@@ -63,6 +86,20 @@ export interface RangeScheme {
 }
 
 export type Scheme = PercentScheme | RangeScheme
+
+/**
+ * A scheme's sets x reps as a rep range, when every set asks the same reps
+ * ("5 x 10", "3 x 6-8"). A swapped-in lift without a TM keeps that shape
+ * at a weight the lifter picks: Wendler's dumbbell BBB is still 5 x 10, just
+ * not programmed by percentage. A pyramid has no one shape.
+ */
+export function schemeShape(scheme: Scheme): { sets: number; reps: [number, number] } | undefined {
+  if (scheme.kind === 'range') return { sets: scheme.sets, reps: scheme.reps }
+  const [first, ...rest] = scheme.sets
+  if (!first || first.amrap) return undefined
+  const same = rest.every((s) => s.reps === first.reps && s.repsMax === first.repsMax && !s.amrap)
+  return same ? { sets: scheme.sets.length, reps: [first.reps, first.repsMax ?? first.reps] } : undefined
+}
 
 export type SchemeLookup = (id: string) => Scheme | undefined
 

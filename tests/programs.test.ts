@@ -227,7 +227,12 @@ describe('making a swap permanent', () => {
     const entry = (await db.entries.where('sessionId').equals(session).first())!
     await swapExercise(entry.id, 'd1-t2', 'landmine-press', db)
     await makeSwapPermanent(entry.id, 'd1-t2', db)
-    expect(slot(await own(db, lead), 'd1-t2')).toMatchObject({ exerciseId: 'landmine-press', schemeId: 'range-3x8-12' })
+    // The T2's 3 x 6-8 carries over; the lift it replaced stays one tap away.
+    expect(slot(await own(db, lead), 'd1-t2')).toMatchObject({
+      exerciseId: 'landmine-press',
+      schemeId: 'range-3x6-8',
+      alternates: ['overhead-press'],
+    })
     expect((await db.entries.get(entry.id))?.swaps).toEqual({})
   })
 

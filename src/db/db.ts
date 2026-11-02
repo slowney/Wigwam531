@@ -169,6 +169,8 @@ export interface SetRow {
   role: 'main' | 'accessory'
   exerciseId: string
   warmup: boolean
+  /** The scheme it was planned from. Missing on sets logged before the BBB build-up came in. */
+  schemeId?: string
   prescribedWeight?: number
   prescribedReps: number
   prescribedRepsMax?: number

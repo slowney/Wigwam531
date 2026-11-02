@@ -32,7 +32,7 @@ const day = (id: string) => NSUNS_4DAY.days.find((d) => d.id === id)!
 
 describe('swapping a lift for today', () => {
   it('runs a lift with no TM of its own at its usual rep range, weight open', () => {
-    const swapped = applySwaps(day('d2'), { 'd2-t1': 'front-squat' }, (id) => id in TMS, findExercise)
+    const swapped = applySwaps(day('d2'), { 'd2-t1': 'front-squat' }, (id) => id in TMS, findExercise, findScheme)
     const slot = planDay(swapped, ctx()).mains[0]!
     expect(slot).toMatchObject({ exerciseId: 'front-squat', kind: 'range', schemeId: 'range-3x5-8' })
     expect(slot.sets.map((s) => [s.weight, s.reps, s.repsMax])).toEqual(Array(3).fill([undefined, 5, 8]))
@@ -41,7 +41,7 @@ describe('swapping a lift for today', () => {
 
   it('keeps the scheme for a lift with its own TM, and moves that TM instead', () => {
     const tms = { ...TMS, 'trap-bar-deadlift': 335 }
-    const swapped = applySwaps(day('d4'), { 'd4-t1': 'trap-bar-deadlift' }, (id) => id in tms, findExercise)
+    const swapped = applySwaps(day('d4'), { 'd4-t1': 'trap-bar-deadlift' }, (id) => id in tms, findExercise, findScheme)
     const slot = planDay(swapped, ctx({ tms })).mains[0]!
     expect(slot).toMatchObject({ exerciseId: 'trap-bar-deadlift', tmExerciseId: 'trap-bar-deadlift', tm: 335 })
     expect(slot.sets.find((s) => s.progression)?.weight).toBe(320) // 95% of 335 = 318.25
@@ -49,12 +49,12 @@ describe('swapping a lift for today', () => {
 
   it('stops a swapped T2 borrowing the old lift\'s TM', () => {
     const tms = { ...TMS, 'trap-bar-deadlift': 335 }
-    const swapped = applySwaps(day('d2'), { 'd2-t2': 'trap-bar-deadlift' }, (id) => id in tms, findExercise)
+    const swapped = applySwaps(day('d2'), { 'd2-t2': 'trap-bar-deadlift' }, (id) => id in tms, findExercise, findScheme)
     expect(planDay(swapped, ctx({ tms })).mains[1]).toMatchObject({ tmExerciseId: 'trap-bar-deadlift', tm: 335 })
   })
 
   it('leaves unswapped slots alone', () => {
-    expect(applySwaps(day('d1'), {}, () => false, findExercise)).toEqual(day('d1'))
+    expect(applySwaps(day('d1'), {}, () => false, findExercise, findScheme)).toEqual(day('d1'))
   })
 })
 
