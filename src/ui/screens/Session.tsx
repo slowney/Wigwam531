@@ -599,7 +599,7 @@ export function Session() {
       </div>
 
       {toast && (
-        <div className="toast" role="status">
+        <div className="toast toast-end" role="status">
           <span className="grow">{toast.text}</span>
           <button type="button" className="btn btn-quiet btn-small" onClick={() => run(() => undo(toast))}>
             Undo

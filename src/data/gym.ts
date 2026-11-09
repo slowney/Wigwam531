@@ -29,7 +29,7 @@ export const HOME_GYM: Gym = {
   dumbbells: range(5, 55, 5),
   // Adjustable kettlebell.
   kettlebells: range(5, 40, 5),
-  // F22 stack plates. The 2:1 pulley halves what the handle feels, but
-  // logs use the number on the stack so they match what gets pinned.
-  cableStep: 10,
+  // F22 stack plates, in 5 lb steps. The 2:1 pulley halves what the handle
+  // feels, but logs use the number on the stack so they match what gets pinned.
+  cableStep: 5,
 }

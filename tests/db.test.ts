@@ -40,4 +40,15 @@ describe('upgrading the phone from Phase 0', () => {
     expect(await v2.gyms.get('home')).toEqual(HOME_GYM)
     v2.close()
   })
+
+  it('moves an old home gym from 10 lb cable steps to 5, and leaves any other step alone', async () => {
+    const db = openDb('test-cable-step')
+    await db.gyms.add({ ...structuredClone(HOME_GYM), cableStep: 10 })
+    await ensureSeeded(db)
+    expect((await db.gyms.get('home'))?.cableStep).toBe(5)
+    await db.gyms.update('home', { cableStep: 2.5 })
+    await ensureSeeded(db)
+    expect((await db.gyms.get('home'))?.cableStep).toBe(2.5)
+    db.close()
+  })
 })

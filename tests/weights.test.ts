@@ -56,8 +56,8 @@ describe('the next step up', () => {
     expect(nextLoad(55, 'dumbbell', HOME_GYM)).toBeUndefined()
   })
 
-  it('moves one pin down the cable stack', () => {
-    expect(nextLoad(50, 'cable', HOME_GYM)).toBe(60)
+  it('moves the cable stack 5 lb at a time', () => {
+    expect(nextLoad(50, 'cable', HOME_GYM)).toBe(55)
   })
 
   it('has no weight step for bodyweight work', () => {
@@ -70,7 +70,7 @@ describe('the next step down', () => {
     expect(previousLoad(170, 'barbell', HOME_GYM)).toBe(165)
     expect(previousLoad(40, 'dumbbell', HOME_GYM)).toBe(35)
     expect(previousLoad(5, 'dumbbell', HOME_GYM)).toBeUndefined()
-    expect(previousLoad(60, 'cable', HOME_GYM)).toBe(50)
+    expect(previousLoad(60, 'cable', HOME_GYM)).toBe(55)
     expect(previousLoad(0, 'bodyweight', HOME_GYM)).toBeUndefined()
   })
 })

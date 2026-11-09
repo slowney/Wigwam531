@@ -988,6 +988,19 @@ h2 {
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
 }
 
+/*
+ * The workout's undo note sits at the end of the page and sticks to the
+ * bottom while there's more below. Pinned over the screen instead, it
+ * covered Finish and Cancel right after the last set.
+ */
+.toast-end {
+  position: sticky;
+  left: auto;
+  right: auto;
+  bottom: var(--s3);
+  margin-top: var(--s4);
+}
+
 .pr-list {
   margin: 8px 0 0;
   padding-left: 0;
