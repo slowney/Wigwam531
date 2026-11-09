@@ -64,6 +64,21 @@ export function planTmPerWeek(args: {
 }
 
 /**
+ * The lifts a goal can be set on: every TM the program moves, whether by an
+ * nSuns 1+ set or a 5/3/1 cycle step, in program order.
+ */
+export function goalLifts(program: Program, schemes: SchemeLookup): string[] {
+  const ids: string[] = []
+  for (const slot of program.days.flatMap((d) => d.mains)) {
+    const scheme = schemes(slot.schemeId)
+    if (scheme?.kind !== 'percent' || !(scheme.cycle || scheme.sets.some((s) => s.progression))) continue
+    const id = slotTmId(slot)
+    if (!ids.includes(id)) ids.push(id)
+  }
+  return ids
+}
+
+/**
  * How many days a program week usually takes this person, from when their
  * recent weeks started. Weeks aren't tied to the calendar, so a group that
  * takes nine days a week gets there later than one that takes seven.

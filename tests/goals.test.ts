@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { FIVE_THREE_ONE_BBB, NSUNS_4DAY } from '../src/data/presets.ts'
 import { findScheme } from '../src/data/schemes.ts'
 import { loadGoals, setGoal } from '../src/db/goals.ts'
-import { daysPerWeek, forecastGoal, planTmPerWeek } from '../src/engine/goals.ts'
+import { daysPerWeek, forecastGoal, goalLifts, planTmPerWeek } from '../src/engine/goals.ts'
 import type { E1rmPoint } from '../src/engine/metrics.ts'
 import { LOWER_TABLE, UPPER_TABLE } from '../src/engine/progression.ts'
 import { addLeader, doWorkout, freshDb, lifts } from './helpers.ts'
@@ -42,6 +42,13 @@ describe('the plan’s pace', () => {
 
   it('is nothing for a lift the program doesn’t drive', () => {
     expect(plan(NSUNS_4DAY, 'barbell-row', [5])).toBeUndefined()
+  })
+})
+
+describe('the lifts a goal can be set on', () => {
+  it('are the TMs the program moves, nSuns or 5/3/1', () => {
+    expect(goalLifts(NSUNS_4DAY, findScheme)).toEqual(['bench-press', 'squat', 'overhead-press', 'deadlift'])
+    expect(goalLifts(FIVE_THREE_ONE_BBB, findScheme)).toEqual(['bench-press', 'squat', 'overhead-press', 'deadlift'])
   })
 })
 

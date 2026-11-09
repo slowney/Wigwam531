@@ -1,8 +1,7 @@
 import { findExercise } from '../data/exercises.ts'
 import { findScheme } from '../data/schemes.ts'
-import { daysPerWeek, forecastGoal, planTmPerWeek, type GoalForecast } from '../engine/goals.ts'
+import { daysPerWeek, forecastGoal, goalLifts, planTmPerWeek, type GoalForecast } from '../engine/goals.ts'
 import { e1rmSeries, tmSteps } from '../engine/metrics.ts'
-import { progressedTms } from '../engine/program.ts'
 import { defaultTable } from '../engine/progression.ts'
 import { db as defaultDb, type WigwamDb } from './db.ts'
 import { loadProgram } from './profiles.ts'
@@ -37,7 +36,7 @@ export async function loadGoals(profileId: string, db: WigwamDb = defaultDb, now
   const program = await loadProgram(profileId, db)
   if (!profile || !program) return []
   const goals = profile.goals ?? {}
-  const lifts = [...new Set([...progressedTms(program, findScheme), ...Object.keys(goals)])]
+  const lifts = [...new Set([...goalLifts(program, findScheme), ...Object.keys(goals)])]
   const sets = await db.sets.where('profileId').equals(profileId).toArray()
   const tms = await db.trainingMaxes.where('profileId').equals(profileId).toArray()
   const days = daysPerWeek(await db.weeks.where('profileId').equals(profileId).toArray())
