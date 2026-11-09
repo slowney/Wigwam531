@@ -145,6 +145,7 @@ export function ExerciseDetail() {
               from={rangeStart(range, now)}
               to={now}
               marked={useE1rm ? prs : undefined}
+              goal={useE1rm ? profile.goals?.[exerciseId] : undefined}
               series={chartSeries}
               readout={(x) => {
                 if (useE1rm) {

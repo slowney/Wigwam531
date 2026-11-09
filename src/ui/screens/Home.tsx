@@ -4,10 +4,11 @@ import { Link } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db } from '../../db/db.ts'
 import { activeSession } from '../../db/sessions.ts'
-import { loadWeekOverview, weekState, type WeekOverview } from '../../db/weeks.ts'
+import { loadWeekOverview, skipDay, weekState, type WeekOverview } from '../../db/weeks.ts'
 import { dayLabel } from '../../engine/program.ts'
 import { statusOf } from '../../engine/week.ts'
 import { BackupReminder } from '../BackupPrompt.tsx'
+import { ConfirmButton } from '../components/forms.tsx'
 import { Icon } from '../icons.tsx'
 import { Mark } from '../Mark.tsx'
 
@@ -51,7 +52,7 @@ export function Home() {
   // Who's up, and on which day: the people with days left this week.
   const upNext = profiles.flatMap((p) => {
     const day = overviews[p.id]?.pending[0]
-    return day && !overviews[p.id]?.complete ? [{ profile: p, day: dayLabel(day, findExercise) }] : []
+    return day && !overviews[p.id]?.complete ? [{ profile: p, dayId: day.id, day: dayLabel(day, findExercise) }] : []
   })
 
   return (
@@ -98,11 +99,17 @@ export function Home() {
                 <p className="muted small">Everyone's week is done. Start the next one below.</p>
               ) : (
                 <ul className="today-list">
-                  {upNext.map(({ profile, day }) => (
+                  {upNext.map(({ profile, dayId, day }) => (
                     <li key={profile.id}>
                       <span className="dot" style={{ background: profile.color }} />
                       <strong>{profile.name}</strong>
                       <span className="muted grow">{day}</span>
+                      <ConfirmButton
+                        small
+                        label="Skip"
+                        confirmLabel="Skip it?"
+                        onConfirm={() => void skipDay(profile.id, dayId)}
+                      />
                     </li>
                   ))}
                 </ul>

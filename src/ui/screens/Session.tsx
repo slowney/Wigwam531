@@ -22,11 +22,13 @@ import { weekState } from '../../db/weeks.ts'
 import {
   activeSession,
   addAccessory,
+  addToSuperset,
   deleteSets,
   discardSession,
   finishSession,
   logSet,
   logWarmups,
+  MAX_SUPERSET,
   removeAccessory,
   setActiveProfile,
   setCollapsed,
@@ -35,7 +37,9 @@ import {
   setRest,
   setRotate,
   applyAccessoryGroup,
+  leaveSuperset,
   setSlotWeight,
+  skipEntry,
   skipSet,
   swapExercise,
   updateAccessory,
@@ -56,6 +60,7 @@ import {
 import type { PrCheck } from '../../engine/records.ts'
 import { schemeShape } from '../../engine/schemes.ts'
 import {
+  backToBack,
   dayProgress,
   lastNotes,
   lastSessionSets,
@@ -67,6 +72,7 @@ import {
   prKind,
   restSeconds,
   slotCollapsed,
+  supersetOf,
   type PrKind,
 } from '../../engine/session.ts'
 import {
@@ -228,7 +234,7 @@ function viewOf(person: Person, gym: Gym, now: number): View {
     slots,
     dayName: programDay ? dayLabel(programDay, findExercise) : 'Unknown day',
     logged,
-    next: nextSet(slots, logged),
+    next: nextSet(slots, logged, person.entry.supersets),
     progress: dayProgress(slots, logged),
     prs: prChecks(person.history),
     flexSlots: programDay?.accessories.filter((a) => a.kind === 'flex').length ?? 0,
@@ -307,6 +313,7 @@ type SheetState =
   | { kind: 'swap'; profileId: string; slotId: string }
   | { kind: 'accessory'; profileId: string }
   | { kind: 'resize'; profileId: string; slotId: string }
+  | { kind: 'superset'; profileId: string; slotId: string }
   | { kind: 'saveGroup'; profileId: string }
 
 interface Toast {
@@ -367,9 +374,12 @@ export function Session() {
 
   async function log(v: View, slot: PlannedSlot, index: number, planned: PlannedSet, values: SetValues) {
     const fresh = !v.logged.some((s) => !s.warmup && s.slotId === slot.slotId && s.index === index)
+    // Mid-superset there's no rest, and no handing the bar over: the partner exercise is next.
+    const loggedNow = [...v.logged, { slotId: slot.slotId, index, warmup: false }]
+    const straightOn = backToBack(v.slots, loggedNow, v.person.entry.supersets, { slotId: slot.slotId, index })
     const setId = await logSet(
       setFromPlan(v.person.entry, slot, index, planned, values),
-      restSeconds(planned, slot.role),
+      straightOn ? 0 : restSeconds(planned, slot.role),
     )
     const exercise = exerciseOf(slot.exerciseId)
     setToast({
@@ -378,7 +388,7 @@ export function Session() {
       entryId: v.person.entry.id,
       profileId: v.person.profile.id,
     })
-    if (!session!.rotate || views.length < 2) return
+    if (!session!.rotate || views.length < 2 || straightOn) return
     const hasSetsLeft = (id: string) => {
       const other = views.find((x) => x.person.profile.id === id)
       if (!other) return false
@@ -404,12 +414,14 @@ export function Session() {
   const picked = active.person.entry.accessories.filter((a) => !a.pinned).length
   const emptySlots = Math.max(0, active.flexSlots - picked)
 
-  function renderSlot(slot: PlannedSlot) {
+  function renderSlot(slot: PlannedSlot, supersetLabel?: string) {
     return (
       <SlotCard
         key={slot.slotId}
         view={active!}
         slot={slot}
+        supersetLabel={supersetLabel}
+        onLeaveSuperset={() => run(() => leaveSuperset(active!.person.entry.id, slot.slotId))}
         weightStep={exerciseOf(slot.exerciseId)?.load === 'cable' ? data!.gym!.cableStep : 5}
         gym={data!.gym!}
         onNudge={(weight) => run(() => setSlotWeight(active!.person.entry.id, slot.slotId, weight))}
@@ -514,7 +526,7 @@ export function Session() {
       <RestBar entry={active.person.entry} now={now} onChange={(ends, secs) => run(() => setRest(active.person.entry.id, ends, secs))} />
       {error && <p className="error">{error}</p>}
 
-      {active.slots.filter((s) => s.role === 'main').map(renderSlot)}
+      {active.slots.filter((s) => s.role === 'main').map((slot) => renderSlot(slot))}
 
       <div className="acc-head">
         <h2 className="grow no-margin">
@@ -539,7 +551,19 @@ export function Session() {
           run(() => applyAccessoryGroup(active.person.entry.id, group, { forFollowers: share }))
         }
       />
-      {active.slots.filter((s) => s.role === 'accessory').map(renderSlot)}
+      {accessoryRuns(active).map((group) =>
+        group.letter ? (
+          <div key={group.slots[0]!.slotId} className="superset">
+            <p className="superset-head small">
+              <strong>Superset {group.letter}</strong>
+              <span className="muted"> · back to back, rest after each round</span>
+            </p>
+            {group.slots.map((slot, i) => renderSlot(slot, `${group.letter}${i + 1}`))}
+          </div>
+        ) : (
+          renderSlot(group.slots[0]!)
+        ),
+      )}
       {Array.from({ length: emptySlots }, (_, i) => (
         <button
           key={i}
@@ -584,6 +608,17 @@ export function Session() {
             })
           }
         />
+        {!active.logged.some((s) => !s.warmup) && (
+          <ConfirmButton
+            label={views.length > 1 ? `Skip ${active.person.profile.name}'s day` : `Skip ${active.dayName}`}
+            confirmLabel="Tap again to skip it"
+            onConfirm={() =>
+              run(async () => {
+                if ((await skipEntry(active.person.entry.id)) === 'ended') navigate('/', { replace: true })
+              })
+            }
+          />
+        )}
         {!anyLogged && (
           <ConfirmButton
             label="Cancel workout"
@@ -698,6 +733,44 @@ function swapDetail(view: View, slotId: string, exerciseId: string): string | un
   return shape ? `${shape.sets} × ${repRange(shape.reps)}, weight you pick` : undefined
 }
 
+/**
+ * Today's accessories in the order they're done, a superset kept together
+ * with its letter (A, B...), anything else on its own.
+ */
+function accessoryRuns(view: View): Array<{ letter?: string; slots: PlannedSlot[] }> {
+  const accessories = view.slots.filter((s) => s.role === 'accessory')
+  const supersets = view.person.entry.supersets ?? []
+  const runs: Array<{ letter?: string; slots: PlannedSlot[] }> = []
+  const placed = new Set<string>()
+  for (const slot of accessories) {
+    if (placed.has(slot.slotId)) continue
+    const group = supersetOf(supersets, slot.slotId)
+    if (!group) {
+      runs.push({ slots: [slot] })
+      continue
+    }
+    const members = group.flatMap((id) => accessories.filter((s) => s.slotId === id))
+    for (const m of members) placed.add(m.slotId)
+    runs.push({ letter: String.fromCharCode(65 + runs.filter((r) => r.letter).length), slots: members })
+  }
+  return runs
+}
+
+/** Accessories this one could pair with: others with sets left, in no superset or one with room. */
+function supersetPartners(view: View, slotId: string): PlannedSlot[] {
+  const left = (s: PlannedSlot) => {
+    const p = dayProgress([s], view.logged)
+    return p.done < p.total
+  }
+  return view.slots.filter(
+    (s) =>
+      s.role === 'accessory' &&
+      s.slotId !== slotId &&
+      left(s) &&
+      (supersetOf(view.person.entry.supersets, s.slotId)?.length ?? 1) < MAX_SUPERSET,
+  )
+}
+
 /** A main slot as the program has it today (a follower's overrides applied), before any swap. */
 function programSlotOf(view: View, slotId: string): MainSlot | undefined {
   return view.person.program?.days.find((d) => d.id === view.person.entry.dayId)?.mains.find((m) => m.id === slotId)
@@ -719,6 +792,9 @@ function SlotCard(props: {
   onPermanent: () => void
   onRemove: () => void
   onToggle: (collapsed: boolean) => void
+  /** "A1", for an accessory in a superset. */
+  supersetLabel?: string
+  onLeaveSuperset: () => void
 }) {
   const { view, slot } = props
   const profileId = view.person.profile.id
@@ -736,7 +812,9 @@ function SlotCard(props: {
 
   let meta = ''
   const pick = view.person.entry.accessories.find((a) => a.id === slot.slotId)
-  if (slot.role === 'accessory') meta = pick?.pinned ? 'Pinned accessory' : 'Accessory'
+  if (slot.role === 'accessory') {
+    meta = `${props.supersetLabel ? `${props.supersetLabel} · ` : ''}${pick?.pinned ? 'Pinned accessory' : 'Accessory'}`
+  }
   else if (slot.kind === 'range') meta = `${slot.tier}`
   else if (slot.missingTm) meta = `${slot.tier} · no TM entered`
   else {
@@ -809,14 +887,31 @@ function SlotCard(props: {
         </div>
       )}
       {!collapsed && pick && (
-        <button
-          type="button"
-          className="btn btn-quiet btn-small swap-row"
-          onClick={() => props.onSheet({ kind: 'resize', profileId, slotId: slot.slotId })}
-        >
-          {pick.sets} × {repRange(pick.reps)}
-          {exercise?.unit === 'seconds' ? ' s' : ''} · Change
-        </button>
+        <div className="swap-row">
+          <button
+            type="button"
+            className="btn btn-quiet btn-small"
+            onClick={() => props.onSheet({ kind: 'resize', profileId, slotId: slot.slotId })}
+          >
+            {pick.sets} × {repRange(pick.reps)}
+            {exercise?.unit === 'seconds' ? ' s' : ''} · Change
+          </button>
+          {props.supersetLabel ? (
+            <button type="button" className="btn btn-quiet btn-small" onClick={props.onLeaveSuperset}>
+              Leave superset
+            </button>
+          ) : (
+            supersetPartners(view, slot.slotId).length > 0 && (
+              <button
+                type="button"
+                className="btn btn-quiet btn-small"
+                onClick={() => props.onSheet({ kind: 'superset', profileId, slotId: slot.slotId })}
+              >
+                Superset with…
+              </button>
+            )
+          )}
+        </div>
       )}
 
       {!collapsed && outgrown && working.length === 0 && (
@@ -1168,7 +1263,14 @@ function SessionSheet(props: {
         items={picks.map((p) => ({ exerciseId: p.exerciseId, sets: p.sets, reps: p.reps }))}
         onClose={props.onClose}
         onSave={(name, items) =>
-          saveAccessoryGroup(view.person.profile.id, entry.dayId, { name, items }).then(props.onClose)
+          saveAccessoryGroup(view.person.profile.id, entry.dayId, {
+            name,
+            items,
+            // Today's supersets among these picks, by position, so they come back with the group.
+            supersets: (entry.supersets ?? [])
+              .map((g) => g.map((id) => picks.findIndex((p) => p.id === id)).filter((i) => i >= 0))
+              .filter((g) => g.length > 1),
+          }).then(props.onClose)
         }
       />
     )
@@ -1195,6 +1297,32 @@ function SessionSheet(props: {
           swapExercise(entry.id, slot.slotId, exerciseId).catch((e: unknown) => props.onError((e as Error).message))
         }}
       />
+    )
+  }
+
+  if (sheet.kind === 'superset') {
+    return (
+      <Sheet title={`Superset ${exercise?.name ?? ''} with`} onClose={props.onClose}>
+        <p className="muted small">
+          Done back to back, a set of each, with the rest after the round. It goes round until they're all done.
+        </p>
+        <div className="picker-list">
+          {supersetPartners(view, slot.slotId).map((p) => (
+            <button
+              key={p.slotId}
+              type="button"
+              className="picker-item"
+              onClick={() => {
+                props.onClose()
+                addToSuperset(entry.id, slot.slotId, p.slotId).catch((e: unknown) => props.onError((e as Error).message))
+              }}
+            >
+              <span className="grow">{exerciseOf(p.exerciseId)?.name ?? p.exerciseId}</span>
+              {supersetOf(entry.supersets, p.slotId) && <span className="muted small">joins its superset</span>}
+            </button>
+          ))}
+        </div>
+      </Sheet>
     )
   }
 

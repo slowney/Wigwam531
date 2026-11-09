@@ -16,11 +16,12 @@ import {
   setFromPlan,
   setRest,
   setSlotWeight,
+  skipEntry,
   skipSet,
   startSession,
   swapExercise,
 } from '../src/db/sessions.ts'
-import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus } from '../src/db/weeks.ts'
+import { endWeek, ensureFirstWeek, loadWeekOverview, setDayStatus, skipDay } from '../src/db/weeks.ts'
 import { dayProgress, nextSet } from '../src/engine/session.ts'
 import { addFollower, addLeader, doWorkout, freshDb, lifts, planFor } from './helpers.ts'
 
@@ -333,6 +334,45 @@ describe('nudging a weight', () => {
     const slot = (await planFor(db, lead, entry.id)).slots.find((s) => s.slotId === pick.id)!
     await logSet(setFromPlan(entry, slot, 0, slot.sets[0]!, { weight: 55, reps: 10 }), undefined, db)
     expect((await db.entries.get(entry.id))?.weights).toEqual({})
+  })
+})
+
+describe('skipping a day', () => {
+  it('from inside a workout: the day is skipped, its warm-ups go, and the others carry on', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const partner = await addFollower(db, 'Partner', lead, lifts(185, 225, 95, 275))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }, { profileId: partner, dayId: 'd1' }], 'home', db)
+    const mine = await entryOf(db, session, lead)
+    const { slots } = await planFor(db, lead, mine.id)
+    const bench = slots[0]!
+    await logWarmups(bench.warmups.map((w, i) => setFromPlan(mine, bench, i, w, { weight: w.weight!, reps: w.reps }, true)), db)
+
+    expect(await skipEntry(mine.id, db)).toBe('continues')
+    expect(await db.sets.where('entryId').equals(mine.id).count()).toBe(0)
+    expect((await loadWeekOverview(lead, db)).week?.days).toMatchObject({ d1: 'skipped' })
+    expect(await db.sessions.get(session)).toMatchObject({ participants: [partner], activeProfileId: partner })
+
+    // The last one out ends the workout.
+    expect(await skipEntry((await entryOf(db, session, partner)).id, db)).toBe('ended')
+    expect(await activeSession(db)).toBeUndefined()
+  })
+
+  it('refuses once a working set is logged', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    const session = await startSession([{ profileId: lead, dayId: 'd1' }], 'home', db)
+    const entry = await entryOf(db, session, lead)
+    const bench = (await planFor(db, lead, entry.id)).slots[0]!
+    await logSet(setFromPlan(entry, bench, 0, bench.sets[0]!, { weight: 170, reps: 5 }), undefined, db)
+    await expect(skipEntry(entry.id, db)).rejects.toThrow('Finish the workout')
+  })
+
+  it('before starting: the next day comes up instead', async () => {
+    const db = freshDb()
+    const lead = await addLeader(db, 'Lead', lifts(225, 275, 135, 315))
+    await skipDay(lead, 'd1', db)
+    expect((await loadWeekOverview(lead, db)).pending[0]?.id).toBe('d2')
   })
 })
 

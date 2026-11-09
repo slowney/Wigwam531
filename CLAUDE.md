@@ -21,6 +21,7 @@ writing code.
 - Phase 7 (skipping sets, accessory groups, deload and TM-test suggestions, workout and weekly numbers, comparing on exercise pages) is built and was checked in the preview. It's waiting on real use. Phase 8 (5/3/1 waves with BBB and BBS) is built and tested, waiting on a real cycle; partners on their own phones is planned in `docs/SYNC.md`.
 - Day focus (accessories follow each day's Upper/Lower/Posterior lean) is built and checked in the preview, waiting on a real week.
 - T2s are a ramp plus 3 × 6–8, PRs need a beaten prescription, and BBB has alternates and a build-up scheme. All checked in the preview, waiting on real use.
+- Supersets (accessories only), skipping a day, and goals (target e1RMs with on-plan and at-your-pace estimates) are built and checked in the preview, waiting on real use.
 - **Demo data:** in the dev build only, Progress has "Load demo data" (`src/db/demo.ts`), six months of made-up training for a Demo profile. It's imported only behind `import.meta.env.DEV`, so it never ships.
 
 ## Hard rules
@@ -95,6 +96,8 @@ lifting numbers as fixtures; use made-up ones otherwise.
 - **Progression** comes from the 95% 1+ set, never the last AMRAP set.
 - **Weeks.** Each profile has its own week, and days aren't tied to the calendar. A skipped lift keeps its TM.
 - **Day focus.** Accessory suggestions lean toward a day's muscles (`dayFocus` in `src/engine/program.ts`): from the first main lift unless set by hand. It orders, never hides.
+- **Supersets** live on the workout entry as lists of accessory pick ids. `setOrder` / `nextSet` go round by round, and `backToBack` decides when there's no rest. Groups store them by item position.
+- **Goals** are target e1RMs on the profile (`goals`); the forecasts are worked out in `src/engine/goals.ts` every time they're shown.
 - **Followers.** Partners follow the leader's program with their own TMs, and can override individual slots.
 - **Custom exercises** live in IndexedDB. `setCustomExercises` keeps a copy where `findExercise` sees it: `App` refreshes it on every change, and `addCustomExercise` does too. So use `findExercise` and `allExercises()`, never `EXERCISES` alone, anywhere a user's own exercise could turn up.
 - **Look:** the design tokens live at the top of `src/ui/styles.css`: type sizes in rem (`--fs-*`, which follow the iPhone's text size through Dynamic Type), spacing `--s1`–`--s6`, radii `--r-*`, surfaces up to `--surface-3`, and colour roles (amber `--accent` only for primary actions; `--warning` for warnings). Use them, not raw values. Numbers use `.num` / `--font-num` (SF Pro Rounded). Icons come from `src/ui/icons.tsx`; the mark from `src/ui/Mark.tsx`, which shares its shapes with `scripts/make-icons.mjs`. The dev build has a style page at `#/style`. The pre-redesign look is tagged `pre-redesign` (see `docs/LOOK.md`).

@@ -69,18 +69,71 @@ function doneKeys(logged: ReadonlyArray<SetRef>): Set<string> {
   return new Set(logged.filter((s) => !s.warmup).map((s) => key(s.slotId, s.index)))
 }
 
+/** Accessories done back to back: lists of pick ids, in the order each round goes. */
+export type Supersets = ReadonlyArray<ReadonlyArray<string>>
+
+export function supersetOf(supersets: Supersets | undefined, slotId: string): ReadonlyArray<string> | undefined {
+  return supersets?.find((group) => group.includes(slotId))
+}
+
+/**
+ * Every planned set in the order it's done: slot by slot, except that a
+ * superset goes round by round (A1 set 1, A2 set 1, A1 set 2...) from where
+ * its first exercise sits. One with fewer sets just drops out of the later rounds.
+ */
+export function setOrder(
+  slots: ReadonlyArray<PlannedSlot>,
+  supersets: Supersets = [],
+): Array<{ slotId: string; index: number }> {
+  const out: Array<{ slotId: string; index: number }> = []
+  const placed = new Set<string>()
+  for (const slot of slots) {
+    if (placed.has(slot.slotId)) continue
+    const group = supersetOf(supersets, slot.slotId)
+    const members = group ? slots.filter((s) => group.includes(s.slotId)).sort((a, b) => group.indexOf(a.slotId) - group.indexOf(b.slotId)) : [slot]
+    for (const m of members) placed.add(m.slotId)
+    const rounds = Math.max(...members.map((m) => m.sets.length))
+    for (let i = 0; i < rounds; i++) {
+      for (const m of members) if (i < m.sets.length) out.push({ slotId: m.slotId, index: i })
+    }
+  }
+  return out
+}
+
 /** The first planned working set with nothing logged against it. Warm-ups never block it. */
 export function nextSet(
   slots: ReadonlyArray<PlannedSlot>,
   logged: ReadonlyArray<SetRef>,
+  supersets?: Supersets,
 ): { slotId: string; index: number } | undefined {
   const done = doneKeys(logged)
-  for (const slot of slots) {
-    for (let i = 0; i < slot.sets.length; i++) {
-      if (!done.has(key(slot.slotId, i)) && !slot.sets[i]!.skipped) return { slotId: slot.slotId, index: i }
-    }
-  }
-  return undefined
+  const sets = new Map(slots.map((s) => [s.slotId, s.sets]))
+  return setOrder(slots, supersets).find(
+    ({ slotId, index }) => !done.has(key(slotId, index)) && !sets.get(slotId)?.[index]?.skipped,
+  )
+}
+
+/**
+ * Whether the set just logged leads straight into its superset partner, with
+ * no rest: another exercise in the superset still has this round's set to
+ * do, whichever order the round is going in. The rest comes once the round
+ * is done. Only the superset counts, since accessories get done whenever the
+ * bar is busy, main lifts or not.
+ */
+export function backToBack(
+  slots: ReadonlyArray<PlannedSlot>,
+  loggedNow: ReadonlyArray<SetRef>,
+  supersets: Supersets | undefined,
+  set: { slotId: string; index: number },
+): boolean {
+  const group = supersetOf(supersets, set.slotId)
+  if (!group) return false
+  const done = doneKeys(loggedNow)
+  return group.some((id) => {
+    if (id === set.slotId) return false
+    const planned = slots.find((s) => s.slotId === id)?.sets[set.index]
+    return planned !== undefined && !planned.skipped && !done.has(key(id, set.index))
+  })
 }
 
 export function dayProgress(

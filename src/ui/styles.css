@@ -1539,6 +1539,17 @@ h2 {
 
 /* Workout: a swap to keep, an accessory to resize. */
 
+/* A superset's cards sit together on a rail, so the pairing is visible at a glance. */
+.superset {
+  margin: 0 0 var(--s3);
+  padding-left: var(--s3);
+  border-left: 3px solid var(--accent);
+}
+
+.superset-head {
+  margin: 0 0 var(--s2);
+}
+
 .swap-row {
   display: flex;
   flex-wrap: wrap;
@@ -1603,6 +1614,12 @@ h2 {
   fill: var(--muted);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
+}
+
+.chart-goal {
+  stroke: var(--text-2);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
 }
 
 .chart-cross {
@@ -1720,6 +1737,30 @@ h2 {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* Goals: one lift a block, a bar toward the target, then the two estimates. */
+.goal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding-block: var(--s2);
+}
+
+.goal + .goal {
+  border-top: 1px solid var(--border);
+}
+
+.goal-track {
+  display: block;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.goal-etas {
+  grid-template-columns: auto 1fr;
 }
 
 /* Progress */

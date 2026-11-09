@@ -35,6 +35,8 @@ export interface AccessoryGroup {
   id: string
   name: string
   items: Array<{ exerciseId: string; sets: number; reps: [number, number] }>
+  /** Items done as supersets, by position in `items`. */
+  supersets?: number[][]
 }
 
 /**

@@ -221,6 +221,7 @@ function MainLifts(props: {
               from={props.from}
               to={props.to}
               marked={prs}
+              goal={props.profile.goals?.[id]}
               series={[
                 {
                   name: 'TM',

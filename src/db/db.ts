@@ -32,6 +32,8 @@ export interface ProfileRow {
   advanced?: boolean
   /** Muscles to bias accessories toward. Expired ones stay until removed. */
   focuses?: Focus[]
+  /** Target e1RMs, by lift. */
+  goals?: Record<string, number>
 }
 
 export interface ProgramRow {
@@ -143,6 +145,8 @@ export interface EntryRow {
   groups?: string[]
   /** Sets left out today, by slot id: set indexes. Plans stay whole; these are just not done. */
   skips?: Record<string, number[]>
+  /** Accessories done back to back today: lists of pick ids, in round order (see `setOrder`). */
+  supersets?: string[][]
   /** Exercises folded or opened by hand, by slot id. Saved so a reload looks the same. */
   collapsed?: Record<string, boolean>
   notes?: string

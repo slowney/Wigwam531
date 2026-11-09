@@ -89,6 +89,15 @@ export async function setDayStatus(
   })
 }
 
+/**
+ * Skips a day before training it: from Home or Start workout, when the week
+ * works out that way. Starts the first week if there isn't one yet.
+ */
+export async function skipDay(profileId: string, dayId: string, db: WigwamDb = defaultDb, now = Date.now()): Promise<void> {
+  const week = await ensureFirstWeek(profileId, db, now)
+  await setDayStatus(week.id, dayId, 'skipped', db, now)
+}
+
 export function completedAtFor(
   week: WeekRow,
   days: Record<string, DayStatus>,

@@ -349,6 +349,10 @@ failed set (no reps) doesn't count toward the working weight.
 - **Muscle volume:** sets per muscle this week against target, plus the last 8 weeks.
 - **Bodyweight:** a log and a chart.
 - **Advanced (toggle per profile):** each lift ÷ bodyweight, SBD total, and DOTS (needs sex and bodyweight).
+- **Goals:** a target e1RM per lift the program drives, set on the profile. Each shows where it stands (best e1RM of the last six weeks, or the TM's implied max with nothing logged lately), a bar toward the target, and two estimates:
+  - **On plan:** the program's progression from here: an nSuns lift's table step for its recent 1+ reps, a 5/3/1 lift's cycle step spread over three weeks, with a week in seven resting, at the person's usual days per program week.
+  - **At your pace:** how the TM actually moved over the last 12 weeks, stalls and resets included; it needs a month of TM history, and says so when the TM hasn't moved.
+  - Both are straight lines and gains slow down, so the card says later dates are likely optimistic. The goal shows as a dashed line on that lift's charts.
 
 ## Screens
 
@@ -361,6 +365,9 @@ failed set (no reps) doesn't count toward the working weight.
   - **Last time's note:** a note left on an exercise last time shows on it this time.
   - **Nudging a weight:** rep-range sets have − / + beside the weight, one gym-aware step (the next dumbbell, the next pin, 5 lb on a bar), for grabbing a different weight before the next set.
   - **Skipping a set:** "Skip this set today" leaves a set out (tap it to put it back). To drop it for good, edit the lift's sets in the program.
+  - **Skipping a day:** "Skip" on Home's Today card and on Start workout, and "Skip Day N" in a workout for anyone with no working sets logged. The day is marked skipped (its lifts keep their TMs); in a workout that person leaves it, and it ends when nobody's left.
+  - **Supersets:** "Superset with…" on an accessory pairs it with another (three at most). They show together as A1/A2, sets go round by round, and there's no rest or bar hand-over until the round is done, in whichever order it's done. Saving the accessories as a group keeps the supersets.
+  - **Undo note:** sits at the end of the page and sticks to the bottom only while there's more below, so it never covers Finish.
   - **Accessory groups:** a program day's saved groups, ranked by how the workouts that used them went and by what's behind this week; one tap adds a group.
   - **Out of order:** the main lifts run in order, but each accessory's next set is always ready to log, since accessories get done whenever the bar is busy.
   - **Per set:** swap, notes and RPE.

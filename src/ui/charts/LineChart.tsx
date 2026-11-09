@@ -60,6 +60,8 @@ export function LineChart(props: {
   /** Describes the chosen moment, shown above the chart. */
   readout: (x: number) => ReactNode
   formatY?: (y: number) => string
+  /** A target to draw as a dashed line: a goal e1RM. The scale stretches to show it. */
+  goal?: number
 }) {
   const formatY = props.formatY ?? ((y: number) => String(Math.round(y)))
 
@@ -76,7 +78,7 @@ export function LineChart(props: {
 
   const x0 = Number.isFinite(props.from) ? props.from : Math.min(...all.map((p) => p.x))
   const x1 = Math.max(props.to, x0 + 1)
-  const ys = all.map((p) => p.y)
+  const ys = [...all.map((p) => p.y), ...(props.goal !== undefined ? [props.goal] : [])]
   const pad = Math.max(1, (Math.max(...ys) - Math.min(...ys)) * 0.08)
   const y0 = Math.min(...ys) - pad
   const y1 = Math.max(...ys) + pad
@@ -134,6 +136,14 @@ export function LineChart(props: {
         ))}
         {Number.isFinite(selected) && (
           <line x1={sx(selected)} x2={sx(selected)} y1={PAD.top} y2={H - PAD.bottom} className="chart-cross" />
+        )}
+        {props.goal !== undefined && (
+          <g>
+            <line x1={PAD.left} x2={W - PAD.right} y1={sy(props.goal)} y2={sy(props.goal)} className="chart-goal" />
+            <text x={W - PAD.right} y={sy(props.goal) - 4} className="chart-axis" textAnchor="end">
+              Goal {formatY(props.goal)}
+            </text>
+          </g>
         )}
         {shown.map((s) => (
           <path key={s.name} d={path(s)} fill="none" stroke={s.color} className="chart-line" />

@@ -7,6 +7,7 @@ import { db, type BodyweightRow, type RestrictionRow } from '../../db/db.ts'
 import { loadRestrictions, removeRestriction } from '../../db/restrictions.ts'
 import { MUSCLE_LABELS, type Focus } from '../../engine/types.ts'
 import { FocusSheet } from '../components/FocusSheet.tsx'
+import { GoalsCard } from '../components/GoalsCard.tsx'
 import { ProgressionSheet } from '../components/ProgressionSheet.tsx'
 import { RestrictionSheet } from '../components/RestrictionSheet.tsx'
 import {
@@ -107,6 +108,8 @@ export function ProfileDetail() {
           />
         )}
       </section>
+
+      <GoalsCard profileId={profile.id} />
 
       <AccessoriesCard profileId={profile.id} restrictions={data.restrictions ?? []} focuses={profile.focuses ?? []} />
 

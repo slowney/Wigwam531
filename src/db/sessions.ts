@@ -116,6 +116,8 @@ export async function logSet(
   await db.transaction('rw', [db.sets, db.entries], async () => {
     await db.sets.add({ ...set, id, at: now })
     if (restSeconds) await db.entries.update(set.entryId, { restEndsAt: now + restSeconds * 1000, restSeconds })
+    // 0 is "straight on" (into a superset partner): any rest still showing is over.
+    else if (restSeconds === 0) await db.entries.update(set.entryId, { restEndsAt: undefined, restSeconds: undefined })
     // A nudged weight has done its job once a set is logged: that set's weight carries on.
     const entry = await db.entries.get(set.entryId)
     if (entry?.weights?.[set.slotId] !== undefined) {
@@ -284,9 +286,23 @@ export async function applyAccessoryGroup(
       const picks: AccessoryPick[] = group.items
         .filter((i) => !have.has(i.exerciseId) && findExercise(i.exerciseId))
         .map((i) => ({ id: newId(), exerciseId: i.exerciseId, sets: i.sets, reps: [i.reps[0], i.reps[1]] }))
+      const accessories = [...target.accessories, ...picks]
+      // The group's supersets come with it, joining whatever pick each item
+      // ended up as, so long as none of them is in a superset already.
+      const taken = new Set((target.supersets ?? []).flat())
+      const pickOf = (i: number) => {
+        const item = group.items[i]
+        return item && [...accessories].reverse().find((a) => a.exerciseId === item.exerciseId)?.id
+      }
+      const fresh = (group.supersets ?? []).flatMap((indexes) => {
+        const ids = indexes.map(pickOf)
+        const whole = ids.every((id): id is string => id !== undefined && !taken.has(id))
+        return whole && ids.length > 1 ? [ids as string[]] : []
+      })
       await db.entries.update(target.id, {
-        accessories: [...target.accessories, ...picks],
+        accessories,
         groups: [...new Set([...(target.groups ?? []), group.id])],
+        ...(fresh.length ? { supersets: [...(target.supersets ?? []), ...fresh] } : {}),
       })
     }
     await add(entry)
@@ -356,8 +372,56 @@ export async function removeAccessory(entryId: string, pickId: string, db: Wigwa
   await db.transaction('rw', [db.entries, db.sets], async () => {
     if (await workingSetsLogged(entryId, pickId, db)) throw new Error('Sets are already logged for that one.')
     const entry = await db.entries.get(entryId)
-    if (entry) await db.entries.update(entryId, { accessories: entry.accessories.filter((a) => a.id !== pickId) })
+    if (entry) {
+      await db.entries.update(entryId, {
+        accessories: entry.accessories.filter((a) => a.id !== pickId),
+        supersets: withoutPick(entry.supersets, pickId),
+      })
+    }
   })
+}
+
+/** The most exercises in one superset: three is a giant set, more is a circuit. */
+export const MAX_SUPERSET = 3
+
+/**
+ * Puts one accessory with another, to do back to back. Joining an
+ * accessory that's already in a superset adds to it, up to three.
+ */
+export async function addToSuperset(entryId: string, pickId: string, partnerId: string, db: WigwamDb = defaultDb): Promise<void> {
+  await db.transaction('rw', db.entries, async () => {
+    const entry = await db.entries.get(entryId)
+    if (!entry || pickId === partnerId) return
+    const picks = new Set(entry.accessories.map((a) => a.id))
+    if (!picks.has(pickId) || !picks.has(partnerId)) throw new Error('Supersets are for accessories.')
+    const groups = (entry.supersets ?? []).map((g) => [...g])
+    const mine = groups.find((g) => g.includes(pickId))
+    const theirs = groups.find((g) => g.includes(partnerId))
+    if (mine && mine === theirs) return
+    // A new pair goes in page order; anyone joining goes on the end of the round.
+    const position = (id: string) => entry.accessories.findIndex((a) => a.id === id)
+    let merged: string[]
+    if (mine && theirs) merged = [...mine, ...theirs]
+    else if (mine) merged = [...mine, partnerId]
+    else if (theirs) merged = [...theirs, pickId]
+    else merged = [pickId, partnerId].sort((x, y) => position(x) - position(y))
+    if (merged.length > MAX_SUPERSET) throw new Error(`A superset can hold ${MAX_SUPERSET} exercises at most.`)
+    const rest = groups.filter((g) => g !== mine && g !== theirs)
+    await db.entries.update(entryId, { supersets: [...rest, merged] })
+  })
+}
+
+/** Takes an accessory out of its superset; a superset of one is no superset. */
+export async function leaveSuperset(entryId: string, pickId: string, db: WigwamDb = defaultDb): Promise<void> {
+  await db.transaction('rw', db.entries, async () => {
+    const entry = await db.entries.get(entryId)
+    if (entry) await db.entries.update(entryId, { supersets: withoutPick(entry.supersets, pickId) })
+  })
+}
+
+function withoutPick(supersets: string[][] | undefined, pickId: string): string[][] | undefined {
+  if (!supersets) return undefined
+  return supersets.map((g) => g.filter((id) => id !== pickId)).filter((g) => g.length > 1)
 }
 
 export async function setEntryNotes(entryId: string, notes: string, db: WigwamDb = defaultDb): Promise<void> {
@@ -407,6 +471,42 @@ export async function finishSession(sessionId: string, db: WigwamDb = defaultDb,
       })
     }
     await db.sessions.update(sessionId, { status: 'done', endedAt: now })
+  })
+}
+
+/**
+ * Skips one person's day from inside a workout: the day is marked skipped
+ * (its lifts keep their TMs) and they leave the workout. Refused once they've
+ * logged a working set; warm-ups alone go with them. Returns whether the
+ * workout is still going, since it ends when nobody's left.
+ */
+export async function skipEntry(entryId: string, db: WigwamDb = defaultDb, now = Date.now()): Promise<'continues' | 'ended'> {
+  return db.transaction('rw', [db.sessions, db.entries, db.sets, db.weeks, db.programs], async () => {
+    const entry = await db.entries.get(entryId)
+    if (!entry) return 'continues'
+    const sets = await db.sets.where('entryId').equals(entryId).toArray()
+    if (sets.some((s) => !s.warmup)) throw new Error('Sets are logged for this day. Finish the workout instead.')
+    await db.sets.bulkDelete(sets.map((s) => s.id))
+    const week = await db.weeks.get(entry.weekId)
+    if (week) {
+      const days = { ...week.days, [entry.dayId]: 'skipped' as const }
+      const program = await loadProgram(entry.profileId, db)
+      await db.weeks.update(week.id, { days, completedAt: completedAtFor(week, days, program, now) })
+    }
+    await db.entries.delete(entryId)
+    const session = await db.sessions.get(entry.sessionId)
+    if (!session) return 'ended'
+    const participants = session.participants.filter((id) => id !== entry.profileId)
+    if (participants.length === 0) {
+      await db.sessions.delete(session.id)
+      return 'ended'
+    }
+    await db.sessions.update(session.id, {
+      participants,
+      activeProfileId: participants.includes(session.activeProfileId) ? session.activeProfileId : participants[0]!,
+      rotate: session.rotate && participants.length > 1,
+    })
+    return 'continues'
   })
 }
 

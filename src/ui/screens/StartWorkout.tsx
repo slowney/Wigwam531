@@ -4,9 +4,9 @@ import { Link, useNavigate } from 'react-router'
 import { findExercise } from '../../data/exercises.ts'
 import { db, type ProfileRow } from '../../db/db.ts'
 import { activeSession, startSession } from '../../db/sessions.ts'
-import { loadWeekOverview, type WeekOverview } from '../../db/weeks.ts'
+import { loadWeekOverview, skipDay, type WeekOverview } from '../../db/weeks.ts'
 import { dayLabel, type ProgramDay } from '../../engine/program.ts'
-import { BackLink } from '../components/forms.tsx'
+import { BackLink, ConfirmButton } from '../components/forms.tsx'
 
 export function StartWorkout() {
   const data = useLiveQuery(async () => {
@@ -97,19 +97,33 @@ function Picker(props: { profiles: ProfileRow[]; overviews: Record<string, WeekO
                   Week {weekNumber} done · start Week {weekNumber + 1}
                 </Link>
               ) : on && o ? (
-                <select
-                  className="input select"
-                  aria-label={`${p.name}'s day`}
-                  value={dayFor(p.id)}
-                  onChange={(e) => setDays({ ...days, [p.id]: e.target.value })}
-                >
-                  {o.pending.map((d, i) => (
-                    <option key={d.id} value={d.id}>
-                      {label(d)}
-                      {i === 0 ? ' (next)' : ''}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    className="input select"
+                    aria-label={`${p.name}'s day`}
+                    value={dayFor(p.id)}
+                    onChange={(e) => setDays({ ...days, [p.id]: e.target.value })}
+                  >
+                    {o.pending.map((d, i) => (
+                      <option key={d.id} value={d.id}>
+                        {label(d)}
+                        {i === 0 ? ' (next)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <ConfirmButton
+                    small
+                    label="Skip"
+                    confirmLabel="Skip it?"
+                    onConfirm={() => {
+                      const dayId = dayFor(p.id)
+                      if (!dayId) return
+                      // The next pending day takes its place in the picker.
+                      setDays(Object.fromEntries(Object.entries(days).filter(([id]) => id !== p.id)))
+                      skipDay(p.id, dayId).catch((e: unknown) => setError((e as Error).message))
+                    }}
+                  />
+                </>
               ) : (
                 <span className="muted small">
                   Week {weekNumber} · next {label(o?.pending[0])}

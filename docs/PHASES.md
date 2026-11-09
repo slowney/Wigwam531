@@ -277,6 +277,15 @@ From the list after Phase 6. Built:
 
 **Done when:** a BBB cycle runs with a dumbbell week or two mixed in.
 
+## Supersets, skipping days, goals
+
+- **Supersets** for accessories: A1/A2 cards, round-by-round order, rest only after a round, saved with accessory groups.
+- **Skip a day** from Home, Start workout, or inside a workout before anything's logged.
+- **Goals:** target e1RMs with "on plan" and "at your pace" estimates, and a goal line on the charts.
+- Also: cable steps of 5 lb (an old stored 10 is moved to 5 at launch), and the undo note no longer covers Finish.
+
+**Done when:** a real superset session, a skipped day, and a goal that's been tracked for a few weeks.
+
 ## Later
 
 - plate calculator (the plate inventory is already stored)
