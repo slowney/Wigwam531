@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { findExercise } from '../src/data/exercises.ts'
 import { HOME_GYM } from '../src/data/gym.ts'
+import { setsLine } from '../src/ui/format.ts'
 import { NSUNS_4DAY, NSUNS_4DAY_ROW } from '../src/data/presets.ts'
 import { findScheme } from '../src/data/schemes.ts'
 import { planAccessory, planDay, type PlanContext } from '../src/engine/plan.ts'
@@ -172,6 +173,10 @@ describe('carrying working weights over', () => {
 
   it('reads the most recent earlier session, skipping warm-ups and today', () => {
     expect(lastSessionSets(history, 'db-row', 'today').map((s) => s.id)).toEqual(['5', '6', '7'])
+    // What the card shows: each set as it was done.
+    expect(setsLine(lastSessionSets(history, 'db-row', 'today'))).toBe('50×10 · 50×9 · 50×8')
+    expect(setsLine([{ weight: 0, reps: 8 }, { weight: 25, reps: 6 }], { bodyweight: true })).toBe('BW×8 · BW+25×6')
+    expect(setsLine([{ weight: 0, reps: 30 }], { bodyweight: true, seconds: true })).toBe('BW×30 s')
   })
 
   it('holds the weight until every set hits the top of the range', () => {

@@ -96,7 +96,7 @@ import { QuickAddSheet } from '../components/QuickAddSheet.tsx'
 import { RatingSheet } from '../components/RatingSheet.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { RepPicker, SetEditor, type SetValues } from '../components/SetEditor.tsx'
-import { formatDate, repRange } from '../format.ts'
+import { formatDate, repRange, setsLine } from '../format.ts'
 import { Icon } from '../icons.tsx'
 import { useNow, useWakeLock } from '../hooks.ts'
 
@@ -828,10 +828,8 @@ function SlotCard(props: {
     meta += ` · +${carried.weight - carried.last} from last time`
   }
 
-  const doneLine = [...working]
-    .sort((a, b) => a.index - b.index)
-    .map((s) => `${weightText(s.weight, exercise)}×${s.reps}`)
-    .join(' · ')
+  const lineOpts = { bodyweight: isBodyweight(exercise), seconds: exercise?.unit === 'seconds' }
+  const doneLine = setsLine([...working].sort((a, b) => a.index - b.index), lineOpts)
   const conflict = exercise ? view.restrictions.find((r) => restricts(r, exercise)) : undefined
   // Dumbbell work tops out at the heaviest pair. Once every set beats the
   // range there, the bar is the way to keep progressing: back to the
@@ -839,6 +837,10 @@ function SlotCard(props: {
   const outgrown = slot.role === 'main' && exercise?.load === 'dumbbell' && slot.carried?.reason === 'maxed'
   const barbellBack = swappedFrom ?? programSlot?.alternates?.find((id) => exerciseOf(id)?.load !== 'dumbbell')
   const lastNote = lastNotes(view.person.history, slot.exerciseId, view.person.entry.sessionId)
+  // Rep-range work (accessories, the heavy row) picks its own weights, so
+  // last time's sets are the thing to beat. Percent work is planned for you.
+  const lastSets = slot.kind === 'range' ? lastSessionSets(view.person.history, slot.exerciseId, view.person.entry.sessionId) : []
+  const lastAt = lastSets[0]?.at ?? lastNote?.at
 
   return (
     <section className={collapsed ? 'card slot slot-collapsed' : 'card slot'}>
@@ -930,9 +932,15 @@ function SlotCard(props: {
           )}
         </div>
       )}
-      {!collapsed && lastNote && (
+      {!collapsed && lastAt !== undefined && (lastSets.length > 0 || lastNote) && (
         <p className="small muted no-margin slot-note">
-          ✎ Last time, {formatDate(lastNote.at)}: {lastNote.notes.join(' · ')}
+          Last time, {formatDate(lastAt)}:{' '}
+          {lastSets.length > 0 && <span className="num">{setsLine(lastSets, lineOpts)}</span>}
+          {lastNote && (
+            <>
+              {lastSets.length > 0 && <br />}✎ {lastNote.notes.join(' · ')}
+            </>
+          )}
         </p>
       )}
       {!collapsed && conflict && (

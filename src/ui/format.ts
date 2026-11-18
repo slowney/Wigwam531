@@ -2,6 +2,18 @@ import type { ProgramDay } from '../engine/program.ts'
 import type { PercentSet, Scheme } from '../engine/schemes.ts'
 import type { ExerciseLookup } from '../engine/types.ts'
 
+/**
+ * Each set as weight×reps, in order: "35×12 · 35×12 · 40×10". Bodyweight
+ * work reads "BW" or "BW+25", timed work "30 s".
+ */
+export function setsLine(
+  sets: ReadonlyArray<{ weight: number; reps: number }>,
+  opts: { bodyweight?: boolean; seconds?: boolean } = {},
+): string {
+  const weight = (w: number) => (opts.bodyweight ? (w > 0 ? `BW+${w}` : 'BW') : String(w))
+  return sets.map((s) => `${weight(s.weight)}×${s.reps}${opts.seconds ? ' s' : ''}`).join(' · ')
+}
+
 export function formatDate(ms: number, now = Date.now()): string {
   const date = new Date(ms)
   const sameYear = date.getFullYear() === new Date(now).getFullYear()
